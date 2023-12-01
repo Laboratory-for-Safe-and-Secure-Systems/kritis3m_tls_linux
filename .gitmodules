@@ -1,0 +1,9 @@
+[submodule "apps/tls_echo_server"]
+	path = apps/tls_echo_server
+	url = git@lab.las3.de:frt42716/tls_echo_server.git
+[submodule "libs/wolfssl"]
+	path = libs/wolfssl
+	url = git@github.com:Frauschi/wolfssl.git
+[submodule "libs/liboqs"]
+	path = libs/liboqs
+	url = git@github.com:Frauschi/liboqs.git

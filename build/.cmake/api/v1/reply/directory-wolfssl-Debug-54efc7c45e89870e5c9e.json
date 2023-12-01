@@ -1,0 +1,181 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install"
+		],
+		"files" : 
+		[
+			"libs/wolfssl/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 2437,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 2444,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 2448,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 2454,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 2457,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 2462,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 2477,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 2499,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"wolfssl/libwolfssl.a"
+			],
+			"targetId" : "wolfssl::@eab1c54d2351917472c0",
+			"targetIndex" : 1,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "include/wolfssl",
+			"paths" : 
+			[
+				{
+					"from" : "build/wolfssl/wolfssl",
+					"to" : "."
+				}
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 3,
+			"component" : "Unspecified",
+			"destination" : "include/wolfssl",
+			"paths" : 
+			[
+				{
+					"from" : "libs/wolfssl/wolfssl",
+					"to" : "."
+				}
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 4,
+			"component" : "Unspecified",
+			"destination" : "share/doc/wolfssl/example",
+			"paths" : 
+			[
+				"libs/wolfssl/examples/echoserver/echoserver.c",
+				"libs/wolfssl/examples/sctp/sctp-server.c",
+				"libs/wolfssl/examples/sctp/sctp-client-dtls.c",
+				"libs/wolfssl/examples/sctp/sctp-client.c",
+				"libs/wolfssl/examples/sctp/sctp-server-dtls.c",
+				"libs/wolfssl/examples/echoclient/echoclient.c",
+				"libs/wolfssl/examples/server/server.c",
+				"libs/wolfssl/examples/benchmark/tls_bench.c",
+				"libs/wolfssl/examples/client/client.c"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 5,
+			"component" : "Unspecified",
+			"destination" : "share/doc/wolfssl",
+			"paths" : 
+			[
+				"libs/wolfssl/doc/README.txt",
+				"libs/wolfssl/certs/taoCert.txt"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 6,
+			"component" : "Unspecified",
+			"destination" : "lib/cmake/wolfssl",
+			"exportName" : "wolfssl-targets",
+			"exportTargets" : 
+			[
+				{
+					"id" : "wolfssl::@eab1c54d2351917472c0",
+					"index" : 1
+				}
+			],
+			"paths" : 
+			[
+				"wolfssl/CMakeFiles/Export/41263289dc9ec8a87d5b2cd96b0484fa/wolfssl-targets.cmake"
+			],
+			"type" : "export"
+		},
+		{
+			"backtrace" : 7,
+			"component" : "Unspecified",
+			"destination" : "lib/pkgconfig",
+			"paths" : 
+			[
+				"build/wolfssl/support/wolfssl.pc"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 8,
+			"component" : "Unspecified",
+			"destination" : "lib/cmake/wolfssl",
+			"paths" : 
+			[
+				"build/wolfssl/wolfssl-config.cmake",
+				"build/wolfssl/wolfssl-config-version.cmake"
+			],
+			"type" : "file"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "wolfssl",
+		"source" : "libs/wolfssl"
+	}
+}

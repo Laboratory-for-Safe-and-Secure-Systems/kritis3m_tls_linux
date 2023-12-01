@@ -1,0 +1,494 @@
+[
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/config -I/home/tobi/workspace/tests/tls_echo_client/includes -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -g -o CMakeFiles/tls_client.dir/sources/tls_client.c.o -c /home/tobi/workspace/tests/tls_echo_client/sources/tls_client.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/sources/tls_client.c",
+  "output": "CMakeFiles/tls_client.dir/sources/tls_client.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/config -I/home/tobi/workspace/tests/tls_echo_client/includes -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -g -o CMakeFiles/tls_client.dir/sources/wolfssl.c.o -c /home/tobi/workspace/tests/tls_echo_client/sources/wolfssl.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/sources/wolfssl.c",
+  "output": "CMakeFiles/tls_client.dir/sources/wolfssl.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/hmac.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/hmac.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/hmac.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/hmac.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/hash.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/hash.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/hash.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/hash.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/cpuid.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/cpuid.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/cpuid.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/cpuid.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/kdf.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/kdf.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/kdf.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/kdf.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/random.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/random.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/random.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/random.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sha256.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sha256.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sha256.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sha256.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/rsa.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/rsa.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/rsa.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/rsa.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_c32.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_c32.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_c32.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_c32.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_c64.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_c64.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_c64.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_c64.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_x86_64.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_x86_64.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_x86_64.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_x86_64.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/usr/local/include -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_x86_64_asm.S.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_x86_64_asm.S",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_x86_64_asm.S",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_x86_64_asm.S.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_arm32.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_arm32.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_arm32.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_arm32.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_armthumb.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_armthumb.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_armthumb.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_armthumb.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_arm64.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_arm64.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_arm64.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_arm64.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_cortexm.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_cortexm.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_cortexm.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_cortexm.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_int.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_int.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sp_int.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sp_int.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/aes.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/aes.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/aes.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/aes.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/cmac.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/cmac.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/cmac.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/cmac.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/des3.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/des3.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/des3.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/des3.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sha.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sha.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sha.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sha.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sha512.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sha512.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sha512.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sha512.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sha3.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sha3.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sha3.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sha3.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/logging.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/logging.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/logging.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/logging.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/wc_port.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/wc_port.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/wc_port.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/wc_port.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/error.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/error.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/error.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/error.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/port/liboqs/liboqs.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/port/liboqs/liboqs.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/port/liboqs/liboqs.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/port/liboqs/liboqs.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/port/aria/aria-crypt.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/port/aria/aria-crypt.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/port/aria/aria-crypt.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/port/aria/aria-crypt.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/port/aria/aria-cryptocb.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/port/aria/aria-cryptocb.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/port/aria/aria-cryptocb.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/port/aria/aria-cryptocb.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/wc_encrypt.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/wc_encrypt.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/wc_encrypt.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/wc_encrypt.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/signature.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/signature.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/signature.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/signature.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/wolfmath.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/wolfmath.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/wolfmath.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/wolfmath.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/memory.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/memory.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/memory.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/memory.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/dh.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/dh.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/dh.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/dh.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/asn.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/asn.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/asn.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/asn.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/coding.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/coding.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/coding.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/coding.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/poly1305.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/poly1305.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/poly1305.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/poly1305.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/arc4.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/arc4.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/arc4.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/arc4.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/md4.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/md4.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/md4.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/md4.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/md5.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/md5.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/md5.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/md5.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/pwdbased.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/pwdbased.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/pwdbased.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/pwdbased.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/pkcs12.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/pkcs12.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/pkcs12.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/pkcs12.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/dsa.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/dsa.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/dsa.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/dsa.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/camellia.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/camellia.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/camellia.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/camellia.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/md2.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/md2.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/md2.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/md2.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ripemd.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ripemd.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ripemd.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ripemd.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/blake2b.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/blake2b.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/blake2b.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/blake2b.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/blake2s.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/blake2s.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/blake2s.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/blake2s.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/chacha.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/chacha.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/chacha.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/chacha.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/chacha20_poly1305.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/chacha20_poly1305.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/chacha20_poly1305.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/chacha20_poly1305.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/tfm.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/tfm.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/tfm.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/tfm.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/integer.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/integer.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/integer.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/integer.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ecc.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ecc.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ecc.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ecc.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/curve25519.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/curve25519.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/curve25519.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/curve25519.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ed25519.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ed25519.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ed25519.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ed25519.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/fe_operations.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/fe_operations.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/fe_operations.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/fe_operations.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ge_operations.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ge_operations.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ge_operations.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ge_operations.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/curve448.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/curve448.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/curve448.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/curve448.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ed448.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ed448.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ed448.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ed448.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/fe_448.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/fe_448.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/fe_448.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/fe_448.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ge_448.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ge_448.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ge_448.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ge_448.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/falcon.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/falcon.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/falcon.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/falcon.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sphincs.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sphincs.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/sphincs.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/sphincs.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/dilithium.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/dilithium.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/dilithium.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/dilithium.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ext_kyber.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ext_kyber.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/ext_kyber.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/ext_kyber.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/pkcs7.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/pkcs7.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/pkcs7.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/pkcs7.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/srp.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/srp.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/srp.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/srp.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/src/internal.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/internal.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/internal.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/src/internal.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/src/wolfio.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/wolfio.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/wolfio.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/src/wolfio.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/src/keys.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/keys.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/keys.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/src/keys.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/src/ssl.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/ssl.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/ssl.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/src/ssl.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/src/ocsp.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/ocsp.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/ocsp.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/src/ocsp.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/src/tls.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/tls.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/tls.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/src/tls.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/src/tls13.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/tls13.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/tls13.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/src/tls13.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/src/dtls13.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/dtls13.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/dtls13.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/src/dtls13.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/src/crl.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/crl.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/crl.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/src/crl.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/src/sniffer.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/sniffer.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/sniffer.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/src/sniffer.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/src/dtls.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/dtls.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/src/dtls.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/src/dtls.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/cryptocb.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/cryptocb.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/cryptocb.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/cryptocb.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/wc_pkcs11.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/wc_pkcs11.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/wc_pkcs11.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/wc_pkcs11.c.o"
+},
+{
+  "directory": "/home/tobi/workspace/tests/tls_echo_client/build",
+  "command": "/usr/bin/gcc -DBUILDING_WOLFSSL -DHAVE_CONFIG_H -DWOLFSSL_IGNORE_FILE_WARN -DWOLFSSL_USER_SETTINGS -I/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/build/wolfssl -I/home/tobi/workspace/tests/tls_echo_client/config/wolfssl -Wall -Wextra -Wno-unused -Werror  -g -o wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/hpke.c.o -c /home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/hpke.c",
+  "file": "/home/tobi/workspace/tests/tls_echo_client/libs/wolfssl/wolfcrypt/src/hpke.c",
+  "output": "wolfssl/CMakeFiles/wolfssl.dir/wolfcrypt/src/hpke.c.o"
+}
+]

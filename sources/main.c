@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <getopt.h>
+#include <signal.h>
 
 #include "networking.h"
 #include "logging.h"
@@ -23,6 +24,8 @@ LOG_MODULE_REGISTER(KRITIS3M_TLS);
 		exit(-1); \
 	}
 
+
+volatile __sig_atomic_t running = true;
 
 int readFile(const char* filePath, uint8_t* buffer, size_t bufferSize)
 {
@@ -67,9 +70,21 @@ int readFile(const char* filePath, uint8_t* buffer, size_t bufferSize)
 }
 
 
+static void signal_handler(int signo)
+{
+    /* Indicate the main process to stop */
+    running = false;
+}
+
 void init(void)
 {
 	initialize_network_interfaces();
+
+    /* Install the signal handler */
+    struct sigaction signal_action;
+    sigemptyset (&signal_action.sa_mask);
+    signal_action.sa_handler = signal_handler;
+    sigaction(SIGINT, &signal_action, NULL);
 
 	/* Initalize the tls_echo_server application */
 	int ret = tls_echo_server_init();
@@ -109,10 +124,16 @@ int main(int argc, char** argv)
 
     int index = -1;
 
-    char* cert = NULL;
-    char* key = NULL;
-    char* intermediate = NULL;
-    char* root = NULL;
+    /* Variables for the user supplied paths */
+    char* cert_path = NULL;
+    char* key_path = NULL;
+    char* intermediate_path = NULL;
+    char* root_path = NULL;
+
+    /* Variables for the actual read data */
+    uint8_t* cert_chain_buffer = NULL; /* Entity certificate and intermediate */
+    uint8_t* key_buffer = NULL;
+    uint8_t* root_buffer = NULL;
 
     /* The new TLS server config */
 	struct tls_server_config tls_echo_server_config = {
@@ -157,16 +178,16 @@ int main(int argc, char** argv)
                 tls_echo_server_config.listening_port = (uint16_t) new_port;
                 break;
             case 'c':
-                cert = optarg;
+                cert_path = optarg;
                 break;
             case 'k':
-                key = optarg;
+                key_path = optarg;
                 break;
             case 'i':
-                intermediate = optarg;
+                intermediate_path = optarg;
                 break;
             case 'r':
-                root = optarg;
+                root_path = optarg;
                 break;
             default:
                 printf("unknown option: %c\n", result);
@@ -175,54 +196,56 @@ int main(int argc, char** argv)
     }
 
     /* Allocate memory for the files to read */
-    tls_echo_server_config.tls_config.device_certificate_chain.buffer = (uint8_t*) malloc(certificate_chain_buffer_size);
-    if (tls_echo_server_config.tls_config.device_certificate_chain.buffer == NULL)
+    cert_chain_buffer = (uint8_t*) malloc(certificate_chain_buffer_size);
+    if (cert_chain_buffer == NULL)
     {
         LOG_ERR("unable to allocate memory for certificate chain");
         exit(-1);
     }
 
-    tls_echo_server_config.tls_config.private_key.buffer = (uint8_t*) malloc(private_key_buffer_size);
-    if (tls_echo_server_config.tls_config.private_key.buffer == NULL)
+    key_buffer = (uint8_t*) malloc(private_key_buffer_size);
+    if (key_buffer == NULL)
     {
         LOG_ERR("unable to allocate memory for private key");
         exit(-1);
     }
 
-    tls_echo_server_config.tls_config.root_certificate.buffer = (uint8_t*) malloc(root_certificate_buffer_size);
-    if (tls_echo_server_config.tls_config.root_certificate.buffer == NULL)
+    root_buffer = (uint8_t*) malloc(root_certificate_buffer_size);
+    if (root_buffer == NULL)
     {
         LOG_ERR("unable to allocate memory for root certificate");
         exit(-1);
     }
 
     /* Read certificate chain */
-    if (cert != NULL)
+    if (cert_path != NULL)
     {
-        int cert_size = readFile(cert,
-                                 tls_echo_server_config.tls_config.device_certificate_chain.buffer,
+        int cert_size = readFile(cert_path,
+                                 cert_chain_buffer,
                                  certificate_chain_buffer_size);
         if (cert_size < 0)
         {
-            LOG_ERR("unable to read certificate from file %s", cert);
+            LOG_ERR("unable to read certificate from file %s", cert_path);
             exit(-1);
         }
 
         tls_echo_server_config.tls_config.device_certificate_chain.size = cert_size;
 
-        if (intermediate != NULL)
+        if (intermediate_path != NULL)
         {
-            int inter_size = readFile(intermediate,
-                                      tls_echo_server_config.tls_config.device_certificate_chain.buffer + cert_size,
+            int inter_size = readFile(intermediate_path,
+                                      cert_chain_buffer + cert_size,
                                       certificate_chain_buffer_size - cert_size);
             if (inter_size < 0)
             {
-                LOG_ERR("unable to read intermediate certificate from file %s", intermediate);
+                LOG_ERR("unable to read intermediate certificate from file %s", intermediate_path);
                 exit(-1);
             }
 
             tls_echo_server_config.tls_config.device_certificate_chain.size += inter_size;
         }
+
+        tls_echo_server_config.tls_config.device_certificate_chain.buffer = cert_chain_buffer;
     }
     else
     {
@@ -231,17 +254,18 @@ int main(int argc, char** argv)
     }
 
     /* Read private key */
-    if (key != 0)
+    if (key_path != 0)
     {
-        int key_size = readFile(key,
-                                tls_echo_server_config.tls_config.private_key.buffer,
+        int key_size = readFile(key_path,
+                                key_buffer,
                                 private_key_buffer_size);
         if (key_size < 0)
         {
-            LOG_ERR("unable to read private key from file %s", key);
+            LOG_ERR("unable to read private key from file %s", key_path);
             exit(-1);
         }
 
+        tls_echo_server_config.tls_config.private_key.buffer = key_buffer;
         tls_echo_server_config.tls_config.private_key.size = key_size;
     }
     else
@@ -251,17 +275,18 @@ int main(int argc, char** argv)
     }
 
     /* Read root certificate */
-    if (root != 0)
+    if (root_path != 0)
     {
-        int root_size = readFile(root,
-                                 tls_echo_server_config.tls_config.root_certificate.buffer,
+        int root_size = readFile(root_path,
+                                 root_buffer,
                                  root_certificate_buffer_size);
         if (root_size < 0)
         {
-            LOG_ERR("unable to read root certificate from file %s", root);
+            LOG_ERR("unable to read root certificate from file %s", root_path);
             exit(-1);
         }
 
+        tls_echo_server_config.tls_config.root_certificate.buffer = root_buffer;
         tls_echo_server_config.tls_config.root_certificate.size = root_size;
     }
     else
@@ -281,10 +306,18 @@ int main(int argc, char** argv)
 	LOG_INF("started TLS echo server with id %d", id);
 
 
-    while (true)
+    while (running)
     {
-        sleep(100);
+        sleep(1);
     }
+
+    printf("Terminating...\n");
+
+    /* We only land here if we received a terminate signal. First, we
+     * kill the running server (especially its running client thread, if
+     * present). Then, we kill the actual application thread. */
+    tls_echo_server_stop(id);
+    tls_echo_server_terminate();
 
 	return 0;
 }

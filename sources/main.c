@@ -90,21 +90,6 @@ void init(void)
 	int ret = tls_echo_server_init();
 	if (ret != 0)
 		fatal("unable to initialize tls_echo_server application");
-
-
-	/* Initialize WolfSSL */
-	struct wolfssl_library_configuration config = {
-		.loggingEnabled = false,
-	};
-
-	ret = wolfssl_init(&config);
-	if (ret != 0)
-		fatal("unable to initialize WolfSSL");
-
-	/* Run the echo server (asynchronously) */
-	ret = tls_echo_server_run();
-	if (ret != 0)
-		fatal("unable to run tls_echo_server application");
 }
 
 
@@ -115,6 +100,8 @@ static const struct option long_options[] =
     { "key",            required_argument, 0, 'k' },
     { "intermediate",   required_argument, 0, 'i' },
     { "root",           required_argument, 0, 'r' },
+    { "secure_element", required_argument, 0, 's' },
+    { "help",           no_argument,       0, 'h' },
     0
 };
 
@@ -135,6 +122,12 @@ int main(int argc, char** argv)
     uint8_t* key_buffer = NULL;
     uint8_t* root_buffer = NULL;
 
+    /* WolfSSL config */
+    struct wolfssl_library_configuration wolfssl_config = {
+		.loggingEnabled = true,
+        .secure_element_middleware_path = NULL,
+	};
+
     /* The new TLS server config */
 	struct tls_server_config tls_echo_server_config = {
 		.ip_address = "127.0.0.1",
@@ -152,6 +145,7 @@ int main(int argc, char** argv)
                 .buffer = NULL,
                 .size = 0,
             },
+            .use_secure_element = false,
         },
 	};
 
@@ -162,7 +156,7 @@ int main(int argc, char** argv)
     /* Parse arguments */
     while (true)
     {
-        int result = getopt_long(argc, argv, "p:c:k:i:r:", long_options, &index);
+        int result = getopt_long(argc, argv, "p:c:k:i:r:s:h", long_options, &index);
 
         if (result == -1) break; /* end of list */
 
@@ -189,11 +183,39 @@ int main(int argc, char** argv)
             case 'r':
                 root_path = optarg;
                 break;
+            case 's':
+                tls_echo_server_config.tls_config.use_secure_element = true;
+                wolfssl_config.secure_element_middleware_path = optarg;
+                break;
+            case 'h': 
+                printf("Usage: %s [OPTIONS]\n", argv[0]);
+                printf("Options:\n");
+                printf("  -p, --port PORT                   listening port of the TLS echo server\n");
+                printf("  -c, --cert <file_path>            path to the certificate file\n");
+                printf("  -k, --key <file_path>             path to the private key file\n");
+                printf("  -i, --intermediate <file_path>    \n");
+                printf("                                    path to an intermediate certificate file\n");
+                printf("  -r, --root <file_path>            path to the root certificate file\n");
+                printf("  -s, --secure_element <file_path>  use secure element with the provided middleware\n");
+                printf("  -h, --help                        display this help and exit\n");
+                exit(0);
+                break;
             default:
                 printf("unknown option: %c\n", result);
                 break;
         }
     }
+
+    /* Initialize WolfSSL */
+	int ret = wolfssl_init(&wolfssl_config);
+	if (ret != 0)
+		fatal("unable to initialize WolfSSL");
+
+	/* Run the echo server (asynchronously) */
+	ret = tls_echo_server_run();
+	if (ret != 0)
+		fatal("unable to run tls_echo_server application");
+
 
     /* Allocate memory for the files to read */
     cert_chain_buffer = (uint8_t*) malloc(certificate_chain_buffer_size);
@@ -267,6 +289,16 @@ int main(int argc, char** argv)
 
         tls_echo_server_config.tls_config.private_key.buffer = key_buffer;
         tls_echo_server_config.tls_config.private_key.size = key_size;
+
+        if (tls_echo_server_config.tls_config.use_secure_element == true)
+        {
+            /* Temporary solution */
+            LOG_INF("Importing private key into secure element");
+        }
+    }
+    else if (tls_echo_server_config.tls_config.use_secure_element == true)
+    {
+        LOG_INF("Using private key on secure elment");
     }
     else
     {

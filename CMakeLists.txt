@@ -1,36 +1,42 @@
 cmake_minimum_required(VERSION 3.22)
 
-include(FetchContent)
-
-set(TARGET kritis3m_tls)
-
 # Make sure VSCode and IntelliSense finds its necessary data
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+
+include(FetchContent)
+Set(FETCHCONTENT_QUIET FALSE)
+
+
 #External repositories we need 
 FetchContent_Declare(tls_echo_server
-    GIT_REPOSITORY git@lab.las3.de:frt42716/tls_echo_server.git
-    GIT_TAG        secure_element
-    GIT_PROGRESS   TRUE
-    SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/apps/tls_echo_server
-    BINARY_DIR     ${CMAKE_CURRENT_BINARY_DIR}/apps/tls_echo_server
+    GIT_REPOSITORY          git@lab.las3.de:frt42716/tls_echo_server.git
+    GIT_TAG                 origin/secure_element
+    GIT_PROGRESS            TRUE
+    USES_TERMINAL_DOWNLOAD  TRUE
+    SOURCE_DIR              ${CMAKE_CURRENT_SOURCE_DIR}/apps/tls_echo_server
+    BINARY_DIR              ${CMAKE_CURRENT_BINARY_DIR}/apps/tls_echo_server
 )
 
 FetchContent_Declare(liboqs
-    GIT_REPOSITORY https://github.com/Frauschi/liboqs.git
-    GIT_TAG        main
-    GIT_PROGRESS   TRUE
-    SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/libs/liboqs
-    BINARY_DIR     ${CMAKE_CURRENT_BINARY_DIR}/libs/liboqs 
+    GIT_REPOSITORY          https://github.com/Frauschi/liboqs.git
+    GIT_TAG                 origin/main
+    GIT_PROGRESS            TRUE
+    USES_TERMINAL_DOWNLOAD  TRUE
+    SOURCE_DIR              ${CMAKE_CURRENT_SOURCE_DIR}/libs/liboqs
+    BINARY_DIR              ${CMAKE_CURRENT_BINARY_DIR}/libs/liboqs 
 )
 
 FetchContent_Declare(wolfssl
-    GIT_REPOSITORY https://github.com/Frauschi/wolfssl.git
-    GIT_TAG        pq_secure_element
-    GIT_PROGRESS   TRUE
-    SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/libs/wolfssl
-    BINARY_DIR     ${CMAKE_CURRENT_BINARY_DIR}/libs/wolfssl  
+    GIT_REPOSITORY          https://github.com/Frauschi/wolfssl.git
+    GIT_TAG                 origin/pq_secure_element
+    GIT_PROGRESS            TRUE
+    USES_TERMINAL_DOWNLOAD  TRUE
+    SOURCE_DIR              ${CMAKE_CURRENT_SOURCE_DIR}/libs/wolfssl
+    BINARY_DIR              ${CMAKE_CURRENT_BINARY_DIR}/libs/wolfssl  
 )
+
+set(TARGET kritis3m_tls)
 
 project(${TARGET})
 

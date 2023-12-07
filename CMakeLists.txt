@@ -54,7 +54,6 @@ target_sources(${TARGET} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/sources/main.c
 )
 
-
 # Liboqs configuration
 set(OQS_DIST_BUILD  OFF)
 set(OQS_BUILD_ONLY_LIB ON)

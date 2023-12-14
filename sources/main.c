@@ -12,7 +12,7 @@
 #include "networking.h"
 #include "logging.h"
 #include "wolfssl.h"
-#include "tls_echo_server.h"
+#include "tls_proxy.h"
 
 #include "certificates.h"
 
@@ -86,8 +86,8 @@ void init(void)
     signal_action.sa_handler = signal_handler;
     sigaction(SIGINT, &signal_action, NULL);
 
-	/* Initalize the tls_echo_server application */
-	int ret = tls_echo_server_init();
+	/* Initalize the tls_proxy application */
+	int ret = tls_proxy_init();
 	if (ret != 0)
 		fatal("unable to initialize tls_echo_server application");
 }
@@ -128,9 +128,9 @@ int main(int argc, char** argv)
         .secure_element_middleware_path = NULL,
 	};
 
-    /* The new TLS server config */
-	struct tls_server_config tls_echo_server_config = {
-		.ip_address = "127.0.0.1",
+    /* The new TLS reverse proxy config */
+	struct reverse_proxy_config tls_reverse_proxy_config = {
+		.own_ip_address = "127.0.0.1",
 		.listening_port = 0,
         .tls_config = {
             .device_certificate_chain = {
@@ -169,7 +169,7 @@ int main(int argc, char** argv)
                     LOG_ERR("invalid port number %lu", new_port);
                     exit(-1);
                 }
-                tls_echo_server_config.listening_port = (uint16_t) new_port;
+                tls_reverse_proxy_config.listening_port = (uint16_t) new_port;
                 break;
             case 'c':
                 cert_path = optarg;
@@ -184,7 +184,7 @@ int main(int argc, char** argv)
                 root_path = optarg;
                 break;
             case 's':
-                tls_echo_server_config.tls_config.use_secure_element = true;
+                tls_reverse_proxy_config.tls_config.use_secure_element = true;
                 wolfssl_config.secure_element_middleware_path = optarg;
                 break;
             case 'h': 
@@ -211,10 +211,10 @@ int main(int argc, char** argv)
 	if (ret != 0)
 		fatal("unable to initialize WolfSSL");
 
-	/* Run the echo server (asynchronously) */
-	ret = tls_echo_server_run();
+	/* Run the proxy (asynchronously) */
+	ret = tls_proxy_run();
 	if (ret != 0)
-		fatal("unable to run tls_echo_server application");
+		fatal("unable to run tls proxy application");
 
 
     /* Allocate memory for the files to read */
@@ -251,7 +251,7 @@ int main(int argc, char** argv)
             exit(-1);
         }
 
-        tls_echo_server_config.tls_config.device_certificate_chain.size = cert_size;
+        tls_reverse_proxy_config.tls_config.device_certificate_chain.size = cert_size;
 
         if (intermediate_path != NULL)
         {
@@ -264,10 +264,10 @@ int main(int argc, char** argv)
                 exit(-1);
             }
 
-            tls_echo_server_config.tls_config.device_certificate_chain.size += inter_size;
+            tls_reverse_proxy_config.tls_config.device_certificate_chain.size += inter_size;
         }
 
-        tls_echo_server_config.tls_config.device_certificate_chain.buffer = cert_chain_buffer;
+        tls_reverse_proxy_config.tls_config.device_certificate_chain.buffer = cert_chain_buffer;
     }
     else
     {
@@ -287,16 +287,16 @@ int main(int argc, char** argv)
             exit(-1);
         }
 
-        tls_echo_server_config.tls_config.private_key.buffer = key_buffer;
-        tls_echo_server_config.tls_config.private_key.size = key_size;
+        tls_reverse_proxy_config.tls_config.private_key.buffer = key_buffer;
+        tls_reverse_proxy_config.tls_config.private_key.size = key_size;
 
-        if (tls_echo_server_config.tls_config.use_secure_element == true)
+        if (tls_reverse_proxy_config.tls_config.use_secure_element == true)
         {
             /* Temporary solution */
             LOG_INF("Importing private key into secure element");
         }
     }
-    else if (tls_echo_server_config.tls_config.use_secure_element == true)
+    else if (tls_reverse_proxy_config.tls_config.use_secure_element == true)
     {
         LOG_INF("Using private key on secure elment");
     }
@@ -318,8 +318,8 @@ int main(int argc, char** argv)
             exit(-1);
         }
 
-        tls_echo_server_config.tls_config.root_certificate.buffer = root_buffer;
-        tls_echo_server_config.tls_config.root_certificate.size = root_size;
+        tls_reverse_proxy_config.tls_config.root_certificate.buffer = root_buffer;
+        tls_reverse_proxy_config.tls_config.root_certificate.size = root_size;
     }
     else
     {
@@ -327,15 +327,15 @@ int main(int argc, char** argv)
         exit(-1);
     }
 
-	/* Add the new TLS echo server to the application backend */
-	int id = tls_echo_server_start(&tls_echo_server_config);
+	/* Add the new TLS reverse proxy to the application backend */
+	int id = tls_reverse_proxy_start(&tls_reverse_proxy_config);
 	if (id < 0)
 	{
-		LOG_ERR("unable to start TLS echo server");
+		LOG_ERR("unable to start TLS reverse proxy");
 		return -EINVAL;
 	}
 	
-	LOG_INF("started TLS echo server with id %d", id);
+	LOG_INF("started TLS reverse proxy with id %d", id);
 
 
     while (running)
@@ -348,8 +348,8 @@ int main(int argc, char** argv)
     /* We only land here if we received a terminate signal. First, we
      * kill the running server (especially its running client thread, if
      * present). Then, we kill the actual application thread. */
-    tls_echo_server_stop(id);
-    tls_echo_server_terminate();
+    tls_reverse_proxy_stop(id);
+    tls_proxy_terminate();
 
 	return 0;
 }

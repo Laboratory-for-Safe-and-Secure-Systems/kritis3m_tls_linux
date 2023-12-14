@@ -8,14 +8,14 @@ include(FetchContent)
 Set(FETCHCONTENT_QUIET FALSE)
 
 
-#External repositories we need 
-FetchContent_Declare(tls_echo_server
-    GIT_REPOSITORY          git@lab.las3.de:frt42716/tls_echo_server.git
+# External repositories we need 
+FetchContent_Declare(tls_proxy
+    GIT_REPOSITORY          git@lab.las3.de:frt42716/tls_proxy.git
     GIT_TAG                 origin/secure_element
     GIT_PROGRESS            TRUE
     USES_TERMINAL_DOWNLOAD  TRUE
-    SOURCE_DIR              ${CMAKE_CURRENT_SOURCE_DIR}/apps/tls_echo_server
-    BINARY_DIR              ${CMAKE_CURRENT_BINARY_DIR}/apps/tls_echo_server
+    SOURCE_DIR              ${CMAKE_CURRENT_SOURCE_DIR}/apps/tls_proxy
+    BINARY_DIR              ${CMAKE_CURRENT_BINARY_DIR}/apps/tls_proxy
 )
 
 FetchContent_Declare(liboqs
@@ -66,7 +66,7 @@ set(WOLFSSL_CRYPT_TESTS OFF)
 set(BUILD_SHARED_LIBS OFF)
 set(WOLFSSL_OQS OFF)
 
-FetchContent_MakeAvailable(tls_echo_server liboqs wolfssl)
+FetchContent_MakeAvailable(tls_proxy liboqs wolfssl)
 
 # In order for WolfSSL to find the 'user_settings.h' file, we have to
 # provide the directory where it is located.

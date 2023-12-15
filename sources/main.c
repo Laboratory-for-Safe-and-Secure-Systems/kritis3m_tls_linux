@@ -13,6 +13,7 @@
 #include "logging.h"
 #include "wolfssl.h"
 #include "tls_proxy.h"
+#include "poll_set.h"
 
 #include "certificates.h"
 
@@ -23,6 +24,14 @@ LOG_MODULE_REGISTER(KRITIS3M_TLS);
 		LOG_ERR("Error: " msg "", ##__VA_ARGS__); \
 		exit(-1); \
 	}
+
+
+enum application_role
+{
+    NOT_SET,
+    ROLE_SERVER,
+    ROLE_CLIENT,
+};
 
 
 volatile __sig_atomic_t running = true;
@@ -87,7 +96,7 @@ void init(void)
     sigaction(SIGINT, &signal_action, NULL);
 
 	/* Initalize the tls_proxy application */
-	int ret = tls_proxy_init();
+	int ret = tls_proxy_backend_init();
 	if (ret != 0)
 		fatal("unable to initialize tls_echo_server application");
 }
@@ -95,7 +104,8 @@ void init(void)
 
 static const struct option long_options[] =
 {
-    { "port",           required_argument, 0, 'p' },
+    { "echo_server",    required_argument, 0, 'e' },
+    { "echo_client",    required_argument, 0, 'f' },
     { "cert",           required_argument, 0, 'c' },
     { "key",            required_argument, 0, 'k' },
     { "intermediate",   required_argument, 0, 'i' },
@@ -117,6 +127,8 @@ int main(int argc, char** argv)
     char* intermediate_path = NULL;
     char* root_path = NULL;
 
+    enum application_role role = NOT_SET;
+
     /* Variables for the actual read data */
     uint8_t* cert_chain_buffer = NULL; /* Entity certificate and intermediate */
     uint8_t* key_buffer = NULL;
@@ -128,10 +140,12 @@ int main(int argc, char** argv)
         .secure_element_middleware_path = NULL,
 	};
 
-    /* The new TLS reverse proxy config */
-	struct reverse_proxy_config tls_reverse_proxy_config = {
-		.own_ip_address = "127.0.0.1",
+    /* The new TLS proxy config */
+	struct proxy_config tls_proxy_config = {
+		.own_ip_address = NULL,
 		.listening_port = 0,
+        .target_ip_address = NULL,
+        .target_port = 0,
         .tls_config = {
             .device_certificate_chain = {
                 .buffer = NULL,
@@ -156,20 +170,55 @@ int main(int argc, char** argv)
     /* Parse arguments */
     while (true)
     {
-        int result = getopt_long(argc, argv, "p:c:k:i:r:s:h", long_options, &index);
+        int result = getopt_long(argc, argv, "e:f:c:k:i:r:s:h", long_options, &index);
 
         if (result == -1) break; /* end of list */
 
         switch (result)
         {
-            case 'p':
+            case 'e':
+                if (role != NOT_SET)
+                {
+                    LOG_ERR("only one of --echo_server and --echo_client can be specified");
+                    exit(-1);
+                }
+
                 unsigned long new_port = strtoul(optarg, NULL, 10);
                 if ((new_port == 0) || (new_port > 65535))
                 {
                     LOG_ERR("invalid port number %lu", new_port);
                     exit(-1);
                 }
-                tls_reverse_proxy_config.listening_port = (uint16_t) new_port;
+
+                tls_proxy_config.own_ip_address = "0.0.0.0";
+                tls_proxy_config.listening_port = (uint16_t) new_port;
+                tls_proxy_config.target_ip_address = "127.0.0.1";
+                tls_proxy_config.target_port = 40000;
+
+                role = ROLE_SERVER;
+                break;
+            case 'f':
+                if (role != NOT_SET)
+                {
+                    LOG_ERR("only one of --echo_server and --echo_client can be specified");
+                    exit(-1);
+                }
+                
+                tls_proxy_config.own_ip_address = "127.0.0.1";
+                tls_proxy_config.listening_port = 40001;
+
+                tls_proxy_config.target_ip_address = strtok(optarg, ":");
+
+                char* port_str = strtok(NULL, ":");
+                unsigned long dest_port = strtoul(port_str, NULL, 10);
+                if ((dest_port == 0) || (dest_port > 65535))
+                {
+                    LOG_ERR("invalid port number %lu", dest_port);
+                    exit(-1);
+                }
+                tls_proxy_config.target_port = (uint16_t) dest_port;
+
+                role = ROLE_CLIENT;
                 break;
             case 'c':
                 cert_path = optarg;
@@ -184,17 +233,17 @@ int main(int argc, char** argv)
                 root_path = optarg;
                 break;
             case 's':
-                tls_reverse_proxy_config.tls_config.use_secure_element = true;
+                tls_proxy_config.tls_config.use_secure_element = true;
                 wolfssl_config.secure_element_middleware_path = optarg;
                 break;
             case 'h': 
                 printf("Usage: %s [OPTIONS]\n", argv[0]);
                 printf("Options:\n");
-                printf("  -p, --port PORT                   listening port of the TLS echo server\n");
+                printf("  -e, --echo_server <port>          start a TLS echo server on given port\n");
+                printf("  -f, --echo_client <ip:port>       start a TLS echo client with given server and forward all stdin data\n");
                 printf("  -c, --cert <file_path>            path to the certificate file\n");
                 printf("  -k, --key <file_path>             path to the private key file\n");
-                printf("  -i, --intermediate <file_path>    \n");
-                printf("                                    path to an intermediate certificate file\n");
+                printf("  -i, --intermediate <file_path>    path to an intermediate certificate file\n");
                 printf("  -r, --root <file_path>            path to the root certificate file\n");
                 printf("  -s, --secure_element <file_path>  use secure element with the provided middleware\n");
                 printf("  -h, --help                        display this help and exit\n");
@@ -212,7 +261,7 @@ int main(int argc, char** argv)
 		fatal("unable to initialize WolfSSL");
 
 	/* Run the proxy (asynchronously) */
-	ret = tls_proxy_run();
+	ret = tls_proxy_backend_run();
 	if (ret != 0)
 		fatal("unable to run tls proxy application");
 
@@ -251,7 +300,7 @@ int main(int argc, char** argv)
             exit(-1);
         }
 
-        tls_reverse_proxy_config.tls_config.device_certificate_chain.size = cert_size;
+        tls_proxy_config.tls_config.device_certificate_chain.size = cert_size;
 
         if (intermediate_path != NULL)
         {
@@ -264,10 +313,10 @@ int main(int argc, char** argv)
                 exit(-1);
             }
 
-            tls_reverse_proxy_config.tls_config.device_certificate_chain.size += inter_size;
+            tls_proxy_config.tls_config.device_certificate_chain.size += inter_size;
         }
 
-        tls_reverse_proxy_config.tls_config.device_certificate_chain.buffer = cert_chain_buffer;
+        tls_proxy_config.tls_config.device_certificate_chain.buffer = cert_chain_buffer;
     }
     else
     {
@@ -287,16 +336,16 @@ int main(int argc, char** argv)
             exit(-1);
         }
 
-        tls_reverse_proxy_config.tls_config.private_key.buffer = key_buffer;
-        tls_reverse_proxy_config.tls_config.private_key.size = key_size;
+        tls_proxy_config.tls_config.private_key.buffer = key_buffer;
+        tls_proxy_config.tls_config.private_key.size = key_size;
 
-        if (tls_reverse_proxy_config.tls_config.use_secure_element == true)
+        if (tls_proxy_config.tls_config.use_secure_element == true)
         {
             /* Temporary solution */
             LOG_INF("Importing private key into secure element");
         }
     }
-    else if (tls_reverse_proxy_config.tls_config.use_secure_element == true)
+    else if (tls_proxy_config.tls_config.use_secure_element == true)
     {
         LOG_INF("Using private key on secure elment");
     }
@@ -318,8 +367,8 @@ int main(int argc, char** argv)
             exit(-1);
         }
 
-        tls_reverse_proxy_config.tls_config.root_certificate.buffer = root_buffer;
-        tls_reverse_proxy_config.tls_config.root_certificate.size = root_size;
+        tls_proxy_config.tls_config.root_certificate.buffer = root_buffer;
+        tls_proxy_config.tls_config.root_certificate.size = root_size;
     }
     else
     {
@@ -327,15 +376,75 @@ int main(int argc, char** argv)
         exit(-1);
     }
 
-	/* Add the new TLS reverse proxy to the application backend */
-	int id = tls_reverse_proxy_start(&tls_reverse_proxy_config);
-	if (id < 0)
-	{
-		LOG_ERR("unable to start TLS reverse proxy");
-		return -EINVAL;
-	}
-	
-	LOG_INF("started TLS reverse proxy with id %d", id);
+    int id = -1;
+    // struct poll_set poll_set;
+    // int tcp_sock = -1;
+
+    if (role == ROLE_SERVER)
+    {
+    //     /* Start the hidden TCP echo server */
+    //     tcp_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    //     if (tcp_sock == -1)
+    //     {
+    //         LOG_ERR("Error creating TCP echo server socket");
+    //         exit(-1);
+    //     }
+
+    //     /* Configure TCP server */
+    //     struct sockaddr_in bind_addr = {
+    //             .sin_family = AF_INET,
+    //             .sin_port = htons(40000)
+    //     };
+    //     net_addr_pton(bind_addr.sin_family, "127.0.0.1", &bind_addr.sin_addr);
+
+    //     /* Bind server socket to its destined IPv4 address */
+    //     if (bind(tcp_sock, (struct sockaddr*) &bind_addr, sizeof(bind_addr)) == -1) 
+    //     {
+    //         LOG_ERR("Cannot bind socket %d to %s: errer %d\n", tcp_sock, "127.0.0.1", errno);
+    //         exit(-1);
+    //     }
+
+    //     /* Start listening for incoming connections */
+    //     listen(tcp_sock, 1);
+
+    //     /* Set the new socket to non-blocking */
+    //     setblocking(tcp_sock, false);
+
+    //     /* Add new server to the poll_set */
+    //     int ret = poll_set_add_fd(&poll_set, tcp_sock, POLLIN);
+    //     if (ret != 0)
+    //     {
+    //         LOG_ERR("Error adding new proxy to poll_set");
+    //         exit(-1);
+    //     }
+
+        /* Add the new TLS reverse proxy to the application backend */
+        id = tls_reverse_proxy_start(&tls_proxy_config);
+        if (id < 0)
+        {
+            LOG_ERR("unable to start TLS reverse proxy");
+            return -EINVAL;
+        }
+        
+        LOG_INF("started TLS reverse proxy with id %d", id);
+    }
+    else if (role == ROLE_CLIENT)
+    {
+        /* Add the new TLS forward proxy to the application backend */
+        id = tls_forward_proxy_start(&tls_proxy_config);
+        if (id < 0)
+        {
+            LOG_ERR("unable to start TLS forward proxy");
+            return -EINVAL;
+        }
+        
+        LOG_INF("started TLS forward proxy with id %d", id);
+    }
+    else
+    {
+        LOG_ERR("no role specified");
+        exit(-1);
+    }
 
 
     while (running)
@@ -348,8 +457,8 @@ int main(int argc, char** argv)
     /* We only land here if we received a terminate signal. First, we
      * kill the running server (especially its running client thread, if
      * present). Then, we kill the actual application thread. */
-    tls_reverse_proxy_stop(id);
-    tls_proxy_terminate();
+    tls_proxy_stop(id);
+    tls_proxy_backend_terminate();
 
 	return 0;
 }

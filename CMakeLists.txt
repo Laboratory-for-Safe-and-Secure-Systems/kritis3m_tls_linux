@@ -9,13 +9,10 @@ Set(FETCHCONTENT_QUIET FALSE)
 
 
 # External repositories we need 
-FetchContent_Declare(tls_proxy
-    GIT_REPOSITORY          git@lab.las3.de:frt42716/tls_proxy.git
+FetchContent_Declare(kritis3m_applications
+    GIT_REPOSITORY          git@lab.las3.de:frt42716/kritis3m_applications.git
     GIT_TAG                 origin/secure_element
     GIT_PROGRESS            TRUE
-    USES_TERMINAL_DOWNLOAD  TRUE
-    SOURCE_DIR              ${CMAKE_CURRENT_SOURCE_DIR}/apps/tls_proxy
-    BINARY_DIR              ${CMAKE_CURRENT_BINARY_DIR}/apps/tls_proxy
 )
 
 FetchContent_Declare(liboqs
@@ -23,8 +20,6 @@ FetchContent_Declare(liboqs
     GIT_TAG                 origin/main
     GIT_PROGRESS            TRUE
     USES_TERMINAL_DOWNLOAD  TRUE
-    SOURCE_DIR              ${CMAKE_CURRENT_SOURCE_DIR}/libs/liboqs
-    BINARY_DIR              ${CMAKE_CURRENT_BINARY_DIR}/libs/liboqs 
 )
 
 FetchContent_Declare(wolfssl
@@ -32,8 +27,6 @@ FetchContent_Declare(wolfssl
     GIT_TAG                 origin/pq_secure_element
     GIT_PROGRESS            TRUE
     USES_TERMINAL_DOWNLOAD  TRUE
-    SOURCE_DIR              ${CMAKE_CURRENT_SOURCE_DIR}/libs/wolfssl
-    BINARY_DIR              ${CMAKE_CURRENT_BINARY_DIR}/libs/wolfssl  
 )
 
 set(TARGET kritis3m_tls)
@@ -66,7 +59,7 @@ set(WOLFSSL_CRYPT_TESTS OFF)
 set(BUILD_SHARED_LIBS OFF)
 set(WOLFSSL_OQS OFF)
 
-FetchContent_MakeAvailable(tls_proxy liboqs wolfssl)
+FetchContent_MakeAvailable(kritis3m_applications liboqs wolfssl)
 
 # In order for WolfSSL to find the 'user_settings.h' file, we have to
 # provide the directory where it is located.

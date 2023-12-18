@@ -16,6 +16,7 @@
 
 #include "tls_proxy.h"
 #include "tcp_echo_server.h"
+#include "tcp_client_stdin_bridge.h"
 
 #include "certificate_handling.h"
 
@@ -140,6 +141,12 @@ int main(int argc, char** argv)
         .listening_port = LOCAL_ECHO_SERVER_PORT,
     };
 
+    /* TCP client stdin bridge config */
+    struct tcp_client_stdin_bridge_config tcp_client_stdin_bridge_config = {
+        .target_ip_address = LOCAL_STDIN_CLIENT_BRIDGE_IP,
+        .target_port = LOCAL_STDIN_CLIENT_BRIDGE_PORT,
+    };
+
     /* Parse arguments */
     while (true)
     {
@@ -152,7 +159,9 @@ int main(int argc, char** argv)
             case 'e':
                 if (role != NOT_SET)
                 {
-                    
+                    LOG_ERR("the following options may be used only exclusively:");
+                    LOG_ERR("reverse_proxy, forward_proxy, echo_server, echo_client");
+                    exit(-1);
                 }
 
                 unsigned long new_port = strtoul(optarg, NULL, 10);
@@ -273,6 +282,11 @@ int main(int argc, char** argv)
         id = tls_forward_proxy_start(&tls_proxy_config);
         if (id < 0)
             fatal("unable to start TLS forward proxy");
+
+        /* Add the TCP client stdin bridge */
+        ret = tcp_client_stdin_bridge_run(&tcp_client_stdin_bridge_config);
+        if (ret != 0)
+            fatal("unable to run TCP client stdin bridge");
         
         LOG_INF("started TLS forward proxy with id %d", id);
     }
@@ -294,6 +308,15 @@ int main(int argc, char** argv)
      * present). Then, we kill the actual application thread. */
     tls_proxy_stop(id);
     tls_proxy_backend_terminate();
+    
+    if (role == ROLE_ECHO_SERVER)
+    {
+        tcp_echo_server_terminate();
+    }
+    else if (role == ROLE_ECHO_CLIENT)
+    {
+        tcp_client_stdin_bridge_terminate();
+    }
 
 	return 0;
 }

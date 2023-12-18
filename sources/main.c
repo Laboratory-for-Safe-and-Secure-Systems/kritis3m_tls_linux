@@ -12,12 +12,24 @@
 #include "networking.h"
 #include "logging.h"
 #include "wolfssl.h"
-#include "tls_proxy.h"
 #include "poll_set.h"
 
-#include "certificates.h"
+#include "tls_proxy.h"
+#include "tcp_echo_server.h"
+
+#include "certificate_handling.h"
+
 
 LOG_MODULE_REGISTER(KRITIS3M_TLS);
+
+
+#define ANY_IP "0.0.0.0"
+
+#define LOCAL_ECHO_SERVER_IP "127.0.0.1"
+#define LOCAL_ECHO_SERVER_PORT 40000
+
+#define LOCAL_STDIN_CLIENT_BRIDGE_IP "127.0.0.1"
+#define LOCAL_STDIN_CLIENT_BRIDGE_PORT 40001
 
 
 #define fatal(msg, ...) { \
@@ -29,76 +41,19 @@ LOG_MODULE_REGISTER(KRITIS3M_TLS);
 enum application_role
 {
     NOT_SET,
-    ROLE_SERVER,
-    ROLE_CLIENT,
+    ROLE_REVERSE_PROXY,
+    ROLE_FORWARD_PROXY,
+    ROLE_ECHO_SERVER,
+    ROLE_ECHO_CLIENT,
 };
 
 
 volatile __sig_atomic_t running = true;
 
-int readFile(const char* filePath, uint8_t* buffer, size_t bufferSize)
-{
-    /* Open the file */
-    FILE* file = fopen(filePath, "r");
-    
-    if (file == NULL)
-    {
-        LOG_ERR("file (%s) cannot be opened", filePath);
-        return -1;
-    }
-    
-    /* Get length of file */
-    fseek(file, 0, SEEK_END);
-    int fileSize = ftell(file);
-    rewind(file);
-
-    if (fileSize > bufferSize)
-    {
-        LOG_ERR("file (%s) is too large for internal buffer", filePath);
-        fclose(file);
-        return -1;
-    }
-    
-    /* Read file to buffer */
-    int bytesRead = 0;
-    while (bytesRead < fileSize)
-    {
-        int read = fread(buffer + bytesRead, sizeof(uint8_t), fileSize - bytesRead, file);
-        if (read < 0)
-        {
-            LOG_ERR("unable to read file (%s)", filePath);
-            fclose(file);
-            return -1;
-        }
-        bytesRead += read;
-    }
-    
-    fclose(file);
-
-    return bytesRead;
-}
-
-
 static void signal_handler(int signo)
 {
     /* Indicate the main process to stop */
     running = false;
-}
-
-void init(void)
-{
-	initialize_network_interfaces();
-
-    /* Install the signal handler */
-    struct sigaction signal_action;
-    sigemptyset (&signal_action.sa_mask);
-    signal_action.sa_handler = signal_handler;
-    sigaction(SIGINT, &signal_action, NULL);
-
-	/* Initalize the tls_proxy application */
-	int ret = tls_proxy_backend_init();
-	if (ret != 0)
-		fatal("unable to initialize tls_echo_server application");
 }
 
 
@@ -117,22 +72,23 @@ static const struct option long_options[] =
 
 int main(int argc, char** argv)
 {
-	init();
+	initialize_network_interfaces();
+
+    /* Install the signal handler */
+    struct sigaction signal_action;
+    sigemptyset(&signal_action.sa_mask);
+    signal_action.sa_handler = signal_handler;
+    sigaction(SIGINT, &signal_action, NULL);
+
+	/* Initalize the tls_proxy application */
+	int ret = tls_proxy_backend_init();
+	if (ret != 0)
+		fatal("unable to initialize tls_echo_server application");
 
     int index = -1;
 
-    /* Variables for the user supplied paths */
-    char* cert_path = NULL;
-    char* key_path = NULL;
-    char* intermediate_path = NULL;
-    char* root_path = NULL;
-
     enum application_role role = NOT_SET;
 
-    /* Variables for the actual read data */
-    uint8_t* cert_chain_buffer = NULL; /* Entity certificate and intermediate */
-    uint8_t* key_buffer = NULL;
-    uint8_t* root_buffer = NULL;
 
     /* WolfSSL config */
     struct wolfssl_library_configuration wolfssl_config = {
@@ -140,7 +96,22 @@ int main(int argc, char** argv)
         .secure_element_middleware_path = NULL,
 	};
 
-    /* The new TLS proxy config */
+    /* Certificate structure */
+    struct certificates certs = {
+        .certificate_path = NULL,
+        .private_key_path = NULL,
+        .intermediate_path = NULL,
+        .root_path = NULL,
+
+        .cert_chain_buffer = NULL, /* Entity certificate and intermediate */
+        .cert_chain_buffer_size = 0,
+        .key_buffer = NULL,
+        .key_buffer_size = 0,
+        .root_buffer = NULL,
+        .root_buffer_size = 0,
+    };
+
+    /* TLS proxy config */
 	struct proxy_config tls_proxy_config = {
 		.own_ip_address = NULL,
 		.listening_port = 0,
@@ -163,9 +134,11 @@ int main(int argc, char** argv)
         },
 	};
 
-    static const size_t certificate_chain_buffer_size = 32 * 1024;
-    static const size_t private_key_buffer_size = 16 * 1024;
-    static const size_t root_certificate_buffer_size = 16 * 1024;
+    /* TCP echo server config */
+    struct tcp_echo_server_config tcp_echo_server_config = {
+        .own_ip_address = LOCAL_ECHO_SERVER_IP,
+        .listening_port = LOCAL_ECHO_SERVER_PORT,
+    };
 
     /* Parse arguments */
     while (true)
@@ -179,8 +152,7 @@ int main(int argc, char** argv)
             case 'e':
                 if (role != NOT_SET)
                 {
-                    LOG_ERR("only one of --echo_server and --echo_client can be specified");
-                    exit(-1);
+                    
                 }
 
                 unsigned long new_port = strtoul(optarg, NULL, 10);
@@ -190,22 +162,23 @@ int main(int argc, char** argv)
                     exit(-1);
                 }
 
-                tls_proxy_config.own_ip_address = "0.0.0.0";
+                tls_proxy_config.own_ip_address = ANY_IP;
                 tls_proxy_config.listening_port = (uint16_t) new_port;
-                tls_proxy_config.target_ip_address = "127.0.0.1";
-                tls_proxy_config.target_port = 40000;
+                tls_proxy_config.target_ip_address = LOCAL_ECHO_SERVER_IP;
+                tls_proxy_config.target_port = LOCAL_ECHO_SERVER_PORT;
 
-                role = ROLE_SERVER;
+                role = ROLE_ECHO_SERVER;
                 break;
             case 'f':
                 if (role != NOT_SET)
                 {
-                    LOG_ERR("only one of --echo_server and --echo_client can be specified");
+                    LOG_ERR("the following options may be used only exclusively:");
+                    LOG_ERR("reverse_proxy, forward_proxy, echo_server, echo_client");
                     exit(-1);
                 }
                 
-                tls_proxy_config.own_ip_address = "127.0.0.1";
-                tls_proxy_config.listening_port = 40001;
+                tls_proxy_config.own_ip_address = LOCAL_STDIN_CLIENT_BRIDGE_IP;
+                tls_proxy_config.listening_port = LOCAL_STDIN_CLIENT_BRIDGE_PORT;
 
                 tls_proxy_config.target_ip_address = strtok(optarg, ":");
 
@@ -218,19 +191,19 @@ int main(int argc, char** argv)
                 }
                 tls_proxy_config.target_port = (uint16_t) dest_port;
 
-                role = ROLE_CLIENT;
+                role = ROLE_ECHO_CLIENT;
                 break;
             case 'c':
-                cert_path = optarg;
+                certs.certificate_path = optarg;
                 break;
             case 'k':
-                key_path = optarg;
+                certs.private_key_path = optarg;
                 break;
             case 'i':
-                intermediate_path = optarg;
+                certs.intermediate_path = optarg;
                 break;
             case 'r':
-                root_path = optarg;
+                certs.root_path = optarg;
                 break;
             case 's':
                 tls_proxy_config.tls_config.use_secure_element = true;
@@ -256,7 +229,7 @@ int main(int argc, char** argv)
     }
 
     /* Initialize WolfSSL */
-	int ret = wolfssl_init(&wolfssl_config);
+	ret = wolfssl_init(&wolfssl_config);
 	if (ret != 0)
 		fatal("unable to initialize WolfSSL");
 
@@ -265,185 +238,47 @@ int main(int argc, char** argv)
 	if (ret != 0)
 		fatal("unable to run tls proxy application");
 
+    /* Read certificates */
+    if (read_certificates(&certs) != 0)
+        fatal("unable to read certificates");
 
-    /* Allocate memory for the files to read */
-    cert_chain_buffer = (uint8_t*) malloc(certificate_chain_buffer_size);
-    if (cert_chain_buffer == NULL)
-    {
-        LOG_ERR("unable to allocate memory for certificate chain");
-        exit(-1);
-    }
 
-    key_buffer = (uint8_t*) malloc(private_key_buffer_size);
-    if (key_buffer == NULL)
-    {
-        LOG_ERR("unable to allocate memory for private key");
-        exit(-1);
-    }
-
-    root_buffer = (uint8_t*) malloc(root_certificate_buffer_size);
-    if (root_buffer == NULL)
-    {
-        LOG_ERR("unable to allocate memory for root certificate");
-        exit(-1);
-    }
-
-    /* Read certificate chain */
-    if (cert_path != NULL)
-    {
-        int cert_size = readFile(cert_path,
-                                 cert_chain_buffer,
-                                 certificate_chain_buffer_size);
-        if (cert_size < 0)
-        {
-            LOG_ERR("unable to read certificate from file %s", cert_path);
-            exit(-1);
-        }
-
-        tls_proxy_config.tls_config.device_certificate_chain.size = cert_size;
-
-        if (intermediate_path != NULL)
-        {
-            int inter_size = readFile(intermediate_path,
-                                      cert_chain_buffer + cert_size,
-                                      certificate_chain_buffer_size - cert_size);
-            if (inter_size < 0)
-            {
-                LOG_ERR("unable to read intermediate certificate from file %s", intermediate_path);
-                exit(-1);
-            }
-
-            tls_proxy_config.tls_config.device_certificate_chain.size += inter_size;
-        }
-
-        tls_proxy_config.tls_config.device_certificate_chain.buffer = cert_chain_buffer;
-    }
-    else
-    {
-        LOG_ERR("no certificate file specified");
-        exit(-1);
-    }
-
-    /* Read private key */
-    if (key_path != 0)
-    {
-        int key_size = readFile(key_path,
-                                key_buffer,
-                                private_key_buffer_size);
-        if (key_size < 0)
-        {
-            LOG_ERR("unable to read private key from file %s", key_path);
-            exit(-1);
-        }
-
-        tls_proxy_config.tls_config.private_key.buffer = key_buffer;
-        tls_proxy_config.tls_config.private_key.size = key_size;
-
-        if (tls_proxy_config.tls_config.use_secure_element == true)
-        {
-            /* Temporary solution */
-            LOG_INF("Importing private key into secure element");
-        }
-    }
-    else if (tls_proxy_config.tls_config.use_secure_element == true)
-    {
-        LOG_INF("Using private key on secure elment");
-    }
-    else
-    {
-        LOG_ERR("no private key file specified");
-        exit(-1);
-    }
-
-    /* Read root certificate */
-    if (root_path != 0)
-    {
-        int root_size = readFile(root_path,
-                                 root_buffer,
-                                 root_certificate_buffer_size);
-        if (root_size < 0)
-        {
-            LOG_ERR("unable to read root certificate from file %s", root_path);
-            exit(-1);
-        }
-
-        tls_proxy_config.tls_config.root_certificate.buffer = root_buffer;
-        tls_proxy_config.tls_config.root_certificate.size = root_size;
-    }
-    else
-    {
-        LOG_ERR("no root certificate file specified");
-        exit(-1);
-    }
+    /* Set TLS config */
+    tls_proxy_config.tls_config.device_certificate_chain.buffer = certs.cert_chain_buffer;
+    tls_proxy_config.tls_config.device_certificate_chain.size = certs.cert_chain_buffer_size;
+    tls_proxy_config.tls_config.private_key.buffer = certs.key_buffer;
+    tls_proxy_config.tls_config.private_key.size = certs.key_buffer_size;
+    tls_proxy_config.tls_config.root_certificate.buffer = certs.root_buffer;
+    tls_proxy_config.tls_config.root_certificate.size = certs.root_buffer_size;
 
     int id = -1;
-    // struct poll_set poll_set;
-    // int tcp_sock = -1;
 
-    if (role == ROLE_SERVER)
+    if (role == ROLE_ECHO_SERVER)
     {
-    //     /* Start the hidden TCP echo server */
-    //     tcp_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    //     if (tcp_sock == -1)
-    //     {
-    //         LOG_ERR("Error creating TCP echo server socket");
-    //         exit(-1);
-    //     }
-
-    //     /* Configure TCP server */
-    //     struct sockaddr_in bind_addr = {
-    //             .sin_family = AF_INET,
-    //             .sin_port = htons(40000)
-    //     };
-    //     net_addr_pton(bind_addr.sin_family, "127.0.0.1", &bind_addr.sin_addr);
-
-    //     /* Bind server socket to its destined IPv4 address */
-    //     if (bind(tcp_sock, (struct sockaddr*) &bind_addr, sizeof(bind_addr)) == -1) 
-    //     {
-    //         LOG_ERR("Cannot bind socket %d to %s: errer %d\n", tcp_sock, "127.0.0.1", errno);
-    //         exit(-1);
-    //     }
-
-    //     /* Start listening for incoming connections */
-    //     listen(tcp_sock, 1);
-
-    //     /* Set the new socket to non-blocking */
-    //     setblocking(tcp_sock, false);
-
-    //     /* Add new server to the poll_set */
-    //     int ret = poll_set_add_fd(&poll_set, tcp_sock, POLLIN);
-    //     if (ret != 0)
-    //     {
-    //         LOG_ERR("Error adding new proxy to poll_set");
-    //         exit(-1);
-    //     }
+        /* Add the TCP echo server */
+        ret = tcp_echo_server_run(&tcp_echo_server_config);
+        if (ret != 0)
+            fatal("unable to run TCP echo server");
 
         /* Add the new TLS reverse proxy to the application backend */
         id = tls_reverse_proxy_start(&tls_proxy_config);
         if (id < 0)
-        {
-            LOG_ERR("unable to start TLS reverse proxy");
-            return -EINVAL;
-        }
+            fatal("unable to start TLS reverse proxy");
         
         LOG_INF("started TLS reverse proxy with id %d", id);
     }
-    else if (role == ROLE_CLIENT)
+    else if (role == ROLE_ECHO_CLIENT)
     {
         /* Add the new TLS forward proxy to the application backend */
         id = tls_forward_proxy_start(&tls_proxy_config);
         if (id < 0)
-        {
-            LOG_ERR("unable to start TLS forward proxy");
-            return -EINVAL;
-        }
+            fatal("unable to start TLS forward proxy");
         
         LOG_INF("started TLS forward proxy with id %d", id);
     }
     else
     {
-        LOG_ERR("no role specified");
-        exit(-1);
+        fatal("no role specified");
     }
 
 

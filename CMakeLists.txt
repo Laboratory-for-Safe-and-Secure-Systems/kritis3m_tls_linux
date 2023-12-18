@@ -44,6 +44,7 @@ target_include_directories(${TARGET} PUBLIC
 
 # Main sources
 target_sources(${TARGET} PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/sources/certificate_handling.c
     ${CMAKE_CURRENT_SOURCE_DIR}/sources/main.c
 )
 

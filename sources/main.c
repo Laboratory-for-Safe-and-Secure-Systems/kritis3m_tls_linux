@@ -206,18 +206,10 @@ int main(int argc, char** argv)
                     exit(-1);
                 }
                 app_config.incoming_port = (uint16_t) new_port;
-
-                // tls_proxy_config.own_ip_address = ANY_IP;
-                // tls_proxy_config.listening_port = (uint16_t) new_port;
-                // tls_proxy_config.target_ip_address = LOCAL_ECHO_SERVER_IP;
-                // tls_proxy_config.target_port = LOCAL_ECHO_SERVER_PORT;
                 break;
             }
             case 'b':
             {
-                // tls_proxy_config.own_ip_address = LOCAL_STDIN_CLIENT_BRIDGE_IP;
-                // tls_proxy_config.listening_port = LOCAL_STDIN_CLIENT_BRIDGE_PORT;
-
                 app_config.outgoing_ip_address = strtok(optarg, ":");
 
                 char* port_str = strtok(NULL, ":");

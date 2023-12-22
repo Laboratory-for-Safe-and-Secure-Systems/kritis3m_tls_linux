@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 
     struct wolfssl_library_configuration wolfssl_config = {
 		.loggingEnabled = false,
-        .secure_element_middleware_path = NULL,
+        .secure_element_middleware_path = "../libs/libcardos11-iot-pcsc.so",
 	};
 
 	struct proxy_config tls_proxy_config = {

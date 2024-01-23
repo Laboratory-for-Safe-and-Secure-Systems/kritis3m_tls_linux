@@ -50,13 +50,13 @@ extern "C" {
 #define ECC_SHAMIR
 #define ECC_TIMING_RESISTANT
 
+#define HAVE_WOLF_BIGINT
+#define HAVE_PKCS11
+#define WOLFSSL_DEBUG_PKCS11
+
 #define HAVE_LIBOQS
 
-// #define DEBUG_WOLFSSL
-
-/* Memory configuaration */
-// #define WOLFSSL_STATIC_MEMORY
-// #define WOLFSSL_SMALL_STACK
+#define DEBUG_WOLFSSL
 
 
 /* Math configuration */

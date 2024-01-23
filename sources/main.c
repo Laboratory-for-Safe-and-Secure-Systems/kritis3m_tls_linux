@@ -53,32 +53,9 @@ int main(int argc, char** argv)
 {
     enum application_role role;
 
-    struct wolfssl_library_configuration wolfssl_config = {
-		.loggingEnabled = false,
-        .secure_element_middleware_path = "../libs/libcardos11-iot-pcsc.so",
-	};
+    wolfssl_library_configuration wolfssl_config;
 
-	struct proxy_config tls_proxy_config = {
-		.own_ip_address = NULL,
-		.listening_port = 0,
-        .target_ip_address = NULL,
-        .target_port = 0,
-        .tls_config = {
-            .device_certificate_chain = {
-                .buffer = NULL,
-                .size = 0,
-            },
-            .private_key = {
-                .buffer = NULL,
-                .size = 0,
-            },
-            .root_certificate = {
-                .buffer = NULL,
-                .size = 0,
-            },
-            .use_secure_element = false,
-        },
-	};
+	struct proxy_config tls_proxy_config;
 
     struct tcp_echo_server_config tcp_echo_server_config = {
         .own_ip_address = LOCAL_ECHO_SERVER_IP,
@@ -97,7 +74,8 @@ int main(int argc, char** argv)
     sigaction(SIGINT, &signal_action, NULL);
 
     /* Parse arguments */
-    int ret = parse_cli_arguments(&role, &tls_proxy_config, &(struct shell){0}, argc, argv);
+    int ret = parse_cli_arguments(&role, &tls_proxy_config, &wolfssl_config,
+                                  &(struct shell){0}, argc, argv);
     if (ret < 0)
     {
         fatal("unable to parse command line arguments");

@@ -24,7 +24,7 @@ FetchContent_Declare(liboqs
 
 FetchContent_Declare(wolfssl
     GIT_REPOSITORY          https://github.com/Frauschi/wolfssl.git
-    GIT_TAG                 origin/pq_secure_element
+    GIT_TAG                 origin/development
     GIT_PROGRESS            TRUE
     USES_TERMINAL_DOWNLOAD  TRUE
 )

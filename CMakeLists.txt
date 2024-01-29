@@ -58,6 +58,7 @@ set(WOLFSSL_EXAMPLES OFF)
 set(WOLFSSL_CRYPT_TESTS OFF)
 set(BUILD_SHARED_LIBS OFF)
 set(WOLFSSL_OQS OFF)
+set(WOLFSSL_BUILD_OUT_OF_TREE ON)
 
 FetchContent_MakeAvailable(kritis3m_applications liboqs wolfssl)
 

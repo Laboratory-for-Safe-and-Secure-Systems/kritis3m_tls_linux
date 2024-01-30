@@ -69,9 +69,18 @@ extern "C" {
 #define WOLFSSL_SP_384
 #define WOLFSSL_SP_521
 #define WOLFSSL_SP_ASM
+
+#if defined(__x86_64__)
+
 #define WOLFSSL_SP_X86_64
 #define WOLFSSL_SP_X86_64_ASM
 
+#elif defined(__aarch64__)
+
+#define WOLFSSL_SP_ARM64
+#define WOLFSSL_SP_ARM64_ASM
+
+#endif
 
 #ifdef __cplusplus
 }

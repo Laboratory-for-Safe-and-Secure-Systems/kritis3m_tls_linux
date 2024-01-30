@@ -17,6 +17,7 @@
 #include "tls_proxy.h"
 #include "tcp_echo_server.h"
 #include "tcp_client_stdin_bridge.h"
+#include "l2_bridge.h"
 
 #include "cli_parsing.h"
 
@@ -57,6 +58,8 @@ int main(int argc, char** argv)
 
 	struct proxy_config tls_proxy_config;
 
+    l2_bridge_config l2_bridge_config;
+
     struct tcp_echo_server_config tcp_echo_server_config = {
         .own_ip_address = LOCAL_ECHO_SERVER_IP,
         .listening_port = LOCAL_ECHO_SERVER_PORT,
@@ -75,7 +78,7 @@ int main(int argc, char** argv)
 
     /* Parse arguments */
     int ret = parse_cli_arguments(&role, &tls_proxy_config, &wolfssl_config,
-                                  &(struct shell){0}, argc, argv);
+                                  &l2_bridge_config, &(struct shell){0}, argc, argv);
     if (ret < 0)
     {
         fatal("unable to parse command line arguments");
@@ -95,7 +98,17 @@ int main(int argc, char** argv)
 	if (ret != 0)
 		fatal("unable to run tls proxy application");
 
-
+    /* Run Layer bridge */
+    if ((l2_bridge_config.lan_interface != NULL) && (l2_bridge_config.wan_interface != NULL))
+    {
+        ret = l2_bridge_run(&l2_bridge_config);
+        if (ret != 0)
+            fatal("unable to run l2 bridge application");
+    }
+    else if (l2_bridge_config.lan_interface != l2_bridge_config.wan_interface)
+    {
+        fatal("either both or none of the lan and wan interfaces must be specified");
+    }
 
     int id = -1;
 
@@ -169,6 +182,11 @@ int main(int argc, char** argv)
      * present). Then, we kill the actual application thread. */
     tls_proxy_stop(id);
     tls_proxy_backend_terminate();
+
+    if ((l2_bridge_config.lan_interface != NULL) && (l2_bridge_config.wan_interface != NULL))
+    {
+        l2_bridge_terminate();
+    }
     
     if (role == ROLE_ECHO_SERVER)
     {

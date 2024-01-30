@@ -11,7 +11,7 @@ Set(FETCHCONTENT_QUIET FALSE)
 # External repositories we need 
 FetchContent_Declare(kritis3m_applications
     GIT_REPOSITORY          git@lab.las3.de:frt42716/kritis3m_applications.git
-    GIT_TAG                 origin/secure_element
+    GIT_TAG                 origin/main
     GIT_PROGRESS            TRUE
 )
 
@@ -44,7 +44,7 @@ target_include_directories(${TARGET} PUBLIC
 
 # Main sources
 target_sources(${TARGET} PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/sources/main.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
 )
 
 # Liboqs configuration

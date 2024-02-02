@@ -16,7 +16,7 @@ extern "C" {
 #define NO_PWDBASED
 #define NO_RABBIT
 #define NO_HC128
-#define NO_SESSION_CACHE
+// #define NO_SESSION_CACHE
 #define NO_RESUME_SUITE_CHECK
 #define NO_WRITEV
 #define NO_DEV_URANDOM
@@ -47,16 +47,20 @@ extern "C" {
 #define HAVE_SUPPORTED_CURVES
 #define HAVE_TLS_EXTENSIONS
 #define HAVE_ECC
+#define HAVE_SESSION_TICKET
 #define ECC_SHAMIR
 #define ECC_TIMING_RESISTANT
 
 #define HAVE_WOLF_BIGINT
 #define HAVE_PKCS11
-#define WOLFSSL_DEBUG_PKCS11
 
 #define HAVE_LIBOQS
+#define WOLFSSL_DUAL_ALG_CERTS
+#define WOLFSSL_ASN_TEMPLATE
 
-#define DEBUG_WOLFSSL
+/* Debugging */
+// #define DEBUG_WOLFSSL
+// #define WOLFSSL_DEBUG_PKCS11
 
 
 /* Math configuration */

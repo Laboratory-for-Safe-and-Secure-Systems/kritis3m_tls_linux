@@ -48,11 +48,13 @@ extern "C" {
 #define HAVE_TLS_EXTENSIONS
 #define HAVE_ECC
 #define HAVE_SESSION_TICKET
+#define HAVE_NULL_CIPHER
 #define ECC_SHAMIR
 #define ECC_TIMING_RESISTANT
 
 #define HAVE_WOLF_BIGINT
 #define HAVE_PKCS11
+#define NO_PKCS11_ECDH
 
 #define HAVE_LIBOQS
 #define WOLFSSL_DUAL_ALG_CERTS

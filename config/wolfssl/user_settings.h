@@ -61,7 +61,7 @@ extern "C" {
 #define WOLFSSL_ASN_TEMPLATE
 
 /* Debugging */
-// #define DEBUG_WOLFSSL
+#define DEBUG_WOLFSSL
 // #define WOLFSSL_DEBUG_PKCS11
 
 

@@ -15,7 +15,7 @@ extern "C" {
 #define NO_RC4
 #define NO_PWDBASED
 // #define NO_SESSION_CACHE
-#define NO_RESUME_SUITE_CHECK
+// #define NO_RESUME_SUITE_CHECK
 #define NO_WRITEV
 #define NO_DEV_URANDOM
 #define NO_MULTIBYTE_PRINT
@@ -44,10 +44,11 @@ extern "C" {
 #define HAVE_TLS_EXTENSIONS
 #define HAVE_SUPPORTED_CURVES
 #define HAVE_ECC
-#define HAVE_SESSION_TICKET
+// #define HAVE_SESSION_TICKET
 #define HAVE_NULL_CIPHER
 #define ECC_SHAMIR
 #define ECC_TIMING_RESISTANT
+#define HAVE_SECRET_CALLBACK
 
 #define HAVE_WOLF_BIGINT
 #define HAVE_PKCS11
@@ -59,6 +60,7 @@ extern "C" {
 
 /* Debugging */
 #define DEBUG_WOLFSSL
+#define WOLFSSL_MAX_ERROR_SZ 224
 // #define WOLFSSL_DEBUG_PKCS11
 
 

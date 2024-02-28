@@ -14,8 +14,6 @@ extern "C" {
 #define NO_DH
 #define NO_RC4
 #define NO_PWDBASED
-#define NO_RABBIT
-#define NO_HC128
 // #define NO_SESSION_CACHE
 #define NO_RESUME_SUITE_CHECK
 #define NO_WRITEV
@@ -45,7 +43,6 @@ extern "C" {
 #define WOLFSSL_SHA512
 #define HAVE_TLS_EXTENSIONS
 #define HAVE_SUPPORTED_CURVES
-#define HAVE_TLS_EXTENSIONS
 #define HAVE_ECC
 #define HAVE_SESSION_TICKET
 #define HAVE_NULL_CIPHER

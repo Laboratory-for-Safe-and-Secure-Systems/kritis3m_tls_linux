@@ -44,6 +44,8 @@ volatile __sig_atomic_t running = true;
 
 static void signal_handler(int signo)
 {
+    (void) signo;
+
     /* Indicate the main process to stop */
     running = false;
 }
@@ -70,11 +72,12 @@ int main(int argc, char** argv)
         .target_port = LOCAL_STDIN_CLIENT_BRIDGE_PORT,
     };
 
-    /* Install the signal handler */
-    struct sigaction signal_action;
-    sigemptyset(&signal_action.sa_mask);
-    signal_action.sa_handler = signal_handler;
-    sigaction(SIGINT, &signal_action, NULL);
+    /* Install the signal handler and ignore SIGPIPE */
+    if (signal(SIGINT, signal_handler) == SIG_ERR)
+        printf("\ncan't catch SIGINT\n");
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+        printf("\ncan't ignore SIGPIPE\n");
+
 
     /* Parse arguments */
     int ret = parse_cli_arguments(&role, &tls_proxy_config, &wolfssl_config,

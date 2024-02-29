@@ -47,6 +47,19 @@ target_sources(${TARGET} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
 )
 
+target_compile_options(${TARGET} PUBLIC 
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Werror
+    -march=native
+    -Wa,--noexecstack
+    -fomit-frame-pointer
+    -fdata-sections
+    -ffunction-sections
+    -Wl,--gc-sections
+)
+
 # Liboqs configuration
 set(OQS_DIST_BUILD  OFF)
 set(OQS_BUILD_ONLY_LIB ON)

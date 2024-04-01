@@ -15,15 +15,14 @@
 #include "poll_set.h"
 
 #include "tls_proxy.h"
+#include "l2_gateway.h"
 #include "tcp_echo_server.h"
 #include "tcp_client_stdin_bridge.h"
 #include "l2_bridge.h"
 
 #include "cli_parsing.h"
 
-
 LOG_MODULE_REGISTER(KRITIS3M_TLS);
-
 
 #define ANY_IP "0.0.0.0"
 
@@ -34,11 +33,11 @@ LOG_MODULE_REGISTER(KRITIS3M_TLS);
 #define LOCAL_STDIN_CLIENT_BRIDGE_PORT 40001
 
 
-#define fatal(msg, ...) { \
-		LOG_ERR("Error: " msg "", ##__VA_ARGS__); \
-		exit(-1); \
-	}
-
+#define fatal(msg, ...)                           \
+    {                                             \
+        LOG_ERR("Error: " msg "", ##__VA_ARGS__); \
+        exit(-1);                                 \
+    }
 
 volatile __sig_atomic_t running = true;
 
@@ -48,16 +47,14 @@ static void signal_handler(int signo)
     running = false;
 }
 
-
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     enum application_role role;
 
     wolfssl_library_configuration wolfssl_config;
 
-	struct proxy_config tls_proxy_config;
-
+    struct proxy_config tls_proxy_config;
+    initialize_network_interfaces();
     l2_bridge_config l2_bridge_config;
 
     struct tcp_echo_server_config tcp_echo_server_config = {
@@ -76,9 +73,10 @@ int main(int argc, char** argv)
     signal_action.sa_handler = signal_handler;
     sigaction(SIGINT, &signal_action, NULL);
 
+    l2_gateway_config l2_gateway_config = {0};
     /* Parse arguments */
     int ret = parse_cli_arguments(&role, &tls_proxy_config, &wolfssl_config,
-                                  &l2_bridge_config, &(struct shell){0}, argc, argv);
+                                  &l2_bridge_config, &l2_gateway_config, &(struct shell){0}, argc, argv);
     if (ret < 0)
     {
         fatal("unable to parse command line arguments");
@@ -89,14 +87,26 @@ int main(int argc, char** argv)
     }
 
     /* Initialize WolfSSL */
-	ret = wolfssl_init(&wolfssl_config);
-	if (ret != 0)
-		fatal("unable to initialize WolfSSL");
+    ret = wolfssl_init(&wolfssl_config);
+    if (ret != 0)
+        fatal("unable to initialize WolfSSL");
 
-	/* Run the proxy (asynchronously) */
-	ret = tls_proxy_backend_run();
-	if (ret != 0)
-		fatal("unable to run tls proxy application");
+    // l2 gateway------------------------------------
+
+    if (role == ROLE_L2_GATEWAY)
+    {
+        ret = l2_gateway_start(&l2_gateway_config);
+        if (ret != 0)
+            fatal("unable to run l2 gateway application, errno : %d ", errno);
+    }
+    while (1)
+    {
+        sleep(1);
+    }
+    /* Run the proxy (asynchronously) */
+    ret = tls_proxy_backend_run();
+    if (ret != 0)
+        fatal("unable to run tls proxy application");
 
     /* Run Layer bridge */
     if ((l2_bridge_config.lan_interface != NULL) && (l2_bridge_config.wan_interface != NULL))
@@ -118,7 +128,7 @@ int main(int argc, char** argv)
         id = tls_reverse_proxy_start(&tls_proxy_config);
         if (id < 0)
             fatal("unable to start TLS reverse proxy");
-        
+
         LOG_INF("started TLS reverse proxy with id %d", id);
     }
     else if (role == ROLE_FORWARD_PROXY)
@@ -127,14 +137,14 @@ int main(int argc, char** argv)
         id = tls_forward_proxy_start(&tls_proxy_config);
         if (id < 0)
             fatal("unable to start TLS forward proxy");
-        
+
         LOG_INF("started TLS forward proxy with id %d", id);
     }
     else if (role == ROLE_ECHO_SERVER)
     {
         tls_proxy_config.target_ip_address = LOCAL_ECHO_SERVER_IP;
         tls_proxy_config.target_port = LOCAL_ECHO_SERVER_PORT;
-        
+
         /* Add the TCP echo server */
         ret = tcp_echo_server_run(&tcp_echo_server_config);
         if (ret != 0)
@@ -144,7 +154,7 @@ int main(int argc, char** argv)
         id = tls_reverse_proxy_start(&tls_proxy_config);
         if (id < 0)
             fatal("unable to start TLS reverse proxy");
-        
+
         LOG_INF("started TLS reverse proxy with id %d", id);
     }
     else if (role == ROLE_ECHO_CLIENT)
@@ -161,14 +171,13 @@ int main(int argc, char** argv)
         ret = tcp_client_stdin_bridge_run(&tcp_client_stdin_bridge_config);
         if (ret != 0)
             fatal("unable to run TCP client stdin bridge");
-        
+
         LOG_INF("started TLS forward proxy with id %d", id);
     }
     else
     {
         fatal("no role specified");
     }
-
 
     while (running)
     {
@@ -187,7 +196,7 @@ int main(int argc, char** argv)
     {
         l2_bridge_terminate();
     }
-    
+
     if (role == ROLE_ECHO_SERVER)
     {
         tcp_echo_server_terminate();
@@ -197,5 +206,5 @@ int main(int argc, char** argv)
         tcp_client_stdin_bridge_terminate();
     }
 
-	return 0;
+    return 0;
 }

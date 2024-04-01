@@ -26,6 +26,14 @@ extern "C" {
 #define NO_OLD_RNGNAME
 #define NO_AES_192
 
+#define WOLFSSL_DTLS
+// #define USE_DTLS12 
+#define WOLFSSL_DTLS13
+
+#define WOLFSSL_DTLS_CH_FRAG
+#define WOLFSSL_SEND_HRR_COOKIE
+
+
 // Enable features 
 #define WOLFSSL_USER_IO
 #define HAVE_ECC384 

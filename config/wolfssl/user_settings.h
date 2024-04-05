@@ -24,9 +24,9 @@ extern "C" {
 #define NO_OLD_RNGNAME
 #define NO_AES_192
 
-// Enable features 
+// Enable features
 #define WOLFSSL_USER_IO
-#define HAVE_ECC384 
+#define HAVE_ECC384
 #define WOLF_CRYPTO_CB
 #define WOLF_CRYPTO_DEV
 #define WOLFSSL_NO_SOCK

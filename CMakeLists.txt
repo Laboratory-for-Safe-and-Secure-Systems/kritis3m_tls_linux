@@ -8,7 +8,7 @@ include(FetchContent)
 Set(FETCHCONTENT_QUIET FALSE)
 
 
-# External repositories we need 
+# External repositories we need
 FetchContent_Declare(kritis3m_applications
     GIT_REPOSITORY          git@github.com:Frauschi/kritis3m_applications.git
     GIT_TAG                 origin/main
@@ -47,7 +47,7 @@ target_sources(${TARGET} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
 )
 
-target_compile_options(${TARGET} PUBLIC 
+target_compile_options(${TARGET} PUBLIC
     -Wall
     -Wextra
     -Wpedantic
@@ -69,6 +69,9 @@ set(OQS_ENABLE_KEM_FRODOKEM OFF)
 set(OQS_ENABLE_KEM_NTRUPRIME OFF)
 set(OQS_ENABLE_KEM_CLASSIC_MCELIECE OFF)
 set(OQS_ENABLE_KEM_HQC OFF)
+set(OQS_ENABLE_KEM_ML_KEM OFF)
+set(OQS_ENABLE_SIG_ML_DSA OFF)
+
 
 # WolfSSL configuration
 set(WOLFSSL_USER_SETTINGS ON)

@@ -121,7 +121,7 @@ int main(int argc, char** argv)
         id = tls_reverse_proxy_start(&tls_proxy_config);
         if (id < 0)
             fatal("unable to start TLS reverse proxy");
-        
+
         LOG_INF("started TLS reverse proxy with id %d", id);
     }
     else if (role == ROLE_FORWARD_PROXY)
@@ -130,14 +130,14 @@ int main(int argc, char** argv)
         id = tls_forward_proxy_start(&tls_proxy_config);
         if (id < 0)
             fatal("unable to start TLS forward proxy");
-        
+
         LOG_INF("started TLS forward proxy with id %d", id);
     }
     else if (role == ROLE_ECHO_SERVER)
     {
         tls_proxy_config.target_ip_address = LOCAL_ECHO_SERVER_IP;
         tls_proxy_config.target_port = LOCAL_ECHO_SERVER_PORT;
-        
+
         /* Add the TCP echo server */
         ret = tcp_echo_server_run(&tcp_echo_server_config);
         if (ret != 0)
@@ -147,7 +147,7 @@ int main(int argc, char** argv)
         id = tls_reverse_proxy_start(&tls_proxy_config);
         if (id < 0)
             fatal("unable to start TLS reverse proxy");
-        
+
         LOG_INF("started TLS reverse proxy with id %d", id);
     }
     else if (role == ROLE_ECHO_CLIENT)
@@ -164,13 +164,23 @@ int main(int argc, char** argv)
         ret = tcp_client_stdin_bridge_run(&tcp_client_stdin_bridge_config);
         if (ret != 0)
             fatal("unable to run TCP client stdin bridge");
-        
+
         LOG_INF("started TLS forward proxy with id %d", id);
     }
     else
     {
         fatal("no role specified");
     }
+
+    /* Free memory */
+    if (tls_proxy_config.tls_config.device_certificate_chain.buffer != NULL)
+        free((uint8_t*)tls_proxy_config.tls_config.device_certificate_chain.buffer);
+    if (tls_proxy_config.tls_config.private_key.buffer != NULL)
+        free((uint8_t*)tls_proxy_config.tls_config.private_key.buffer);
+    if (tls_proxy_config.tls_config.private_key.additional_key_buffer != NULL)
+        free((uint8_t*)tls_proxy_config.tls_config.private_key.additional_key_buffer);
+    if (tls_proxy_config.tls_config.root_certificate.buffer != NULL)
+        free((uint8_t*)tls_proxy_config.tls_config.root_certificate.buffer);
 
 
     while (running)
@@ -190,7 +200,7 @@ int main(int argc, char** argv)
     {
         l2_bridge_terminate();
     }
-    
+
     if (role == ROLE_ECHO_SERVER)
     {
         tcp_echo_server_terminate();

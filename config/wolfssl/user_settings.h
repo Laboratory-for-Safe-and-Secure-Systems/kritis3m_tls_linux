@@ -58,6 +58,8 @@ extern "C" {
 #define WOLFSSL_DUAL_ALG_CERTS
 #define WOLFSSL_ASN_TEMPLATE
 
+#define LARGE_STATIC_BUFFERS
+
 /* Debugging */
 #define DEBUG_WOLFSSL
 #define WOLFSSL_MAX_ERROR_SZ 224

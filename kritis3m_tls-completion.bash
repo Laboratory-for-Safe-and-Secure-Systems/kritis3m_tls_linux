@@ -52,7 +52,7 @@ _kritis3m_tls_completions()
     opts_files="--cert --key --intermediate --root --additionalKey --middleware_path --keylogFile"
     opts_bools="--mutualAuth --noEncryption --use_secure_element --se_import_keys"
     opts_hybrid="--hybrid_signature"
-    opts_general=" --debug --help"
+    opts_general="--verbose --debug --help"
     if [[ ${cur} == -* ]]; then
 	COMPREPLY=( $(compgen -W "${opts_roles} ${opts_connection} ${opts_files} ${opts_bools} ${opts_hybrid} ${opts_general}" -- ${cur}) )
 	return 0

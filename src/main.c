@@ -58,7 +58,7 @@ int main(int argc, char** argv)
 
     wolfssl_library_configuration wolfssl_config;
 
-	struct proxy_config tls_proxy_config;
+	proxy_config tls_proxy_config;
 
     l2_bridge_config l2_bridge_config;
 

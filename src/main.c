@@ -188,7 +188,7 @@ int main(int argc, char** argv)
         sleep(1);
     }
 
-    printf("Terminating...\n");
+    LOG_INF("Terminating...");
 
     /* We only land here if we received a terminate signal. First, we
      * kill the running server (especially its running client thread, if

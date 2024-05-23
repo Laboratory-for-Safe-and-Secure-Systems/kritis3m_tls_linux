@@ -11,7 +11,7 @@
 
 #include "networking.h"
 #include "logging.h"
-#include "wolfssl.h"
+#include "asl.h"
 #include "poll_set.h"
 
 #include "tls_proxy.h"
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 {
     enum application_role role;
 
-    wolfssl_library_configuration wolfssl_config;
+    asl_configuration asl_config;
 
 	proxy_config tls_proxy_config;
 
@@ -80,7 +80,7 @@ int main(int argc, char** argv)
 
 
     /* Parse arguments */
-    int ret = parse_cli_arguments(&role, &tls_proxy_config, &wolfssl_config,
+    int ret = parse_cli_arguments(&role, &tls_proxy_config, &asl_config,
                                   &l2_bridge_config, &(struct shell){0}, argc, argv);
     if (ret < 0)
     {
@@ -91,8 +91,8 @@ int main(int argc, char** argv)
         exit(0); /* help was printed, so we can exit here */
     }
 
-    /* Initialize WolfSSL */
-	ret = wolfssl_init(&wolfssl_config);
+    /* Initialize the Agile Security Library */
+	ret = asl_init(&asl_config);
 	if (ret != 0)
 		fatal("unable to initialize WolfSSL");
 

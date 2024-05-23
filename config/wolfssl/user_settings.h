@@ -54,6 +54,7 @@ extern "C" {
 #define HAVE_HKDF
 #define HAVE_AESGCM
 #define HAVE_LIBOQS
+#define WOLFSSL_NO_SPHINCS
 // #define WOLFSSL_WC_KYBER
 
 #define NO_SHA

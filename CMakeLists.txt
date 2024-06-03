@@ -10,13 +10,13 @@ Set(FETCHCONTENT_QUIET FALSE)
 
 # External repositories we need
 FetchContent_Declare(kritis3m_asl
-    GIT_REPOSITORY          git@github.com:Frauschi/kritis3m_asl.git
+    GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_asl.git
     GIT_TAG                 origin/main
     GIT_PROGRESS            TRUE
 )
 
 FetchContent_Declare(kritis3m_applications
-    GIT_REPOSITORY          git@github.com:Frauschi/kritis3m_applications.git
+    GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_applications.git
     GIT_TAG                 origin/main
     GIT_PROGRESS            TRUE
 )

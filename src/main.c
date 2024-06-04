@@ -51,10 +51,34 @@ static void signal_handler(int signo)
 }
 
 
+static void asl_log_callback(int32_t level, char const* message)
+{
+    switch (level)
+    {
+        case ASL_LOG_LEVEL_ERR:
+            LOG_ERR("%s", message);
+            break;
+        case ASL_LOG_LEVEL_WRN:
+            LOG_WRN("%s", message);
+            break;
+        case ASL_LOG_LEVEL_INF:
+            LOG_INF("%s", message);
+            break;
+        case ASL_LOG_LEVEL_DBG:
+            LOG_DBG("%s", message);
+            break;
+        default:
+            LOG_ERR("unknown log level %d: %s", level, message);
+            break;
+    }
+
+}
+
 
 int main(int argc, char** argv)
 {
     enum application_role role;
+    int32_t log_level;
 
     asl_configuration asl_config;
 
@@ -80,8 +104,9 @@ int main(int argc, char** argv)
 
 
     /* Parse arguments */
-    int ret = parse_cli_arguments(&role, &tls_proxy_config, &asl_config,
+    int ret = parse_cli_arguments(&role, &log_level, &tls_proxy_config, &asl_config,
                                   &l2_bridge_config, &(struct shell){0}, argc, argv);
+    LOG_LEVEL_SET(log_level);
     if (ret < 0)
     {
         fatal("unable to parse command line arguments");
@@ -92,6 +117,7 @@ int main(int argc, char** argv)
     }
 
     /* Initialize the Agile Security Library */
+    asl_config.customLogCallback = asl_log_callback;
 	ret = asl_init(&asl_config);
 	if (ret != 0)
 		fatal("unable to initialize WolfSSL");

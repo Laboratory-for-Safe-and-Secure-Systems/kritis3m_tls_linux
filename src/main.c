@@ -117,7 +117,7 @@ int main(int argc, char** argv)
     }
 
     /* Initialize the Agile Security Library */
-    asl_config.customLogCallback = asl_log_callback;
+    asl_config.custom_log_callback = asl_log_callback;
 	ret = asl_init(&asl_config);
 	if (ret != 0)
 		fatal("unable to initialize WolfSSL");

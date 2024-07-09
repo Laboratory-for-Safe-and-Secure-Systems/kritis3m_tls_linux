@@ -26,11 +26,7 @@ LOG_MODULE_CREATE(kritis3m_proxy);
 
 #define ANY_IP "0.0.0.0"
 
-#define LOCAL_ECHO_SERVER_IP "127.0.0.1"
-#define LOCAL_ECHO_SERVER_PORT 40000
-
-#define LOCAL_STDIN_CLIENT_BRIDGE_IP "127.0.0.1"
-#define LOCAL_STDIN_CLIENT_BRIDGE_PORT 40001
+#define LOCALHOST_IP "127.0.0.1"
 
 
 #define fatal(msg, ...) { \
@@ -79,16 +75,6 @@ int main(int argc, char** argv)
         asl_configuration asl_config;
         proxy_backend_config tls_proxy_backend_config;
 	proxy_config tls_proxy_config;
-
-        tcp_echo_server_config tcp_echo_server_config = {
-                .own_ip_address = LOCAL_ECHO_SERVER_IP,
-                .listening_port = LOCAL_ECHO_SERVER_PORT,
-        };
-
-        tcp_client_stdin_bridge_config tcp_client_stdin_bridge_config = {
-                .target_ip_address = LOCAL_STDIN_CLIENT_BRIDGE_IP,
-                .target_port = LOCAL_STDIN_CLIENT_BRIDGE_PORT,
-        };
 
         /* Install the signal handler and ignore SIGPIPE */
         if (signal(SIGINT, signal_handler) == SIG_ERR)
@@ -143,13 +129,24 @@ int main(int argc, char** argv)
         }
         else if (app_config.role == ROLE_ECHO_SERVER)
         {
-                tls_proxy_config.target_ip_address = LOCAL_ECHO_SERVER_IP;
-                tls_proxy_config.target_port = LOCAL_ECHO_SERVER_PORT;
+                 tcp_echo_server_config tcp_echo_server_config = {
+                        .own_ip_address = LOCALHOST_IP,
+                        .listening_port = 0, /* Select random available port */
+                };
 
                 /* Add the TCP echo server */
                 ret = tcp_echo_server_run(&tcp_echo_server_config);
                 if (ret != 0)
                         fatal("unable to run TCP echo server");
+
+                /* Obtain the listing port of the TCP echo server */
+                tcp_echo_server_status echo_server_status;
+                if (tcp_echo_server_get_status(&echo_server_status) < 0)
+                        fatal("unable to run TCP echo server");
+
+                /* Configure the TLS reverse proxy */
+                tls_proxy_config.target_ip_address = LOCALHOST_IP;
+                tls_proxy_config.target_port = echo_server_status.listening_port;
 
                 /* Add the new TLS reverse proxy to the application backend */
                 id = tls_reverse_proxy_start(&tls_proxy_config);
@@ -160,20 +157,32 @@ int main(int argc, char** argv)
         }
         else if (app_config.role == ROLE_ECHO_CLIENT)
         {
-                tls_proxy_config.own_ip_address = LOCAL_STDIN_CLIENT_BRIDGE_IP;
-                tls_proxy_config.listening_port = LOCAL_STDIN_CLIENT_BRIDGE_PORT;
+                tcp_client_stdin_bridge_config tcp_client_stdin_bridge_config = {
+                        .target_ip_address = LOCALHOST_IP,
+                        .target_port = 0, /* Updated to the random port of the forward proxy */
+                };
+
+                /* Configure the forward proxy */
+                tls_proxy_config.own_ip_address = LOCALHOST_IP;
+                tls_proxy_config.listening_port = 0; /* Select random available port */
 
                 /* Add the new TLS forward proxy to the application backend */
                 id = tls_forward_proxy_start(&tls_proxy_config);
                 if (id < 0)
                         fatal("unable to start TLS forward proxy");
 
+                /* Obtain the listing port of the forward proxy */
+                proxy_status forward_proxy_status;
+                if (tls_proxy_get_status(id, &forward_proxy_status) < 0)
+                        fatal("unable to run TLS forward proxy");
+
                 /* Add the TCP client stdin bridge */
+                tcp_client_stdin_bridge_config.target_port = forward_proxy_status.incoming_port;
                 ret = tcp_client_stdin_bridge_run(&tcp_client_stdin_bridge_config);
                 if (ret != 0)
                         fatal("unable to run TCP client stdin bridge");
 
-                LOG_INFO("started TLS forward proxy with id %d", id);
+                LOG_INFO("started TLS client stdin bridge");
         }
         else
         {
@@ -192,6 +201,11 @@ int main(int argc, char** argv)
 
         while (running)
         {
+                // proxy_status proxy_status;
+                // if (tls_proxy_get_status(id, &proxy_status) < 0)
+                //         fatal("unable to obtain proxy status");
+                // LOG_INFO("proxy status: %d connections", proxy_status.num_connections);
+
                 sleep(1);
         }
 

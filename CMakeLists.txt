@@ -67,6 +67,9 @@ if(NOT kritis3m_applications_POPULATED)
   add_subdirectory(${kritis3m_applications_SOURCE_DIR} ${kritis3m_applications_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
+# Link KRITIS3M_ASL to the KRITIS3M_APPLICATIONS_Proxy target
+target_link_libraries(kritis3m_applications_proxy PUBLIC asl)
+
 # Link KRITIS3M_ASL to the main target
 target_link_libraries(${TARGET} PUBLIC asl)
 

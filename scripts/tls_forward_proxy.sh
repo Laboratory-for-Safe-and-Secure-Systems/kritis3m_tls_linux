@@ -7,7 +7,7 @@ fi
 
 
 echo "Starting KRITIS3M TLS Forward Proxy from $1 to $2 with certs in $3"
-kritis3m_tls forward_proxy \
+kritis3m_proxy forward_proxy \
         --incoming $1 \
         --outgoing $2 \
         --root $3/root/cert.pem \

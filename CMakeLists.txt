@@ -22,7 +22,7 @@ FetchContent_Declare(kritis3m_applications
 )
 
 
-set(TARGET kritis3m_tls)
+set(TARGET kritis3m_proxy)
 
 project(${TARGET})
 
@@ -74,7 +74,7 @@ target_link_libraries(${TARGET} PUBLIC asl)
 install(TARGETS ${TARGET} DESTINATION bin)
 
 # Install the helper scripts
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_forward_proxy.sh DESTINATION bin RENAME tls_forward_proxy)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_reverse_proxy.sh DESTINATION bin RENAME tls_reverse_proxy)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_server.sh DESTINATION bin RENAME tls_echo_server)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_client.sh DESTINATION bin RENAME tls_echo_client)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_forward_proxy.sh DESTINATION bin RENAME kritis3m_forward_proxy)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_reverse_proxy.sh DESTINATION bin RENAME kritis3m_reverse_proxy)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_server.sh DESTINATION bin RENAME kritis3m_echo_server)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_client.sh DESTINATION bin RENAME kritis3m_echo_client)

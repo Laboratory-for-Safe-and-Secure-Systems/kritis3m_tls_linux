@@ -2,7 +2,7 @@
 
 # Help print
 #
-# Usage: ./bin/kritis3m_tls ROLE [OPTIONS]
+# Usage: kritis3m_proxy ROLE [OPTIONS]
 # Roles:
 #
 #   reverse_proxy                    TLS reverse proxy (use --incoming and --outgoing for connection configuration)
@@ -38,8 +38,7 @@
 #   --help                           display this help and exit
 
 
-
-_kritis3m_tls_completions()
+_kritis3m_proxy_completions()
 {
         local cur prev roles opts_connection opts_files opts_bools opts_hybrid opts_general
 
@@ -93,4 +92,4 @@ _kritis3m_tls_completions()
         esac
 }
 
-complete -F _kritis3m_tls_completions kritis3m_tls
+complete -F _kritis3m_proxy_completions kritis3m_proxy

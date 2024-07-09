@@ -119,12 +119,16 @@ int parse_cli_arguments(application_config* app_config, asl_configuration* asl_c
         {
                 app_config->role = ROLE_ECHO_CLIENT;
         }
+        else if ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))
+        {
+                print_help(argv[0]);
+                return 1;
+        }
         else
         {
                 LOG_ERROR("invalid role: %s", argv[1]);
                 print_help(argv[0]);
-                return -1;
-
+                return 1;
         }
 
 	/* Parse arguments */

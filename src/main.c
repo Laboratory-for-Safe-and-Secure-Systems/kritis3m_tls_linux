@@ -17,12 +17,11 @@
 #include "tls_proxy.h"
 #include "tcp_echo_server.h"
 #include "tcp_client_stdin_bridge.h"
-#include "l2_bridge.h"
 
 #include "cli_parsing.h"
 
 
-LOG_MODULE_REGISTER(KRITIS3M_TLS);
+LOG_MODULE_CREATE(kritis3m_proxy);
 
 
 #define ANY_IP "0.0.0.0"
@@ -35,7 +34,7 @@ LOG_MODULE_REGISTER(KRITIS3M_TLS);
 
 
 #define fatal(msg, ...) { \
-		LOG_ERR("Error: " msg "", ##__VA_ARGS__); \
+		LOG_ERROR("Error: " msg "", ##__VA_ARGS__); \
 		exit(-1); \
 	}
 
@@ -44,197 +43,174 @@ volatile __sig_atomic_t running = true;
 
 static void signal_handler(int signo)
 {
-    (void) signo;
+        (void) signo;
 
-    /* Indicate the main process to stop */
-    running = false;
+        /* Indicate the main process to stop */
+        running = false;
 }
 
 
 static void asl_log_callback(int32_t level, char const* message)
 {
-    switch (level)
-    {
+        switch (level)
+        {
         case ASL_LOG_LEVEL_ERR:
-            LOG_ERR("%s", message);
-            break;
+                LOG_ERROR("%s", message);
+                break;
         case ASL_LOG_LEVEL_WRN:
-            LOG_WRN("%s", message);
-            break;
+                LOG_WARN("%s", message);
+                break;
         case ASL_LOG_LEVEL_INF:
-            LOG_INF("%s", message);
-            break;
+                LOG_INFO("%s", message);
+                break;
         case ASL_LOG_LEVEL_DBG:
-            LOG_DBG("%s", message);
-            break;
+                LOG_DEBUG("%s", message);
+                break;
         default:
-            LOG_ERR("unknown log level %d: %s", level, message);
-            break;
-    }
-
+                LOG_ERROR("unknown log level %d: %s", level, message);
+                break;
+        }
 }
 
 
 int main(int argc, char** argv)
 {
-    enum application_role role;
-    int32_t log_level;
-
-    asl_configuration asl_config;
-
+        application_config app_config;
+        asl_configuration asl_config;
+        proxy_backend_config tls_proxy_backend_config;
 	proxy_config tls_proxy_config;
 
-    l2_bridge_config l2_bridge_config;
+        tcp_echo_server_config tcp_echo_server_config = {
+                .own_ip_address = LOCAL_ECHO_SERVER_IP,
+                .listening_port = LOCAL_ECHO_SERVER_PORT,
+        };
 
-    struct tcp_echo_server_config tcp_echo_server_config = {
-        .own_ip_address = LOCAL_ECHO_SERVER_IP,
-        .listening_port = LOCAL_ECHO_SERVER_PORT,
-    };
+        tcp_client_stdin_bridge_config tcp_client_stdin_bridge_config = {
+                .target_ip_address = LOCAL_STDIN_CLIENT_BRIDGE_IP,
+                .target_port = LOCAL_STDIN_CLIENT_BRIDGE_PORT,
+        };
 
-    struct tcp_client_stdin_bridge_config tcp_client_stdin_bridge_config = {
-        .target_ip_address = LOCAL_STDIN_CLIENT_BRIDGE_IP,
-        .target_port = LOCAL_STDIN_CLIENT_BRIDGE_PORT,
-    };
-
-    /* Install the signal handler and ignore SIGPIPE */
-    if (signal(SIGINT, signal_handler) == SIG_ERR)
-        printf("\ncan't catch SIGINT\n");
-    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-        printf("\ncan't ignore SIGPIPE\n");
+        /* Install the signal handler and ignore SIGPIPE */
+        if (signal(SIGINT, signal_handler) == SIG_ERR)
+                printf("\ncan't catch SIGINT\n");
+        if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+                printf("\ncan't ignore SIGPIPE\n");
 
 
-    /* Parse arguments */
-    int ret = parse_cli_arguments(&role, &log_level, &tls_proxy_config, &asl_config,
-                                  &l2_bridge_config, &(struct shell){0}, argc, argv);
-    LOG_LEVEL_SET(log_level);
-    if (ret < 0)
-    {
-        fatal("unable to parse command line arguments");
-    }
-    else if (ret > 0)
-    {
-        exit(0); /* help was printed, so we can exit here */
-    }
+        /* Parse arguments */
+        int ret = parse_cli_arguments(&app_config, &asl_config, &tls_proxy_backend_config,
+                                      &tls_proxy_config, argc, argv);
+        LOG_LVL_SET(app_config.log_level);
+        if (ret < 0)
+        {
+                fatal("unable to parse command line arguments");
+        }
+        else if (ret > 0)
+        {
+                exit(0); /* help was printed, so we can exit here */
+        }
 
-    /* Initialize the Agile Security Library */
-    asl_config.custom_log_callback = asl_log_callback;
+        /* Initialize the Agile Security Library */
+        asl_config.custom_log_callback = asl_log_callback;
 	ret = asl_init(&asl_config);
 	if (ret != 0)
 		fatal("unable to initialize WolfSSL");
 
 	/* Run the proxy (asynchronously) */
-	ret = tls_proxy_backend_run();
+	ret = tls_proxy_backend_run(&tls_proxy_backend_config);
 	if (ret != 0)
 		fatal("unable to run tls proxy application");
 
-    /* Run Layer bridge */
-    if ((l2_bridge_config.lan_interface != NULL) && (l2_bridge_config.wan_interface != NULL))
-    {
-        ret = l2_bridge_run(&l2_bridge_config);
-        if (ret != 0)
-            fatal("unable to run l2 bridge application");
-    }
-    else if (l2_bridge_config.lan_interface != l2_bridge_config.wan_interface)
-    {
-        fatal("either both or none of the lan and wan interfaces must be specified");
-    }
+        int id = -1;
 
-    int id = -1;
+        if (app_config.role == ROLE_REVERSE_PROXY)
+        {
+                /* Add the new TLS reverse proxy to the application backend */
+                id = tls_reverse_proxy_start(&tls_proxy_config);
+                if (id < 0)
+                        fatal("unable to start TLS reverse proxy");
 
-    if (role == ROLE_REVERSE_PROXY)
-    {
-        /* Add the new TLS reverse proxy to the application backend */
-        id = tls_reverse_proxy_start(&tls_proxy_config);
-        if (id < 0)
-            fatal("unable to start TLS reverse proxy");
+                LOG_INFO("started TLS reverse proxy with id %d", id);
+        }
+        else if (app_config.role == ROLE_FORWARD_PROXY)
+        {
+                /* Add the new TLS forward proxy to the application backend */
+                id = tls_forward_proxy_start(&tls_proxy_config);
+                if (id < 0)
+                        fatal("unable to start TLS forward proxy");
 
-        LOG_INF("started TLS reverse proxy with id %d", id);
-    }
-    else if (role == ROLE_FORWARD_PROXY)
-    {
-        /* Add the new TLS forward proxy to the application backend */
-        id = tls_forward_proxy_start(&tls_proxy_config);
-        if (id < 0)
-            fatal("unable to start TLS forward proxy");
+                LOG_INFO("started TLS forward proxy with id %d", id);
+        }
+        else if (app_config.role == ROLE_ECHO_SERVER)
+        {
+                tls_proxy_config.target_ip_address = LOCAL_ECHO_SERVER_IP;
+                tls_proxy_config.target_port = LOCAL_ECHO_SERVER_PORT;
 
-        LOG_INF("started TLS forward proxy with id %d", id);
-    }
-    else if (role == ROLE_ECHO_SERVER)
-    {
-        tls_proxy_config.target_ip_address = LOCAL_ECHO_SERVER_IP;
-        tls_proxy_config.target_port = LOCAL_ECHO_SERVER_PORT;
+                /* Add the TCP echo server */
+                ret = tcp_echo_server_run(&tcp_echo_server_config);
+                if (ret != 0)
+                        fatal("unable to run TCP echo server");
 
-        /* Add the TCP echo server */
-        ret = tcp_echo_server_run(&tcp_echo_server_config);
-        if (ret != 0)
-            fatal("unable to run TCP echo server");
+                /* Add the new TLS reverse proxy to the application backend */
+                id = tls_reverse_proxy_start(&tls_proxy_config);
+                if (id < 0)
+                        fatal("unable to start TLS reverse proxy");
 
-        /* Add the new TLS reverse proxy to the application backend */
-        id = tls_reverse_proxy_start(&tls_proxy_config);
-        if (id < 0)
-            fatal("unable to start TLS reverse proxy");
+                LOG_INFO("started TLS reverse proxy with id %d", id);
+        }
+        else if (app_config.role == ROLE_ECHO_CLIENT)
+        {
+                tls_proxy_config.own_ip_address = LOCAL_STDIN_CLIENT_BRIDGE_IP;
+                tls_proxy_config.listening_port = LOCAL_STDIN_CLIENT_BRIDGE_PORT;
 
-        LOG_INF("started TLS reverse proxy with id %d", id);
-    }
-    else if (role == ROLE_ECHO_CLIENT)
-    {
-        tls_proxy_config.own_ip_address = LOCAL_STDIN_CLIENT_BRIDGE_IP;
-        tls_proxy_config.listening_port = LOCAL_STDIN_CLIENT_BRIDGE_PORT;
+                /* Add the new TLS forward proxy to the application backend */
+                id = tls_forward_proxy_start(&tls_proxy_config);
+                if (id < 0)
+                        fatal("unable to start TLS forward proxy");
 
-        /* Add the new TLS forward proxy to the application backend */
-        id = tls_forward_proxy_start(&tls_proxy_config);
-        if (id < 0)
-            fatal("unable to start TLS forward proxy");
+                /* Add the TCP client stdin bridge */
+                ret = tcp_client_stdin_bridge_run(&tcp_client_stdin_bridge_config);
+                if (ret != 0)
+                        fatal("unable to run TCP client stdin bridge");
 
-        /* Add the TCP client stdin bridge */
-        ret = tcp_client_stdin_bridge_run(&tcp_client_stdin_bridge_config);
-        if (ret != 0)
-            fatal("unable to run TCP client stdin bridge");
+                LOG_INFO("started TLS forward proxy with id %d", id);
+        }
+        else
+        {
+                fatal("no role specified");
+        }
 
-        LOG_INF("started TLS forward proxy with id %d", id);
-    }
-    else
-    {
-        fatal("no role specified");
-    }
+        /* Free memory */
+        if (tls_proxy_config.tls_config.device_certificate_chain.buffer != NULL)
+                free((uint8_t*)tls_proxy_config.tls_config.device_certificate_chain.buffer);
+        if (tls_proxy_config.tls_config.private_key.buffer != NULL)
+                free((uint8_t*)tls_proxy_config.tls_config.private_key.buffer);
+        if (tls_proxy_config.tls_config.private_key.additional_key_buffer != NULL)
+                free((uint8_t*)tls_proxy_config.tls_config.private_key.additional_key_buffer);
+        if (tls_proxy_config.tls_config.root_certificate.buffer != NULL)
+                free((uint8_t*)tls_proxy_config.tls_config.root_certificate.buffer);
 
-    /* Free memory */
-    if (tls_proxy_config.tls_config.device_certificate_chain.buffer != NULL)
-        free((uint8_t*)tls_proxy_config.tls_config.device_certificate_chain.buffer);
-    if (tls_proxy_config.tls_config.private_key.buffer != NULL)
-        free((uint8_t*)tls_proxy_config.tls_config.private_key.buffer);
-    if (tls_proxy_config.tls_config.private_key.additional_key_buffer != NULL)
-        free((uint8_t*)tls_proxy_config.tls_config.private_key.additional_key_buffer);
-    if (tls_proxy_config.tls_config.root_certificate.buffer != NULL)
-        free((uint8_t*)tls_proxy_config.tls_config.root_certificate.buffer);
+        while (running)
+        {
+                sleep(1);
+        }
 
+        LOG_INFO("Terminating...");
 
-    while (running)
-    {
-        sleep(1);
-    }
+        /* We only land here if we received a terminate signal. First, we
+        * kill the running server (especially its running client thread, if
+        * present). Then, we kill the actual application thread. */
+        tls_proxy_stop(id);
+        tls_proxy_backend_terminate();
 
-    LOG_INF("Terminating...");
-
-    /* We only land here if we received a terminate signal. First, we
-     * kill the running server (especially its running client thread, if
-     * present). Then, we kill the actual application thread. */
-    tls_proxy_stop(id);
-    tls_proxy_backend_terminate();
-
-    if ((l2_bridge_config.lan_interface != NULL) && (l2_bridge_config.wan_interface != NULL))
-    {
-        l2_bridge_terminate();
-    }
-
-    if (role == ROLE_ECHO_SERVER)
-    {
-        tcp_echo_server_terminate();
-    }
-    else if (role == ROLE_ECHO_CLIENT)
-    {
-        tcp_client_stdin_bridge_terminate();
-    }
+        if (app_config.role == ROLE_ECHO_SERVER)
+        {
+                tcp_echo_server_terminate();
+        }
+        else if (app_config.role == ROLE_ECHO_CLIENT)
+        {
+                tcp_client_stdin_bridge_terminate();
+        }
 
 	return 0;
 }

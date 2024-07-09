@@ -38,6 +38,7 @@ target_include_directories(${TARGET} PUBLIC
 # Main sources
 target_sources(${TARGET} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/cli_parsing.c
 )
 
 target_compile_options(${TARGET} PUBLIC
@@ -53,7 +54,27 @@ target_compile_options(${TARGET} PUBLIC
     -Wl,--gc-sections
 )
 
-FetchContent_MakeAvailable(kritis3m_asl kritis3m_applications)
+# Actually add the external repositories to our project
+FetchContent_GetProperties(kritis3m_asl)
+if(NOT kritis3m_asl_POPULATED)
+  FetchContent_Populate(kritis3m_asl)
+  add_subdirectory(${kritis3m_asl_SOURCE_DIR} ${kritis3m_asl_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
 
-# Link WolfSSL to the main target
+FetchContent_GetProperties(kritis3m_applications)
+if(NOT kritis3m_applications_POPULATED)
+  FetchContent_Populate(kritis3m_applications)
+  add_subdirectory(${kritis3m_applications_SOURCE_DIR} ${kritis3m_applications_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
+# Link KRITIS3M_ASL to the main target
 target_link_libraries(${TARGET} PUBLIC asl)
+
+# Install the executable
+install(TARGETS ${TARGET} DESTINATION bin)
+
+# Install the helper scripts
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_forward_proxy.sh DESTINATION bin RENAME tls_forward_proxy)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_reverse_proxy.sh DESTINATION bin RENAME tls_reverse_proxy)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_server.sh DESTINATION bin RENAME tls_echo_server)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_client.sh DESTINATION bin RENAME tls_echo_client)

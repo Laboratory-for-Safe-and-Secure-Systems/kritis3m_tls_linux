@@ -14,6 +14,3 @@ kritis3m_proxy forward_proxy \
         --cert $3/server/chain.pem \
         --key $3/server/privateKey.pem \
         ${@:4}
-
-
-# --debug

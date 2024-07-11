@@ -13,4 +13,3 @@ kritis3m_proxy echo_client \
 	--cert $2/client/chain.pem \
 	--key $2/client/privateKey.pem \
 	${@:3}
-

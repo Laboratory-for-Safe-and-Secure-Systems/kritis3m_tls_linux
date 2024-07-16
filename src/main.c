@@ -11,7 +11,6 @@
 
 #include "networking.h"
 #include "logging.h"
-#include "asl.h"
 #include "poll_set.h"
 
 #include "tls_proxy.h"
@@ -46,33 +45,9 @@ static void signal_handler(int signo)
 }
 
 
-static void asl_log_callback(int32_t level, char const* message)
-{
-        switch (level)
-        {
-        case ASL_LOG_LEVEL_ERR:
-                LOG_ERROR("%s", message);
-                break;
-        case ASL_LOG_LEVEL_WRN:
-                LOG_WARN("%s", message);
-                break;
-        case ASL_LOG_LEVEL_INF:
-                LOG_INFO("%s", message);
-                break;
-        case ASL_LOG_LEVEL_DBG:
-                LOG_DEBUG("%s", message);
-                break;
-        default:
-                LOG_ERROR("unknown log level %d: %s", level, message);
-                break;
-        }
-}
-
-
 int main(int argc, char** argv)
 {
         application_config app_config;
-        asl_configuration asl_config;
         proxy_backend_config tls_proxy_backend_config;
 	proxy_config tls_proxy_config;
 
@@ -84,7 +59,7 @@ int main(int argc, char** argv)
 
 
         /* Parse arguments */
-        int ret = parse_cli_arguments(&app_config, &asl_config, &tls_proxy_backend_config,
+        int ret = parse_cli_arguments(&app_config, &tls_proxy_backend_config,
                                       &tls_proxy_config, argc, argv);
         LOG_LVL_SET(app_config.log_level);
         if (ret < 0)
@@ -95,12 +70,6 @@ int main(int argc, char** argv)
         {
                 exit(0); /* help was printed, so we can exit here */
         }
-
-        /* Initialize the Agile Security Library */
-        asl_config.custom_log_callback = asl_log_callback;
-	ret = asl_init(&asl_config);
-	if (ret != 0)
-		fatal("unable to initialize WolfSSL");
 
 	/* Run the proxy (asynchronously) */
 	ret = tls_proxy_backend_run(&tls_proxy_backend_config);
@@ -132,6 +101,7 @@ int main(int argc, char** argv)
                  tcp_echo_server_config tcp_echo_server_config = {
                         .own_ip_address = LOCALHOST_IP,
                         .listening_port = 0, /* Select random available port */
+                        .log_level = app_config.log_level,
                 };
 
                 /* Add the TCP echo server */
@@ -139,7 +109,7 @@ int main(int argc, char** argv)
                 if (ret != 0)
                         fatal("unable to run TCP echo server");
 
-                /* Obtain the listing port of the TCP echo server */
+                /* Obtain the listening port of the TCP echo server */
                 tcp_echo_server_status echo_server_status;
                 if (tcp_echo_server_get_status(&echo_server_status) < 0)
                         fatal("unable to run TCP echo server");
@@ -160,6 +130,7 @@ int main(int argc, char** argv)
                 tcp_client_stdin_bridge_config tcp_client_stdin_bridge_config = {
                         .target_ip_address = LOCALHOST_IP,
                         .target_port = 0, /* Updated to the random port of the forward proxy */
+                        .log_level = app_config.log_level,
                 };
 
                 /* Configure the forward proxy */
@@ -206,7 +177,15 @@ int main(int argc, char** argv)
                 //         fatal("unable to obtain proxy status");
                 // LOG_INFO("proxy status: %d connections", proxy_status.num_connections);
 
-                sleep(1);
+                /* Check if the bridge was able to connect */
+                if (app_config.role == ROLE_ECHO_CLIENT)
+                {
+                        tcp_client_stdin_bridge_status bridge_status;
+                        if ((tcp_client_stdin_bridge_get_status(&bridge_status) < 0) || !bridge_status.is_running)
+                                break;
+                }
+
+                usleep(100 * 1000);
         }
 
         LOG_INFO("Terminating...");

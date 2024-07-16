@@ -58,8 +58,8 @@ static const struct option cli_options[] =
 };
 
 
-static void set_defaults(application_config* app_config, asl_configuration* asl_config,
-                         proxy_backend_config* proxy_backend_config, proxy_config* proxy_config);
+static void set_defaults(application_config* app_config, proxy_backend_config* proxy_backend_config,
+                         proxy_config* proxy_config);
 static int read_certificates(certificates* certs, enum application_role role);
 static void print_help(char const* name);
 
@@ -68,9 +68,8 @@ static void print_help(char const* name);
  *
  * Returns 0 on success, +1 in case the help was printed and  -1 on failure (error is printed on console).
  */
-int parse_cli_arguments(application_config* app_config, asl_configuration* asl_config,
-                        proxy_backend_config* proxy_backend_config, proxy_config* proxy_config,
-                        size_t argc, char** argv)
+int parse_cli_arguments(application_config* app_config, proxy_backend_config* proxy_backend_config,
+                        proxy_config* proxy_config, size_t argc, char** argv)
 {
         if ((app_config == NULL) || (proxy_config == NULL))
         {
@@ -84,7 +83,7 @@ int parse_cli_arguments(application_config* app_config, asl_configuration* asl_c
         }
 
 	/* Set default values */
-        set_defaults(app_config, asl_config, proxy_backend_config, proxy_config);
+        set_defaults(app_config, proxy_backend_config, proxy_config);
 
         struct certificates certs = {
                 .certificate_path = NULL,
@@ -225,12 +224,9 @@ int parse_cli_arguments(application_config* app_config, asl_configuration* asl_c
 			case 's':
                                 bool use_secure_element = (bool) strtoul(optarg, NULL, 10);
                                 proxy_config->tls_config.use_secure_element = use_secure_element;
-				if (asl_config != NULL)
-                                        asl_config->secure_element_support = use_secure_element;
 				break;
                         case 'm':
-                                if (asl_config != NULL)
-                                        asl_config->secure_element_middleware_path = optarg;
+                                proxy_config->tls_config.secure_element_middleware_path = optarg;
                                 break;
                         case 'p':
                                 proxy_config->tls_config.secure_element_import_keys = (bool) strtoul(optarg, NULL, 10);
@@ -238,28 +234,14 @@ int parse_cli_arguments(application_config* app_config, asl_configuration* asl_c
                         case 't':
                                 app_config->log_level = LOG_LVL_INFO;
                                 proxy_config->log_level = LOG_LVL_INFO;
-                                if (asl_config != NULL)
-                                {
-                                        asl_config->logging_enabled = true;
-                                        asl_config->log_level = LOG_LVL_INFO;
-                                }
                                 if (proxy_backend_config != NULL)
-                                {
                                         proxy_backend_config->log_level = LOG_LVL_INFO;
-                                }
                                 break;
                         case 'd':
                                 app_config->log_level = LOG_LVL_DEBUG;
                                 proxy_config->log_level = LOG_LVL_DEBUG;
-                                if (asl_config != NULL)
-                                {
-                                        asl_config->logging_enabled = true;
-                                        asl_config->log_level = LOG_LVL_DEBUG;
-                                }
                                 if (proxy_backend_config != NULL)
-                                {
                                         proxy_backend_config->log_level = LOG_LVL_DEBUG;
-                                }
                                 break;
                         case 'j':
                                 proxy_config->tls_config.keylog_file = optarg;
@@ -294,24 +276,14 @@ int parse_cli_arguments(application_config* app_config, asl_configuration* asl_c
 }
 
 
-static void set_defaults(application_config* app_config, asl_configuration* asl_config,
-                         proxy_backend_config* proxy_backend_config, proxy_config* proxy_config)
+static void set_defaults(application_config* app_config, proxy_backend_config* proxy_backend_config,
+                         proxy_config* proxy_config)
 {
         int32_t default_log_level = LOG_LVL_WARN;
 
         /* Application config */
         app_config->role = NOT_SET;
         app_config->log_level = default_log_level;
-
-        /* ASL config */
-        if (asl_config != NULL)
-        {
-                memset(asl_config, 0, sizeof(*asl_config));
-                asl_config->logging_enabled = false;
-                asl_config->log_level = default_log_level;
-                asl_config->secure_element_support = false;
-                asl_config->secure_element_middleware_path = NULL;
-        }
 
         /* Proxy backend config */
         if (proxy_backend_config != NULL)
@@ -327,9 +299,10 @@ static void set_defaults(application_config* app_config, asl_configuration* asl_
         proxy_config->target_port = 0;
         proxy_config->tls_config.mutual_authentication = true;
         proxy_config->tls_config.no_encryption = false;
+        proxy_config->tls_config.hybrid_signature_mode = HYBRID_SIGNATURE_MODE_BOTH;
         proxy_config->tls_config.use_secure_element = false;
         proxy_config->tls_config.secure_element_import_keys = false;
-        proxy_config->tls_config.hybrid_signature_mode = HYBRID_SIGNATURE_MODE_BOTH;
+        proxy_config->tls_config.secure_element_middleware_path = NULL;
         proxy_config->tls_config.device_certificate_chain.buffer = NULL;
         proxy_config->tls_config.device_certificate_chain.size = 0;
         proxy_config->tls_config.private_key.buffer = NULL;

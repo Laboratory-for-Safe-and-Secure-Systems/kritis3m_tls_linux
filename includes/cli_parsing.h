@@ -31,9 +31,8 @@ application_config;
  *
  * Returns 0 on success, +1 in case the help was printed and -1 on failure (error is printed on console).
  */
-int parse_cli_arguments(application_config* app_config, asl_configuration* asl_config,
-                        proxy_backend_config* proxy_backend_config, proxy_config* proxy_config,
-                        size_t argc, char** argv);
+int parse_cli_arguments(application_config* app_config, proxy_backend_config* proxy_backend_config,
+                        proxy_config* proxy_config, size_t argc, char** argv);
 
 
 #endif // CLI_PARSING_H

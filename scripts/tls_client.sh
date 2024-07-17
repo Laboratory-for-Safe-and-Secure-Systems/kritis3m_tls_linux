@@ -7,7 +7,7 @@ fi
 
 
 echo "Starting KRITIS3M TLS client to $1 with certs in dir $2"
-kritis3m_proxy echo_client \
+kritis3m_proxy tls_client \
 	--outgoing $1 \
 	--root $2/root/cert.pem \
 	--cert $2/client/chain.pem \

@@ -125,7 +125,7 @@ int main(int argc, char** argv)
 
                 LOG_INFO("started TLS reverse proxy with id %d", id);
         }
-        else if (app_config.role == ROLE_ECHO_CLIENT)
+        else if (app_config.role == ROLE_TLS_CLIENT)
         {
                 tcp_client_stdin_bridge_config tcp_client_stdin_bridge_config = {
                         .target_ip_address = LOCALHOST_IP,
@@ -178,7 +178,7 @@ int main(int argc, char** argv)
                 // LOG_INFO("proxy status: %d connections", proxy_status.num_connections);
 
                 /* Check if the bridge was able to connect */
-                if (app_config.role == ROLE_ECHO_CLIENT)
+                if (app_config.role == ROLE_TLS_CLIENT)
                 {
                         tcp_client_stdin_bridge_status bridge_status;
                         if ((tcp_client_stdin_bridge_get_status(&bridge_status) < 0) || !bridge_status.is_running)
@@ -200,7 +200,7 @@ int main(int argc, char** argv)
         {
                 tcp_echo_server_terminate();
         }
-        else if (app_config.role == ROLE_ECHO_CLIENT)
+        else if (app_config.role == ROLE_TLS_CLIENT)
         {
                 tcp_client_stdin_bridge_terminate();
         }

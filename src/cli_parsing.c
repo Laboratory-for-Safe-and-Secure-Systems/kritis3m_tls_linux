@@ -114,9 +114,9 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
         {
                 app_config->role = ROLE_ECHO_SERVER;
         }
-        else if (strcmp(argv[1], "echo_client") == 0)
+        else if (strcmp(argv[1], "tls_client") == 0)
         {
-                app_config->role = ROLE_ECHO_CLIENT;
+                app_config->role = ROLE_TLS_CLIENT;
         }
         else if ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))
         {
@@ -325,7 +325,7 @@ static void print_help(char const* name)
         printf("  reverse_proxy                    TLS reverse proxy (use --incoming and --outgoing for connection configuration)\r\n");
         printf("  forward_proxy                    TLS forward proxy (use --incoming and --outgoing for connection configuration)\r\n");
         printf("  echo_server                      TLS echo server (use --incoming for connection configuration)\r\n");
-        printf("  echo_client                      TLS stdin client (use --outgoing for connection configuration)\r\n");
+        printf("  tls_client                       TLS stdin client (use --outgoing for connection configuration)\r\n");
         printf("\nConnection configuration:\r\n\n");
         printf("  --incoming <ip:>port             configuration of the incoming TCP/TLS connection\r\n");
         printf("  --outgoing ip:port               configuration of the outgoing TCP/TLS connection\r\n");

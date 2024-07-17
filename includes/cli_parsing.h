@@ -15,7 +15,7 @@ enum application_role
         ROLE_REVERSE_PROXY,
         ROLE_FORWARD_PROXY,
         ROLE_ECHO_SERVER,
-        ROLE_ECHO_CLIENT,
+        ROLE_TLS_CLIENT,
 };
 
 

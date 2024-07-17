@@ -47,7 +47,7 @@ _kritis3m_proxy_completions()
         cur="${COMP_WORDS[COMP_CWORD]}"
         prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-        roles="reverse_proxy forward_proxy echo_server echo_client"
+        roles="reverse_proxy forward_proxy echo_server tls_client"
         opts_connection="--incoming --outgoing"
         opts_files="--cert --key --intermediate --root --additionalKey --middleware_path --keylogFile"
         opts_bools="--mutualAuth --noEncryption --use_secure_element --se_import_keys"
@@ -65,7 +65,7 @@ _kritis3m_proxy_completions()
         fi
 
         case "${prev}" in
-                reverse_proxy|forward_proxy|echo_server|echo_client)
+                reverse_proxy|forward_proxy|echo_server|tls_client)
                         COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_bools} ${opts_hybrid} ${opts_general}" -- ${cur}) )
                         return 0
                         ;;
@@ -92,4 +92,57 @@ _kritis3m_proxy_completions()
         esac
 }
 
+_proxy_helper_completions() {
+    local cur prev opts
+    COMPREPLY=()
+
+    _get_comp_words_by_ref -n : cur
+    _get_comp_words_by_ref -n : prev
+
+    # The helper script needs at least 3 arguments: <ip:port> in, <ip:port> out, <cert_dir>
+    if [[ ${COMP_CWORD} -eq 1 ]]; then
+        # The first argument should be the incoming <ip:port>
+        COMPREPLY=()
+        return 0
+    elif [[ ${COMP_CWORD} -eq 2 ]]; then
+        # The second argument should be the outgoing <ip:port>
+        COMPREPLY=()
+        return 0
+    elif [[ ${COMP_CWORD} -eq 3 ]]; then
+        # The third argument should be the <cert_dir>
+        _filedir
+        return 0
+    else
+        # Pass the remaining arguments to the kritis3m_proxy completion function
+        _kritis3m_proxy_completions
+    fi
+}
+
+_endpoint_helper_completions() {
+    local cur prev opts
+    COMPREPLY=()
+
+    _get_comp_words_by_ref -n : cur
+    _get_comp_words_by_ref -n : prev
+
+    # The helper script needs at least 2 arguments: <ip:port> endpoint, <cert_dir>
+    if [[ ${COMP_CWORD} -eq 1 ]]; then
+        # The first argument should be the network endpoint <ip:port>
+        COMPREPLY=()
+        return 0
+    elif [[ ${COMP_CWORD} -eq 2 ]]; then
+        # The second argument should be the <cert_dir>
+        _filedir
+        return 0
+    else
+        # Pass the remaining arguments to the kritis3m_proxy completion function
+        _kritis3m_proxy_completions
+    fi
+}
+
 complete -F _kritis3m_proxy_completions kritis3m_proxy
+
+complete -F _proxy_helper_completions kritis3m_forward_proxy
+complete -F _proxy_helper_completions kritis3m_reverse_proxy
+complete -F _endpoint_helper_completions kritis3m_echo_server
+complete -F _endpoint_helper_completions kritis3m_tls_client

@@ -55,6 +55,7 @@ target_compile_options(${TARGET} PUBLIC
 )
 
 # Actually add the external repositories to our project
+set(KRITIS3M_ASL_ENABLE_PKCS11 ON)
 FetchContent_GetProperties(kritis3m_asl)
 if(NOT kritis3m_asl_POPULATED)
   FetchContent_Populate(kritis3m_asl)

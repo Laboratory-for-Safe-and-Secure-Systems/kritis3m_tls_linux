@@ -47,9 +47,7 @@ static const struct option cli_options[] =
         { "mutualAuth",         required_argument,    0, 'n' },
         { "noEncryption",       required_argument,    0, 'o' },
         { "hybrid_signature",   required_argument,    0, 'q' },
-        { "use_secure_element", required_argument,    0, 's' },
-        { "middleware_path",    required_argument,    0, 'm' },
-        { "se_import_keys",     required_argument,    0, 'p' },
+        { "middleware",         required_argument,    0, 'm' },
         { "verbose",            no_argument,          0, 't' },
         { "debug",              no_argument,          0, 'd' },
         { "keylogFile",         required_argument,    0, 'j' },
@@ -134,7 +132,7 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 	int index = 0;
 	while (true)
 	{
-		int result = getopt_long(argc, argv, "a:b:c:k:i:r:l:n:o:q:s:m:p:tdj:h", cli_options, &index);
+		int result = getopt_long(argc, argv, "a:b:c:k:i:r:l:n:o:q:m:tdj:h", cli_options, &index);
 
 		if (result == -1)
 		        break; /* end of list */
@@ -221,15 +219,8 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                 proxy_config->tls_config.hybrid_signature_mode = mode;
                                 break;
                         }
-			case 's':
-                                bool use_secure_element = (bool) strtoul(optarg, NULL, 10);
-                                proxy_config->tls_config.use_secure_element = use_secure_element;
-				break;
                         case 'm':
                                 proxy_config->tls_config.secure_element_middleware_path = optarg;
-                                break;
-                        case 'p':
-                                proxy_config->tls_config.secure_element_import_keys = (bool) strtoul(optarg, NULL, 10);
                                 break;
                         case 't':
                                 app_config->log_level = LOG_LVL_INFO;
@@ -300,8 +291,6 @@ static void set_defaults(application_config* app_config, proxy_backend_config* p
         proxy_config->tls_config.mutual_authentication = true;
         proxy_config->tls_config.no_encryption = false;
         proxy_config->tls_config.hybrid_signature_mode = HYBRID_SIGNATURE_MODE_BOTH;
-        proxy_config->tls_config.use_secure_element = false;
-        proxy_config->tls_config.secure_element_import_keys = false;
         proxy_config->tls_config.secure_element_middleware_path = NULL;
         proxy_config->tls_config.device_certificate_chain.buffer = NULL;
         proxy_config->tls_config.device_certificate_chain.size = 0;
@@ -321,29 +310,37 @@ static void set_defaults(application_config* app_config, proxy_backend_config* p
 static void print_help(char const* name)
 {
         printf("Usage: %s ROLE [OPTIONS]\r\n", name);
-        printf("Roles:\r\n\n");
+        printf("Roles:\r\n");
         printf("  reverse_proxy                    TLS reverse proxy (use --incoming and --outgoing for connection configuration)\r\n");
         printf("  forward_proxy                    TLS forward proxy (use --incoming and --outgoing for connection configuration)\r\n");
         printf("  echo_server                      TLS echo server (use --incoming for connection configuration)\r\n");
         printf("  tls_client                       TLS stdin client (use --outgoing for connection configuration)\r\n");
-        printf("\nConnection configuration:\r\n\n");
+
+        printf("\nConnection configuration:\r\n");
         printf("  --incoming <ip:>port             configuration of the incoming TCP/TLS connection\r\n");
         printf("  --outgoing ip:port               configuration of the outgoing TCP/TLS connection\r\n");
-        printf("\nOptions:\r\n\n");
+
+        printf("\nCertificate/Key configuration:\r\n");
         printf("  --cert file_path                 path to the certificate file\r\n");
         printf("  --key file_path                  path to the private key file\r\n");
         printf("  --intermediate file_path         path to an intermediate certificate file\r\n");
         printf("  --root file_path                 path to the root certificate file\r\n");
-        printf("  --additionalKey file_path        path to an additional private key file (hybrid signature mode)\r\n\n");
+        printf("  --additionalKey file_path        path to an additional private key file (hybrid signature mode)\r\n");
+
+        printf("\nSecurity configuration:\r\n");
         printf("  --mutualAuth 0|1                 enable or disable mutual authentication (default enabled)\r\n");
         printf("  --noEncryption 0|1               enable or disable encryption (default enabled)\r\n");
-        printf("  --hybrid_signature mode          mode for hybrid signatures: both, native, alternative (default: both)\r\n\n");
-        printf("  --use_secure_element 0|1         use secure element (default disabled)\r\n");
-        printf("  --middleware_path file_path      path to the secure element middleware\r\n");
-        printf("  --se_import_keys 0|1             import provided keys into secure element (default disabled)\r\n\n");
+        printf("  --hybrid_signature mode          mode for hybrid signatures: both, native, alternative (default: both)\r\n");
+
+        printf("\nSecure Element:\n");
+        printf("  When using a secure element for key storage, you have to supply the PKCS#11 key labels using the arguments\n");
+        printf("  \"--key\" and \"--additionalKey\" prepending the string \"%s\" followed by the key label.\n", PKCS11_LABEL_IDENTIFIER);
+        printf("  --middleware file_path           path to the secure element middleware\r\n");
+
+        printf("\nGeneral:\n");
+        printf("  --keylogFile file_path           path to the keylog file for Wireshark\r\n");
         printf("  --verbose                        enable verbose output\r\n");
         printf("  --debug                          enable debug output\r\n");
-        printf("  --keylogFile file_path           path to the keylog file for Wireshark\r\n\n");
         printf("  --help                           display this help and exit\r\n");
 }
 
@@ -447,15 +444,30 @@ static int read_certificates(struct certificates* certs, enum application_role r
         /* Read private key */
         if (certs->private_key_path != 0)
         {
-                int key_size = readFile(certs->private_key_path,
-                                        &certs->key_buffer, 0);
-                if (key_size < 0)
+                if (strncmp(certs->private_key_path, PKCS11_LABEL_IDENTIFIER, PKCS11_LABEL_IDENTIFIER_LEN) == 0)
                 {
-                        LOG_ERROR("unable to read private key from file %s", certs->private_key_path);
-                        goto error;
-                }
+                        certs->key_buffer = (uint8_t*) malloc(strlen(certs->private_key_path) + 1);
+                        if (certs->key_buffer == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for key label");
+                                goto error;
+                        }
 
-                certs->key_buffer_size = key_size;
+                        strcpy((char*) certs->key_buffer, certs->private_key_path);
+                        certs->key_buffer_size = strlen(certs->private_key_path) + 1;
+                }
+                else
+                {
+                        int key_size = readFile(certs->private_key_path,
+                                                &certs->key_buffer, 0);
+                        if (key_size < 0)
+                        {
+                                LOG_ERROR("unable to read private key from file %s", certs->private_key_path);
+                                goto error;
+                        }
+
+                        certs->key_buffer_size = key_size;
+                }
         }
         else if ((role == ROLE_REVERSE_PROXY) || (role == ROLE_ECHO_SERVER))
         {
@@ -466,15 +478,30 @@ static int read_certificates(struct certificates* certs, enum application_role r
         /* Read addtional private key */
         if (certs->additional_key_path != 0)
         {
-                int key_size = readFile(certs->additional_key_path,
-                                        &certs->additional_key_buffer, 0);
-                if (key_size < 0)
+                if (strncmp(certs->additional_key_path, PKCS11_LABEL_IDENTIFIER, PKCS11_LABEL_IDENTIFIER_LEN) == 0)
                 {
-                        LOG_ERROR("unable to read private key from file %s", certs->private_key_path);
-                        goto error;
-                }
+                        certs->additional_key_buffer = (uint8_t*) malloc(strlen(certs->additional_key_path) + 1);
+                        if (certs->additional_key_buffer == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for key label");
+                                goto error;
+                        }
 
-                certs->additional_key_buffer_size = key_size;
+                        strcpy((char*) certs->additional_key_buffer, certs->additional_key_path);
+                        certs->additional_key_buffer_size = strlen(certs->additional_key_path) + 1;
+                }
+                else
+                {
+                        int key_size = readFile(certs->additional_key_path,
+                                                &certs->additional_key_buffer, 0);
+                        if (key_size < 0)
+                        {
+                                LOG_ERROR("unable to read private key from file %s", certs->additional_key_path);
+                                goto error;
+                        }
+
+                        certs->additional_key_buffer_size = key_size;
+                }
         }
 
         /* Read root certificate */

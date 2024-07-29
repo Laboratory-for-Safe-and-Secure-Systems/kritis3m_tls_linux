@@ -30,7 +30,7 @@ LOG_MODULE_CREATE(kritis3m_proxy);
 
 #define fatal(msg, ...) { \
 		LOG_ERROR("Error: " msg "", ##__VA_ARGS__); \
-		exit(-1); \
+		exit(1); \
 	}
 
 
@@ -53,9 +53,9 @@ int main(int argc, char** argv)
 
         /* Install the signal handler and ignore SIGPIPE */
         if (signal(SIGINT, signal_handler) == SIG_ERR)
-                printf("\ncan't catch SIGINT\n");
+                fatal("can't catch SIGINT\n");
         if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-                printf("\ncan't ignore SIGPIPE\n");
+                fatal("can't ignore SIGPIPE\n");
 
 
         /* Parse arguments */
@@ -170,6 +170,8 @@ int main(int argc, char** argv)
         if (tls_proxy_config.tls_config.root_certificate.buffer != NULL)
                 free((uint8_t*)tls_proxy_config.tls_config.root_certificate.buffer);
 
+        ret = 0;
+
         while (running)
         {
                 // proxy_status proxy_status;
@@ -182,7 +184,10 @@ int main(int argc, char** argv)
                 {
                         tcp_client_stdin_bridge_status bridge_status;
                         if ((tcp_client_stdin_bridge_get_status(&bridge_status) < 0) || !bridge_status.is_running)
+                        {
+                                ret = 1;
                                 break;
+                        }
                 }
 
                 usleep(100 * 1000);
@@ -205,5 +210,5 @@ int main(int argc, char** argv)
                 tcp_client_stdin_bridge_terminate();
         }
 
-	return 0;
+	return ret;
 }

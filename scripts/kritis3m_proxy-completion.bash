@@ -4,38 +4,44 @@
 #
 # Usage: kritis3m_proxy ROLE [OPTIONS]
 # Roles:
-#
-#   reverse_proxy                    TLS reverse proxy (use --incoming and --outgoing for connection configuration)
-#   forward_proxy                    TLS forward proxy (use --incoming and --outgoing for connection configuration)
-#   echo_server                      TLS echo server (use --incoming for connection configuration)
-#   echo_client                      TLS stdin client (use --outgoing for connection configuration)
+#   reverse_proxy                    TLS reverse proxy (use "--incoming" and "--outgoing" for connection configuration)
+#   forward_proxy                    TLS forward proxy (use "--incoming" and "--outgoing" for connection configuration)
+#   echo_server                      TLS echo server (use "--incoming" for connection configuration)
+#   tls_client                       TLS stdin client (use "--outgoing" for connection configuration)
 #
 # Connection configuration:
-#
 #   --incoming <ip:>port             configuration of the incoming TCP/TLS connection
 #   --outgoing ip:port               configuration of the outgoing TCP/TLS connection
 #
-# Options:
-#
+# Certificate/Key configuration:
 #   --cert file_path                 path to the certificate file
 #   --key file_path                  path to the private key file
 #   --intermediate file_path         path to an intermediate certificate file
 #   --root file_path                 path to the root certificate file
 #   --additionalKey file_path        path to an additional private key file (hybrid signature mode)
 #
+# Security configuration:
 #   --mutualAuth 0|1                 enable or disable mutual authentication (default enabled)
 #   --noEncryption 0|1               enable or disable encryption (default enabled)
-#   --hybrid_signature mode          mode for hybrid signatures: both, native, alternative (default: both)
+#   --hybrid_signature mode          mode for hybrid signatures: "both", "native", "alternative" (default: "both")
+#   --keyExchangeAlg algorithm       key exchange algorithm: (default: "ecdhe_384_mlkem_768")
+#                                       classic: "ecdhe_256", "ecdhe_384", "ecdhe_521"
+#                                       PQC: "mlkem_512", "mlkem_768", "mlkem_1024"
+#                                       hybrid: "ecdhe_256_mlkem_512", "ecdhe_384_mlkem_768", "ecdhe_521_mlkem_1024"
 #
-#   --use_secure_element 0|1         use secure element (default disabled)
-#   --middleware_path file_path      path to the secure element middleware
-#   --se_import_keys 0|1             import provided keys into secure element (default disabled)
+# Secure Element:
+#   When using a secure element for key storage, you have to supply the PKCS#11 key labels using the arguments
+#   "--key" and "--additionalKey" prepending the string "pkcs11:" followed by the key label.
+#   --middleware file_path           path to the secure element middleware
 #
+# General:
+#   --keylogFile file_path           path to the keylog file for Wireshark
 #   --verbose                        enable verbose output
 #   --debug                          enable debug output
-#   --keylogFile file_path           path to the keylog file for Wireshark
-#
 #   --help                           display this help and exit
+#
+
+
 
 
 _kritis3m_proxy_completions()
@@ -49,10 +55,12 @@ _kritis3m_proxy_completions()
 
         roles="reverse_proxy forward_proxy echo_server tls_client"
         opts_connection="--incoming --outgoing"
-        opts_files="--cert --key --intermediate --root --additionalKey --middleware_path --keylogFile"
-        opts_bools="--mutualAuth --noEncryption --use_secure_element --se_import_keys"
-        opts_hybrid="--hybrid_signature"
+        opts_files="--cert --key --intermediate --root --additionalKey --middleware --keylogFile"
+        opts_security="--mutualAuth --noEncryption --hybrid_signature --keyExchangeAlg"
         opts_general="--verbose --debug --help"
+
+        hybrid_modes="both native alternative"
+        kex_algos="ecdhe_256 ecdhe_384 ecdhe_521 mlkem_512 mlkem_768 mlkem_1024 ecdhe_256_mlkem_512 ecdhe_384_mlkem_768 ecdhe_521_mlkem_1024"
 
         if [[ ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${roles}" -- ${cur}) )
@@ -60,33 +68,37 @@ _kritis3m_proxy_completions()
         fi
 
         if [[ ${cur} == -* ]]; then
-                COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_bools} ${opts_hybrid} ${opts_general}" -- ${cur}) )
+                COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_general}" -- ${cur}) )
                 return 0
         fi
 
         case "${prev}" in
                 reverse_proxy|forward_proxy|echo_server|tls_client)
-                        COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_bools} ${opts_hybrid} ${opts_general}" -- ${cur}) )
+                        COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_general}" -- ${cur}) )
                         return 0
                         ;;
                 --incoming|--outgoing)
                         COMPREPLY=( $(compgen -W "ip:port port" -- ${cur}) )
                         return 0
                         ;;
-                --cert|--key|--intermediate|--root|--additionalKey|--middleware_path|--keylogFile)
+                --cert|--key|--intermediate|--root|--additionalKey|--middleware|--keylogFile)
                         _filedir
                         return 0
                         ;;
                 --hybrid_signature)
-                        COMPREPLY=( $(compgen -W "both native alternative" -- ${cur}) )
+                        COMPREPLY=( $(compgen -W "${hybrid_modes}" -- ${cur}) )
                         return 0
                         ;;
-                --mutualAuth|--noEncryption|--use_secure_element|--se_import_keys)
+                --keyExchangeAlg)
+                        COMPREPLY=( $(compgen -W "${kex_algos}" -- ${cur}) )
+                        return 0
+                        ;;
+                --mutualAuth|--noEncryption)
                         COMPREPLY=( $(compgen -W "0 1" -- ${cur}) )
                         return 0
                         ;;
                 *)
-                        COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_bools} ${opts_hybrid} ${opts_general}" -- ${cur}) )
+                        COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_general}" -- ${cur}) )
                         return 0
                         ;;
         esac

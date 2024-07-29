@@ -39,19 +39,25 @@ static const struct option cli_options[] =
 {
         { "incoming",           required_argument,    0, 'a' },
         { "outgoing",           required_argument,    0, 'b' },
+
         { "cert",               required_argument,    0, 'c' },
-        { "key",                required_argument,    0, 'k' },
-        { "intermediate",       required_argument,    0, 'i' },
-        { "root",               required_argument,    0, 'r' },
-        { "additionalKey",      required_argument,    0, 'l' },
-        { "mutualAuth",         required_argument,    0, 'n' },
-        { "noEncryption",       required_argument,    0, 'o' },
-        { "hybrid_signature",   required_argument,    0, 'q' },
-        { "middleware",         required_argument,    0, 'm' },
-        { "verbose",            no_argument,          0, 't' },
+        { "key",                required_argument,    0, 'e' },
+        { "intermediate",       required_argument,    0, 'f' },
+        { "root",               required_argument,    0, 'g' },
+        { "additionalKey",      required_argument,    0, 'i' },
+
+        { "mutualAuth",         required_argument,    0, 'j' },
+        { "noEncryption",       required_argument,    0, 'k' },
+        { "hybrid_signature",   required_argument,    0, 'l' },
+        { "keyExchangeAlg",     required_argument,    0, 'm' },
+
+        { "middleware",         required_argument,    0, 'n' },
+
+        { "keylogFile",         required_argument,    0, 'o' },
+        { "verbose",            no_argument,          0, 'v' },
         { "debug",              no_argument,          0, 'd' },
-        { "keylogFile",         required_argument,    0, 'j' },
         { "help",               no_argument,          0, 'h' },
+
         {NULL, 0, NULL, 0}
 };
 
@@ -132,7 +138,7 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 	int index = 0;
 	while (true)
 	{
-		int result = getopt_long(argc, argv, "a:b:c:k:i:r:l:n:o:q:m:tdj:h", cli_options, &index);
+		int result = getopt_long(argc, argv, "a:b:c:e:f:g:i:j:k:l:m:n:o:vdh", cli_options, &index);
 
 		if (result == -1)
 		        break; /* end of list */
@@ -183,33 +189,33 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 			case 'c':
 				certs.certificate_path = optarg;
 				break;
-			case 'k':
+			case 'e':
 				certs.private_key_path = optarg;
 				break;
-			case 'i':
+			case 'f':
 				certs.intermediate_path = optarg;
 				break;
-			case 'r':
+			case 'g':
 				certs.root_path = optarg;
 				break;
-                        case 'l':
+                        case 'i':
                                 certs.additional_key_path = optarg;
                                 break;
-                        case 'n':
+                        case 'j':
                                 proxy_config->tls_config.mutual_authentication = (bool) strtoul(optarg, NULL, 10);
                                 break;
-                        case 'o':
+                        case 'k':
                                 proxy_config->tls_config.no_encryption = (bool) strtoul(optarg, NULL, 10);
                                 break;
-                        case 'q':
+                        case 'l':
                         {
                                 enum asl_hybrid_signature_mode mode;
                                 if (strcmp(optarg, "both") == 0)
-                                        mode = HYBRID_SIGNATURE_MODE_BOTH;
+                                        mode = ASL_HYBRID_SIGNATURE_MODE_BOTH;
                                 else if (strcmp(optarg, "native") == 0)
-                                        mode = HYBRID_SIGNATURE_MODE_NATIVE;
+                                        mode = ASL_HYBRID_SIGNATURE_MODE_NATIVE;
                                 else if (strcmp(optarg, "alternative") == 0)
-                                        mode = HYBRID_SIGNATURE_MODE_ALTERNATIVE;
+                                        mode = ASL_HYBRID_SIGNATURE_MODE_ALTERNATIVE;
                                 else
                                 {
                                         printf("invalid hybrid signature mode: %s\r\n", optarg);
@@ -220,9 +226,42 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                 break;
                         }
                         case 'm':
+                        {
+                                enum asl_key_exchange_method kex_algo;
+                                if (strcmp(optarg, "ecdhe_256") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_ECDHE_256;
+                                else if (strcmp(optarg, "ecdhe_384") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_ECDHE_384;
+                                else if (strcmp(optarg, "ecdhe_521") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_ECDHE_521;
+                                else if (strcmp(optarg, "mlkem_512") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM_512;
+                                else if (strcmp(optarg, "mlkem_768") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM_768;
+                                else if (strcmp(optarg, "mlkem_1024") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM_1024;
+                                else if (strcmp(optarg, "ecdhe_256_mlkem_512") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_ECDHE_256_MLKEM_512;
+                                else if (strcmp(optarg, "ecdhe_384_mlkem_768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_ECDHE_384_MLKEM_768;
+                                else if (strcmp(optarg, "ecdhe_521_mlkem_1024") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_ECDHE_521_MLKEM_1024;
+                                else
+                                {
+                                        printf("invalid key exchange algorithm: %s\r\n", optarg);
+                                        print_help(argv[0]);
+                                        return 1;
+                                }
+                                proxy_config->tls_config.key_exchange_method = kex_algo;
+                                break;
+                        }
+                        case 'n':
                                 proxy_config->tls_config.secure_element_middleware_path = optarg;
                                 break;
-                        case 't':
+                        case 'o':
+                                proxy_config->tls_config.keylog_file = optarg;
+                                break;
+                        case 'v':
                                 app_config->log_level = LOG_LVL_INFO;
                                 proxy_config->log_level = LOG_LVL_INFO;
                                 if (proxy_backend_config != NULL)
@@ -233,9 +272,6 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                 proxy_config->log_level = LOG_LVL_DEBUG;
                                 if (proxy_backend_config != NULL)
                                         proxy_backend_config->log_level = LOG_LVL_DEBUG;
-                                break;
-                        case 'j':
-                                proxy_config->tls_config.keylog_file = optarg;
                                 break;
 			case 'h':
 				print_help(argv[0]);
@@ -290,7 +326,8 @@ static void set_defaults(application_config* app_config, proxy_backend_config* p
         proxy_config->target_port = 0;
         proxy_config->tls_config.mutual_authentication = true;
         proxy_config->tls_config.no_encryption = false;
-        proxy_config->tls_config.hybrid_signature_mode = HYBRID_SIGNATURE_MODE_BOTH;
+        proxy_config->tls_config.hybrid_signature_mode = ASL_HYBRID_SIGNATURE_MODE_DEFAULT;
+        proxy_config->tls_config.key_exchange_method = ASL_KEX_DEFAULT;
         proxy_config->tls_config.secure_element_middleware_path = NULL;
         proxy_config->tls_config.device_certificate_chain.buffer = NULL;
         proxy_config->tls_config.device_certificate_chain.size = 0;
@@ -311,10 +348,10 @@ static void print_help(char const* name)
 {
         printf("Usage: %s ROLE [OPTIONS]\r\n", name);
         printf("Roles:\r\n");
-        printf("  reverse_proxy                    TLS reverse proxy (use --incoming and --outgoing for connection configuration)\r\n");
-        printf("  forward_proxy                    TLS forward proxy (use --incoming and --outgoing for connection configuration)\r\n");
-        printf("  echo_server                      TLS echo server (use --incoming for connection configuration)\r\n");
-        printf("  tls_client                       TLS stdin client (use --outgoing for connection configuration)\r\n");
+        printf("  reverse_proxy                    TLS reverse proxy (use \"--incoming\" and \"--outgoing\" for connection configuration)\r\n");
+        printf("  forward_proxy                    TLS forward proxy (use \"--incoming\" and \"--outgoing\" for connection configuration)\r\n");
+        printf("  echo_server                      TLS echo server (use \"--incoming\" for connection configuration)\r\n");
+        printf("  tls_client                       TLS stdin client (use \"--outgoing\" for connection configuration)\r\n");
 
         printf("\nConnection configuration:\r\n");
         printf("  --incoming <ip:>port             configuration of the incoming TCP/TLS connection\r\n");
@@ -330,7 +367,11 @@ static void print_help(char const* name)
         printf("\nSecurity configuration:\r\n");
         printf("  --mutualAuth 0|1                 enable or disable mutual authentication (default enabled)\r\n");
         printf("  --noEncryption 0|1               enable or disable encryption (default enabled)\r\n");
-        printf("  --hybrid_signature mode          mode for hybrid signatures: both, native, alternative (default: both)\r\n");
+        printf("  --hybrid_signature mode          mode for hybrid signatures: \"both\", \"native\", \"alternative\" (default: \"both\")\r\n");
+        printf("  --keyExchangeAlg algorithm       key exchange algorithm: (default: \"ecdhe_384_mlkem_768\")\r\n");
+        printf("                                      classic: \"ecdhe_256\", \"ecdhe_384\", \"ecdhe_521\"\r\n");
+        printf("                                      PQC: \"mlkem_512\", \"mlkem_768\", \"mlkem_1024\"\r\n");
+        printf("                                      hybrid: \"ecdhe_256_mlkem_512\", \"ecdhe_384_mlkem_768\", \"ecdhe_521_mlkem_1024\"\r\n");
 
         printf("\nSecure Element:\n");
         printf("  When using a secure element for key storage, you have to supply the PKCS#11 key labels using the arguments\n");

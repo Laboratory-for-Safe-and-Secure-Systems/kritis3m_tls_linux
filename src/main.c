@@ -115,8 +115,11 @@ int main(int argc, char** argv)
                         fatal("unable to run TCP echo server");
 
                 /* Configure the TLS reverse proxy */
-                tls_proxy_config.target_ip_address = LOCALHOST_IP;
+                tls_proxy_config.target_ip_address = duplicate_string(LOCALHOST_IP);
                 tls_proxy_config.target_port = echo_server_status.listening_port;
+
+                if (tls_proxy_config.target_ip_address == NULL)
+                        fatal("unable to duplicate string");
 
                 /* Add the new TLS reverse proxy to the application backend */
                 id = tls_reverse_proxy_start(&tls_proxy_config);
@@ -134,8 +137,11 @@ int main(int argc, char** argv)
                 };
 
                 /* Configure the forward proxy */
-                tls_proxy_config.own_ip_address = LOCALHOST_IP;
+                tls_proxy_config.own_ip_address = duplicate_string(LOCALHOST_IP);
                 tls_proxy_config.listening_port = 0; /* Select random available port */
+
+                if (tls_proxy_config.own_ip_address == NULL)
+                        fatal("unable to duplicate string");
 
                 /* Add the new TLS forward proxy to the application backend */
                 id = tls_forward_proxy_start(&tls_proxy_config);
@@ -161,14 +167,7 @@ int main(int argc, char** argv)
         }
 
         /* Free memory */
-        if (tls_proxy_config.tls_config.device_certificate_chain.buffer != NULL)
-                free((uint8_t*)tls_proxy_config.tls_config.device_certificate_chain.buffer);
-        if (tls_proxy_config.tls_config.private_key.buffer != NULL)
-                free((uint8_t*)tls_proxy_config.tls_config.private_key.buffer);
-        if (tls_proxy_config.tls_config.private_key.additional_key_buffer != NULL)
-                free((uint8_t*)tls_proxy_config.tls_config.private_key.additional_key_buffer);
-        if (tls_proxy_config.tls_config.root_certificate.buffer != NULL)
-                free((uint8_t*)tls_proxy_config.tls_config.root_certificate.buffer);
+        arguments_cleanup(&app_config, &tls_proxy_backend_config, &tls_proxy_config);
 
         ret = 0;
 

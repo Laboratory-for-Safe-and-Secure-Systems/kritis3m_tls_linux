@@ -35,4 +35,13 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                         proxy_config* proxy_config, size_t argc, char** argv);
 
 
+/* Cleanup any structures created during argument parsing */
+void arguments_cleanup(application_config* app_config, proxy_backend_config* proxy_backend_config,
+                       proxy_config* proxy_config);
+
+
+/* Helper method to dynamically duplicate a string */
+char* duplicate_string(char const* source);
+
+
 #endif // CLI_PARSING_H

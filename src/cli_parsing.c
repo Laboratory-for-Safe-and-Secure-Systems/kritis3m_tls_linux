@@ -153,12 +153,12 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 				if (separator == NULL)
 				{
 					port_str = optarg;
-					proxy_config->own_ip_address = "0.0.0.0";
+					proxy_config->own_ip_address = duplicate_string("0.0.0.0");
 				}
 				else
 				{
 					*separator = '\0';
-					proxy_config->own_ip_address = optarg;
+					proxy_config->own_ip_address = duplicate_string(optarg);
 					port_str = separator + 1;
 				}
 
@@ -174,10 +174,22 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 			}
 			case 'b':
 			{
-				proxy_config->target_ip_address = strtok(optarg, ":");
+				/* Parse the target IP address and port */
+                                char* target_ip = strtok(optarg, ":");
+				proxy_config->target_ip_address = duplicate_string(target_ip);
+                                if (proxy_config->target_ip_address == NULL)
+                                {
+                                        LOG_ERROR("unable to allocate memory for target IP address");
+                                        return -1;
+                                }
 
 				char* port_str = strtok(NULL, ":");
-				unsigned long dest_port = strtoul(port_str, NULL, 10);
+				if (port_str == NULL)
+                                {
+                                        LOG_ERROR("no port number provided");
+                                        return -1;
+                                }
+                                unsigned long dest_port = strtoul(port_str, NULL, 10);
 				if ((dest_port == 0) || (dest_port > 65535))
 				{
 					printf("invalid port number %lu\r\n", dest_port);
@@ -256,10 +268,20 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                 break;
                         }
                         case 'n':
-                                proxy_config->tls_config.secure_element_middleware_path = optarg;
+                                proxy_config->tls_config.secure_element_middleware_path = duplicate_string(optarg);
+                                if (proxy_config->tls_config.secure_element_middleware_path == NULL)
+                                {
+                                        LOG_ERROR("unable to allocate memory for secure element middleware path");
+                                        return -1;
+                                }
                                 break;
                         case 'o':
-                                proxy_config->tls_config.keylog_file = optarg;
+                                proxy_config->tls_config.keylog_file = duplicate_string(optarg);
+                                if (proxy_config->tls_config.keylog_file == NULL)
+                                {
+                                        LOG_ERROR("unable to allocate memory for keylog file path");
+                                        return -1;
+                                }
                                 break;
                         case 'v':
                                 app_config->log_level = LOG_LVL_INFO;
@@ -300,6 +322,81 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 	proxy_config->tls_config.root_certificate.size = certs.root_buffer_size;
 
         return 0;
+}
+
+
+/* Cleanup any structures created during argument parsing */
+void arguments_cleanup(application_config* app_config, proxy_backend_config* proxy_backend_config,
+                       proxy_config* proxy_config)
+{
+        (void) app_config;
+        (void) proxy_backend_config;
+
+        /* Free memory of own IP address */
+        if (proxy_config->own_ip_address != NULL)
+        {
+                free((void*) proxy_config->own_ip_address);
+                proxy_config->own_ip_address = NULL;
+        }
+
+        /* Free memory of target IP address */
+        if (proxy_config->target_ip_address != NULL)
+        {
+                free((void*) proxy_config->target_ip_address);
+                proxy_config->target_ip_address = NULL;
+        }
+
+        /* Free memory of certificates and private key */
+        if (proxy_config->tls_config.device_certificate_chain.buffer != NULL)
+        {
+                free((void*) proxy_config->tls_config.device_certificate_chain.buffer);
+                proxy_config->tls_config.device_certificate_chain.buffer = NULL;
+        }
+
+        if (proxy_config->tls_config.private_key.buffer != NULL)
+        {
+                free((void*) proxy_config->tls_config.private_key.buffer);
+                proxy_config->tls_config.private_key.buffer = NULL;
+        }
+
+        if (proxy_config->tls_config.private_key.additional_key_buffer != NULL)
+        {
+                free((void*) proxy_config->tls_config.private_key.additional_key_buffer);
+                proxy_config->tls_config.private_key.additional_key_buffer = NULL;
+        }
+
+        if (proxy_config->tls_config.root_certificate.buffer != NULL)
+        {
+                free((void*) proxy_config->tls_config.root_certificate.buffer);
+                proxy_config->tls_config.root_certificate.buffer = NULL;
+        }
+
+        if (proxy_config->tls_config.secure_element_middleware_path != NULL)
+        {
+                free((void*) proxy_config->tls_config.secure_element_middleware_path);
+                proxy_config->tls_config.secure_element_middleware_path = NULL;
+        }
+
+        if (proxy_config->tls_config.keylog_file != NULL)
+        {
+                free((void*) proxy_config->tls_config.keylog_file);
+                proxy_config->tls_config.keylog_file = NULL;
+        }
+}
+
+
+/* Helper method to dynamically duplicate a string */
+char* duplicate_string(char const* source)
+{
+        char* dest = (char*) malloc(strlen(source) + 1);
+        if (dest == NULL)
+        {
+                LOG_ERROR("unable to allocate memory for string duplication");
+                return NULL;
+        }
+        strcpy(dest, source);
+
+        return dest;
 }
 
 
@@ -487,14 +584,12 @@ static int read_certificates(struct certificates* certs, enum application_role r
         {
                 if (strncmp(certs->private_key_path, PKCS11_LABEL_IDENTIFIER, PKCS11_LABEL_IDENTIFIER_LEN) == 0)
                 {
-                        certs->key_buffer = (uint8_t*) malloc(strlen(certs->private_key_path) + 1);
+                        certs->key_buffer = (uint8_t*) duplicate_string(certs->private_key_path);
                         if (certs->key_buffer == NULL)
                         {
                                 LOG_ERROR("unable to allocate memory for key label");
                                 goto error;
                         }
-
-                        strcpy((char*) certs->key_buffer, certs->private_key_path);
                         certs->key_buffer_size = strlen(certs->private_key_path) + 1;
                 }
                 else
@@ -521,14 +616,12 @@ static int read_certificates(struct certificates* certs, enum application_role r
         {
                 if (strncmp(certs->additional_key_path, PKCS11_LABEL_IDENTIFIER, PKCS11_LABEL_IDENTIFIER_LEN) == 0)
                 {
-                        certs->additional_key_buffer = (uint8_t*) malloc(strlen(certs->additional_key_path) + 1);
+                        certs->additional_key_buffer = (uint8_t*) duplicate_string(certs->additional_key_path);
                         if (certs->additional_key_buffer == NULL)
                         {
                                 LOG_ERROR("unable to allocate memory for key label");
                                 goto error;
                         }
-
-                        strcpy((char*) certs->additional_key_buffer, certs->additional_key_path);
                         certs->additional_key_buffer_size = strlen(certs->additional_key_path) + 1;
                 }
                 else

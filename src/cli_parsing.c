@@ -240,24 +240,38 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                         case 'm':
                         {
                                 enum asl_key_exchange_method kex_algo;
-                                if (strcmp(optarg, "ecdhe_256") == 0)
-                                        kex_algo = ASL_KEX_CLASSIC_ECDHE_256;
-                                else if (strcmp(optarg, "ecdhe_384") == 0)
-                                        kex_algo = ASL_KEX_CLASSIC_ECDHE_384;
-                                else if (strcmp(optarg, "ecdhe_521") == 0)
-                                        kex_algo = ASL_KEX_CLASSIC_ECDHE_521;
-                                else if (strcmp(optarg, "mlkem_512") == 0)
-                                        kex_algo = ASL_KEX_PQC_MLKEM_512;
-                                else if (strcmp(optarg, "mlkem_768") == 0)
-                                        kex_algo = ASL_KEX_PQC_MLKEM_768;
-                                else if (strcmp(optarg, "mlkem_1024") == 0)
-                                        kex_algo = ASL_KEX_PQC_MLKEM_1024;
-                                else if (strcmp(optarg, "ecdhe_256_mlkem_512") == 0)
-                                        kex_algo = ASL_KEX_HYBRID_ECDHE_256_MLKEM_512;
-                                else if (strcmp(optarg, "ecdhe_384_mlkem_768") == 0)
-                                        kex_algo = ASL_KEX_HYBRID_ECDHE_384_MLKEM_768;
-                                else if (strcmp(optarg, "ecdhe_521_mlkem_1024") == 0)
-                                        kex_algo = ASL_KEX_HYBRID_ECDHE_521_MLKEM_1024;
+                                if (strcmp(optarg, "secp256") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_SECP256;
+                                else if (strcmp(optarg, "secp384") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_SECP384;
+                                else if (strcmp(optarg, "secp521") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_SECP521;
+                                else if (strcmp(optarg, "x25519") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_X25519;
+                                else if (strcmp(optarg, "x448") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_X448;
+                                else if (strcmp(optarg, "mlkem512") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM512;
+                                else if (strcmp(optarg, "mlkem768") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM768;
+                                else if (strcmp(optarg, "mlkem1024") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM1024;
+                                else if (strcmp(optarg, "secp256_mlkem512") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM512;
+                                else if (strcmp(optarg, "secp384_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM768;
+                                else if (strcmp(optarg, "secp256_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM768;
+                                else if (strcmp(optarg, "secp521_mlkem1024") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP521_MLKEM1024;
+                                else if (strcmp(optarg, "secp384_mlkem1024") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM1024;
+                                else if (strcmp(optarg, "x25519_mlkem512") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_X25519_MLKEM512;
+                                else if (strcmp(optarg, "x448_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_X448_MLKEM768;
+                                else if (strcmp(optarg, "x25519_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_X25519_MLKEM768;
                                 else
                                 {
                                         printf("invalid key exchange algorithm: %s\r\n", optarg);
@@ -465,10 +479,12 @@ static void print_help(char const* name)
         printf("  --mutualAuth 0|1                 enable or disable mutual authentication (default enabled)\r\n");
         printf("  --noEncryption 0|1               enable or disable encryption (default enabled)\r\n");
         printf("  --hybrid_signature mode          mode for hybrid signatures: \"both\", \"native\", \"alternative\" (default: \"both\")\r\n");
-        printf("  --keyExchangeAlg algorithm       key exchange algorithm: (default: \"ecdhe_384_mlkem_768\")\r\n");
-        printf("                                      classic: \"ecdhe_256\", \"ecdhe_384\", \"ecdhe_521\"\r\n");
-        printf("                                      PQC: \"mlkem_512\", \"mlkem_768\", \"mlkem_1024\"\r\n");
-        printf("                                      hybrid: \"ecdhe_256_mlkem_512\", \"ecdhe_384_mlkem_768\", \"ecdhe_521_mlkem_1024\"\r\n");
+        printf("  --keyExchangeAlg algorithm       key exchange algorithm: (default: \"secp384_mlkem768\")\r\n");
+        printf("                                      classic: \"secp256\", \"secp384\", \"secp521\", \"x25519\", \"x448\"\r\n");
+        printf("                                      PQC: \"mlkem512\", \"mlkem768\", \"mlkem1024\"\r\n");
+        printf("                                      hybrid: \"secp256_mlkem512\", \"secp384_mlkem768\", \"secp256_mlkem768\"\r\n");
+        printf("                                              \"secp521_mlkem1024\", \"secp384_mlkem1024\", \"x25519_mlkem512\"\r\n");
+        printf("                                              \"x448_mlkem768\", \"x25519_mlkem768\"\r\n");
 
         printf("\nSecure Element:\n");
         printf("  When using a secure element for key storage, you have to supply the PKCS#11 key labels using the arguments\n");

@@ -24,11 +24,12 @@
 #   --mutualAuth 0|1                 enable or disable mutual authentication (default enabled)
 #   --noEncryption 0|1               enable or disable encryption (default enabled)
 #   --hybrid_signature mode          mode for hybrid signatures: "both", "native", "alternative" (default: "both")
-#   --keyExchangeAlg algorithm       key exchange algorithm: (default: "ecdhe_384_mlkem_768")
-#                                       classic: "ecdhe_256", "ecdhe_384", "ecdhe_521"
-#                                       PQC: "mlkem_512", "mlkem_768", "mlkem_1024"
-#                                       hybrid: "ecdhe_256_mlkem_512", "ecdhe_384_mlkem_768", "ecdhe_521_mlkem_1024"
-#
+#   --keyExchangeAlg algorithm       key exchange algorithm: (default: "secp384_mlkem768")
+#                                       classic: "secp256", "secp384", "secp521", "x25519", "x448"
+#                                       PQC: "mlkem512", "mlkem768", "mlkem1024"
+#                                       hybrid: "secp256_mlkem512", "secp384_mlkem768", "secp256_mlkem768"
+#                                               "secp521_mlkem1024", "secp384_mlkem1024", "x25519_mlkem512"
+#                                               "x448_mlkem768", "x25519_mlkem768"
 # Secure Element:
 #   When using a secure element for key storage, you have to supply the PKCS#11 key labels using the arguments
 #   "--key" and "--additionalKey" prepending the string "pkcs11:" followed by the key label.
@@ -40,8 +41,6 @@
 #   --debug                          enable debug output
 #   --help                           display this help and exit
 #
-
-
 
 
 _kritis3m_proxy_completions()
@@ -60,7 +59,9 @@ _kritis3m_proxy_completions()
         opts_general="--verbose --debug --help"
 
         hybrid_modes="both native alternative"
-        kex_algos="ecdhe_256 ecdhe_384 ecdhe_521 mlkem_512 mlkem_768 mlkem_1024 ecdhe_256_mlkem_512 ecdhe_384_mlkem_768 ecdhe_521_mlkem_1024"
+        kex_algos="secp256 secp384 secp521 x25519 x448 mlkem512 mlkem768 mlkem1024
+                   secp256_mlkem512 secp384_mlkem768 secp256_mlkem768 secp521_mlkem1024
+                   secp384_mlkem1024 x25519_mlkem512 x448_mlkem768 x25519_mlkem768"
 
         if [[ ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${roles}" -- ${cur}) )

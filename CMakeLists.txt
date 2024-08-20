@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.22)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 project(kritis3m_proxy)
+
+include(GNUInstallDirs)
+include(FetchContent)
+set(FETCHCONTENT_QUIET FALSE)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 
 # Options
 
@@ -53,8 +59,6 @@ endif()
 
 
 # Add the KRITIS3M_APPLICATION dependency
-include(FetchContent)
-set(FETCHCONTENT_QUIET FALSE)
 FetchContent_Declare(kritis3m_applications
         GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_applications.git
         GIT_TAG                 origin/main
@@ -108,10 +112,10 @@ target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_proxy PUBLIC kritis3m_asl)
 
 # Install the executable
-install(TARGETS kritis3m_proxy DESTINATION bin)
+install(TARGETS kritis3m_proxy DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # Install the helper scripts
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_forward_proxy.sh DESTINATION bin RENAME kritis3m_forward_proxy)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_reverse_proxy.sh DESTINATION bin RENAME kritis3m_reverse_proxy)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_server.sh DESTINATION bin RENAME kritis3m_echo_server)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_client.sh DESTINATION bin RENAME kritis3m_tls_client)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_forward_proxy.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_forward_proxy)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_reverse_proxy.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_reverse_proxy)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_server.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_echo_server)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_client.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_tls_client)

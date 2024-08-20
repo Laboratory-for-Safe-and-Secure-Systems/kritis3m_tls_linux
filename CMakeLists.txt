@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(TARGET kritis3m_proxy)
-project(${TARGET})
+project(kritis3m_proxy)
 
 # Options
 
@@ -14,38 +13,23 @@ option(KRITIS3M_PROXY_SELF_CONTAINED "Build a self-contained proxy" ON)
 option(KRITIS3M_PROXY_EXTERNAL_ASL "Use external ASL library" OFF)
 
 
-# External repositories we need
-include(FetchContent)
-Set(FETCHCONTENT_QUIET FALSE)
-FetchContent_Declare(kritis3m_applications
-        GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_applications.git
-        GIT_TAG                 origin/main
-        GIT_PROGRESS            TRUE
-)
-FetchContent_Declare(kritis3m_asl
-        GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_asl.git
-        GIT_TAG                 origin/main
-        GIT_PROGRESS            TRUE
-)
-
-
 # Define the main executable
-add_executable(${TARGET})
+add_executable(kritis3m_proxy)
 
 # Include directories
-target_include_directories(${TARGET} PUBLIC
+target_include_directories(kritis3m_proxy PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/config
         ${CMAKE_CURRENT_SOURCE_DIR}/includes
 )
 
 # Main sources
-target_sources(${TARGET} PUBLIC
+target_sources(kritis3m_proxy PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/cli_parsing.c
 )
 
 # Compiler options
-target_compile_options(${TARGET} PUBLIC
+target_compile_options(kritis3m_proxy PUBLIC
         -Wall
         -Wextra
         -Wpedantic
@@ -58,56 +42,73 @@ target_compile_options(${TARGET} PUBLIC
         -Wl,--gc-sections
 )
 
+
+# When building a self-contained proxy, we need to build static libraries. Otherwise,
+# we build shared libraries to save space and prevent multiple-definition problems.
 if(KRITIS3M_PROXY_SELF_CONTAINED)
         set(BUILD_SHARED_LIBS OFF)
 else()
         set(BUILD_SHARED_LIBS ON)
 endif()
 
-# Actually add the external repositories to our project
+
+# Add the KRITIS3M_APPLICATION dependency
+include(FetchContent)
+set(FETCHCONTENT_QUIET FALSE)
+FetchContent_Declare(kritis3m_applications
+        GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_applications.git
+        GIT_TAG                 origin/main
+        GIT_PROGRESS            TRUE
+)
 FetchContent_GetProperties(kritis3m_applications)
 if(NOT kritis3m_applications_POPULATED)
         FetchContent_Populate(kritis3m_applications)
         add_subdirectory(${kritis3m_applications_SOURCE_DIR} ${kritis3m_applications_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
-if(KRITIS3M_PROXY_EXTERNAL_ASL)
 
-# Search for system-wide installed KRITIS3M_ASL
-find_package(asl NAMES kritis3m_asl REQUIRED)
+# Add the KRITIS3M_ASL dependency
+if(KRITIS3M_PROXY_EXTERNAL_ASL)
+        # Search for system-wide installed KRITIS3M_ASL
+        find_package(kritis3m_asl REQUIRED)
 
 else(KRITIS3M_PROXY_EXTERNAL_ASL)
+        # Add KRITIS3M_ASL as a dependency and build it
+        FetchContent_Declare(kritis3m_asl
+                GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_asl.git
+                GIT_TAG                 origin/main
+                GIT_PROGRESS            TRUE
+        )
 
-# Add KRITIS3M_ASL as a dependency and build it
-set(KRITIS3M_ASL_ENABLE_PKCS11 ON)
-set(KRITIS3M_ASL_STANDALONE NOT ${KRITIS3M_PROXY_SELF_CONTAINED})
-FetchContent_GetProperties(kritis3m_asl)
-if(NOT kritis3m_asl_POPULATED)
-        FetchContent_Populate(kritis3m_asl)
+        set(KRITIS3M_ASL_ENABLE_PKCS11 ON)
+        set(KRITIS3M_ASL_STANDALONE NOT ${KRITIS3M_PROXY_SELF_CONTAINED})
 
-        if(KRITIS3M_PROXY_SELF_CONTAINED)
-                add_subdirectory(${kritis3m_asl_SOURCE_DIR} ${kritis3m_asl_BINARY_DIR} EXCLUDE_FROM_ALL)
-        else()
-                add_subdirectory(${kritis3m_asl_SOURCE_DIR} ${kritis3m_asl_BINARY_DIR})
+        FetchContent_GetProperties(kritis3m_asl)
+        if(NOT kritis3m_asl_POPULATED)
+                FetchContent_Populate(kritis3m_asl)
+                if(KRITIS3M_PROXY_SELF_CONTAINED)
+                        add_subdirectory(${kritis3m_asl_SOURCE_DIR} ${kritis3m_asl_BINARY_DIR} EXCLUDE_FROM_ALL)
+                else()
+                        add_subdirectory(${kritis3m_asl_SOURCE_DIR} ${kritis3m_asl_BINARY_DIR})
+                endif()
         endif()
-endif()
-
 endif(KRITIS3M_PROXY_EXTERNAL_ASL)
 
+
 # Link the KRITIS3M_APPLICATIONS targets
-target_link_libraries(${TARGET} PUBLIC kritis3m_applications_common)
-target_link_libraries(${TARGET} PUBLIC kritis3m_applications_tcp_echo_server)
-target_link_libraries(${TARGET} PUBLIC kritis3m_applications_tcp_client_stdin_bridge)
-target_link_libraries(${TARGET} PUBLIC kritis3m_applications_proxy)
+target_link_libraries(kritis3m_proxy PUBLIC kritis3m_applications_common)
+target_link_libraries(kritis3m_proxy PUBLIC kritis3m_applications_tcp_echo_server)
+target_link_libraries(kritis3m_proxy PUBLIC kritis3m_applications_tcp_client_stdin_bridge)
+target_link_libraries(kritis3m_proxy PUBLIC kritis3m_applications_proxy)
 
 # Link KRITIS3M_ASL to the KRITIS3M_APPLICATIONS_Proxy target
-target_link_libraries(kritis3m_applications_proxy PUBLIC asl)
+target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_asl)
 
 # Link KRITIS3M_ASL to the main target
-target_link_libraries(${TARGET} PUBLIC asl)
+target_link_libraries(kritis3m_proxy PUBLIC kritis3m_asl)
 
 # Install the executable
-install(TARGETS ${TARGET} DESTINATION bin)
+install(TARGETS kritis3m_proxy DESTINATION bin)
 
 # Install the helper scripts
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_forward_proxy.sh DESTINATION bin RENAME kritis3m_forward_proxy)

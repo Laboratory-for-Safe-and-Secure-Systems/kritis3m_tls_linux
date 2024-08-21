@@ -7,7 +7,7 @@ fi
 
 
 echo "Starting KRITIS3M TLS server on port $1 with certs in dir $2"
-kritis3m_proxy echo_server \
+kritis3m_tls echo_server \
 	--incoming $1 \
 	--root $2/root/cert.pem \
 	--cert $2/server/chain.pem \

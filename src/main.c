@@ -16,11 +16,12 @@
 #include "tls_proxy.h"
 #include "tcp_echo_server.h"
 #include "tcp_client_stdin_bridge.h"
+#include "network_tester.h"
 
 #include "cli_parsing.h"
 
 
-LOG_MODULE_CREATE(kritis3m_proxy);
+LOG_MODULE_CREATE(kritis3m_tls);
 
 
 #define ANY_IP "0.0.0.0"
@@ -47,9 +48,10 @@ static void signal_handler(int signo)
 
 int main(int argc, char** argv)
 {
-        application_config app_config;
-        proxy_backend_config tls_proxy_backend_config;
-	proxy_config tls_proxy_config;
+        application_config app_config = {0};
+        proxy_backend_config tls_proxy_backend_config = {0};
+	proxy_config tls_proxy_config = {0};
+        network_tester_config network_tester_config = {0};
 
         /* Install the signal handler and ignore SIGPIPE */
         if (signal(SIGINT, signal_handler) == SIG_ERR)
@@ -60,7 +62,8 @@ int main(int argc, char** argv)
 
         /* Parse arguments */
         int ret = parse_cli_arguments(&app_config, &tls_proxy_backend_config,
-                                      &tls_proxy_config, argc, argv);
+                                      &tls_proxy_config, &network_tester_config,
+                                      argc, argv);
         LOG_LVL_SET(app_config.log_level);
         if (ret < 0)
         {
@@ -71,10 +74,13 @@ int main(int argc, char** argv)
                 exit(0); /* help was printed, so we can exit here */
         }
 
-	/* Run the proxy (asynchronously) */
-	ret = tls_proxy_backend_run(&tls_proxy_backend_config);
-	if (ret != 0)
-		fatal("unable to run tls proxy application");
+	/* Run the proxy backend */
+        if (app_config.role != ROLE_NETWORK_TESTER)
+        {
+                ret = tls_proxy_backend_run(&tls_proxy_backend_config);
+                if (ret != 0)
+                        fatal("unable to run tls proxy backend");
+        }
 
         int id = -1;
 
@@ -161,13 +167,20 @@ int main(int argc, char** argv)
 
                 LOG_INFO("started TLS client stdin bridge");
         }
+        else if (app_config.role == ROLE_NETWORK_TESTER)
+        {
+                /* Run the network_tester application asynchronously */
+                ret = network_tester_run(&network_tester_config);
+                if (ret != 0)
+                        fatal("unable to run network tester");
+        }
         else
         {
                 fatal("no role specified");
         }
 
         /* Free memory */
-        arguments_cleanup(&app_config, &tls_proxy_backend_config, &tls_proxy_config);
+        arguments_cleanup(&app_config, &tls_proxy_backend_config, &tls_proxy_config, &network_tester_config);
 
         ret = 0;
 
@@ -188,6 +201,14 @@ int main(int argc, char** argv)
                                 break;
                         }
                 }
+                else if (app_config.role == ROLE_NETWORK_TESTER)
+                {
+                        network_tester_status tester_status;
+                        if ((network_tester_get_status(&tester_status) < 0) || !tester_status.is_running)
+                        {
+                                break;
+                        }
+                }
 
                 usleep(100 * 1000);
         }
@@ -197,8 +218,11 @@ int main(int argc, char** argv)
         /* We only land here if we received a terminate signal. First, we
         * kill the running server (especially its running client thread, if
         * present). Then, we kill the actual application thread. */
-        tls_proxy_stop(id);
-        tls_proxy_backend_terminate();
+        if (app_config.role != ROLE_NETWORK_TESTER)
+        {
+                tls_proxy_stop(id);
+                tls_proxy_backend_terminate();
+        }
 
         if (app_config.role == ROLE_ECHO_SERVER)
         {
@@ -207,6 +231,10 @@ int main(int argc, char** argv)
         else if (app_config.role == ROLE_TLS_CLIENT)
         {
                 tcp_client_stdin_bridge_terminate();
+        }
+        else if (app_config.role == ROLE_NETWORK_TESTER)
+        {
+                network_tester_terminate();
         }
 
 	return ret;

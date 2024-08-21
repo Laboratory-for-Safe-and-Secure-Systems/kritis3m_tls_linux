@@ -2,12 +2,13 @@
 
 # Help print
 #
-# Usage: kritis3m_proxy ROLE [OPTIONS]
+# Usage: kritis3m_tls ROLE [OPTIONS]
 # Roles:
 #   reverse_proxy                    TLS reverse proxy (use "--incoming" and "--outgoing" for connection configuration)
 #   forward_proxy                    TLS forward proxy (use "--incoming" and "--outgoing" for connection configuration)
 #   echo_server                      TLS echo server (use "--incoming" for connection configuration)
 #   tls_client                       TLS stdin client (use "--outgoing" for connection configuration)
+#   network_tester                   TLS network tester (use "--outgoing" for connection configuration)
 #
 # Connection configuration:
 #   --incoming <ip:>port             configuration of the incoming TCP/TLS connection
@@ -35,6 +36,12 @@
 #   "--key" and "--additionalKey" prepending the string "pkcs11:" followed by the key label.
 #   --middleware file_path           path to the secure element middleware
 #
+# Network tester configuration:
+#   --test_iterations num            Number of handshakes to perform in the test
+#   --test_delay num_ms              Delay between handshakes in milliseconds
+#   --test_output_path path          Path to the output file (filename will be appended)
+#   --test_tls 0|1                   enable or disable TLS (default disabled)
+#
 # General:
 #   --keylogFile file_path           path to the keylog file for Wireshark
 #   --verbose                        enable verbose output
@@ -43,19 +50,20 @@
 #
 
 
-_kritis3m_proxy_completions()
+_kritis3m_tls_completions()
 {
-        local cur prev roles opts_connection opts_files opts_bools opts_hybrid opts_general
+        local cur prev roles opts_connection opts_files opts_security opts_tester opts_general hybrid_modes kex_algos
 
         COMPREPLY=()
 
-        cur="${COMP_WORDS[COMP_CWORD]}"
-        prev="${COMP_WORDS[COMP_CWORD-1]}"
+        _get_comp_words_by_ref -n : cur
+        _get_comp_words_by_ref -n : prev
 
-        roles="reverse_proxy forward_proxy echo_server tls_client"
+        roles="reverse_proxy forward_proxy echo_server tls_client network_tester"
         opts_connection="--incoming --outgoing"
         opts_files="--cert --key --intermediate --root --additionalKey --middleware --keylogFile"
         opts_security="--mutualAuth --noEncryption --hybrid_signature --keyExchangeAlg"
+        opts_tester="--test_iterations --test_delay --test_output_path --test_tls"
         opts_general="--verbose --debug --help"
 
         hybrid_modes="both native alternative"
@@ -69,20 +77,20 @@ _kritis3m_proxy_completions()
         fi
 
         if [[ ${cur} == -* ]]; then
-                COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_general}" -- ${cur}) )
+                COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_general}" -- ${cur}) )
                 return 0
         fi
 
         case "${prev}" in
-                reverse_proxy|forward_proxy|echo_server|tls_client)
-                        COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_general}" -- ${cur}) )
+                reverse_proxy|forward_proxy|echo_server|tls_client|network_tester)
+                        COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_general}" -- ${cur}) )
                         return 0
                         ;;
                 --incoming|--outgoing)
                         COMPREPLY=( $(compgen -W "ip:port port" -- ${cur}) )
                         return 0
                         ;;
-                --cert|--key|--intermediate|--root|--additionalKey|--middleware|--keylogFile)
+                --cert|--key|--intermediate|--root|--additionalKey|--middleware|--keylogFile|--test_output_path)
                         _filedir
                         return 0
                         ;;
@@ -94,12 +102,17 @@ _kritis3m_proxy_completions()
                         COMPREPLY=( $(compgen -W "${kex_algos}" -- ${cur}) )
                         return 0
                         ;;
-                --mutualAuth|--noEncryption)
+                --mutualAuth|--noEncryption|--test_tls)
                         COMPREPLY=( $(compgen -W "0 1" -- ${cur}) )
                         return 0
                         ;;
+                --test_iterations|--test_delay)
+                        # No specific completion
+                        COMPREPLY=()
+                        return 0
+                        ;;
                 *)
-                        COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_general}" -- ${cur}) )
+                        COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_general}" -- ${cur}) )
                         return 0
                         ;;
         esac
@@ -126,8 +139,8 @@ _proxy_helper_completions() {
         _filedir
         return 0
     else
-        # Pass the remaining arguments to the kritis3m_proxy completion function
-        _kritis3m_proxy_completions
+        # Pass the remaining arguments to the kritis3m_tls completion function
+        _kritis3m_tls_completions
     fi
 }
 
@@ -148,14 +161,15 @@ _endpoint_helper_completions() {
         _filedir
         return 0
     else
-        # Pass the remaining arguments to the kritis3m_proxy completion function
-        _kritis3m_proxy_completions
+        # Pass the remaining arguments to the kritis3m_tls completion function
+        _kritis3m_tls_completions
     fi
 }
 
-complete -F _kritis3m_proxy_completions kritis3m_proxy
+complete -F _kritis3m_tls_completions kritis3m_tls
 
 complete -F _proxy_helper_completions kritis3m_forward_proxy
 complete -F _proxy_helper_completions kritis3m_reverse_proxy
 complete -F _endpoint_helper_completions kritis3m_echo_server
 complete -F _endpoint_helper_completions kritis3m_tls_client
+complete -F _endpoint_helper_completions kritis3m_network_tester_tls

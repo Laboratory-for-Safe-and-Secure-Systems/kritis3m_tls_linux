@@ -53,7 +53,12 @@ static const struct option cli_options[] =
 
         { "middleware",         required_argument,    0, 'n' },
 
-        { "keylogFile",         required_argument,    0, 'o' },
+        { "test_iterations",    required_argument,    0, 'o' },
+        { "test_delay",         required_argument,    0, 'p' },
+        { "test_output_path",   required_argument,    0, 'q' },
+        { "test_tls",           required_argument,    0, 'r' },
+
+        { "keylogFile",         required_argument,    0, 's' },
         { "verbose",            no_argument,          0, 'v' },
         { "debug",              no_argument,          0, 'd' },
         { "help",               no_argument,          0, 'h' },
@@ -63,7 +68,8 @@ static const struct option cli_options[] =
 
 
 static void set_defaults(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                         proxy_config* proxy_config);
+                         proxy_config* proxy_config, network_tester_config* tester_config,
+                         asl_endpoint_configuration* tls_config, certificates* certs);
 static int read_certificates(certificates* certs, enum application_role role);
 static void print_help(char const* name);
 
@@ -73,11 +79,12 @@ static void print_help(char const* name);
  * Returns 0 on success, +1 in case the help was printed and  -1 on failure (error is printed on console).
  */
 int parse_cli_arguments(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                        proxy_config* proxy_config, size_t argc, char** argv)
+                        proxy_config* proxy_config, network_tester_config* tester_config,
+                        size_t argc, char** argv)
 {
-        if ((app_config == NULL) || (proxy_config == NULL))
+        if ((app_config == NULL) || (proxy_backend_config == NULL)|| (proxy_config == NULL)|| (tester_config == NULL))
         {
-                LOG_ERROR("mandatory argument missing for parse_cli_arguments()");
+                LOG_ERROR("parse_cli_arguments() mustn't be called with a NULL pointer");
                 return -1;
         }
         else if (argc < 2)
@@ -86,24 +93,17 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                 return 1;
         }
 
-	/* Set default values */
-        set_defaults(app_config, proxy_backend_config, proxy_config);
+        char* incoming_ip = NULL;
+        uint16_t incoming_port = 0;
+        char* outgoing_ip = NULL;
+        uint16_t outgoing_port = 0;
 
-        struct certificates certs = {
-                .certificate_path = NULL,
-                .private_key_path = NULL,
-                .additional_key_path = NULL,
-                .intermediate_path = NULL,
-                .root_path = NULL,
-                .chain_buffer = NULL,
-                .chain_buffer_size = 0,
-                .key_buffer = NULL,
-                .key_buffer_size = 0,
-                .additional_key_buffer = NULL,
-                .additional_key_buffer_size = 0,
-                .root_buffer = NULL,
-                .root_buffer_size = 0,
-        };
+        certificates certs;
+        asl_endpoint_configuration tls_config;
+
+        /* Set default values */
+        set_defaults(app_config, proxy_backend_config, proxy_config, tester_config, &tls_config, &certs);
+
 
         /* Parse role */
         if (strcmp(argv[1], "reverse_proxy") == 0)
@@ -122,6 +122,10 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
         {
                 app_config->role = ROLE_TLS_CLIENT;
         }
+        else if (strcmp(argv[1], "network_tester") == 0)
+        {
+                app_config->role = ROLE_NETWORK_TESTER;
+        }
         else if ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))
         {
                 print_help(argv[0]);
@@ -138,14 +142,14 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 	int index = 0;
 	while (true)
 	{
-		int result = getopt_long(argc, argv, "a:b:c:e:f:g:i:j:k:l:m:n:o:vdh", cli_options, &index);
+		int result = getopt_long(argc, argv, "a:b:c:e:f:g:i:j:k:l:m:n:o:p:q:r:s:vdh", cli_options, &index);
 
 		if (result == -1)
 		        break; /* end of list */
 
 		switch (result)
 		{
-			case 'a':
+			case 'a': /* incoming */
 			{
 				/* Check if an IP address is provided */
 				char* separator = strchr(optarg, ':');
@@ -153,14 +157,19 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 				if (separator == NULL)
 				{
 					port_str = optarg;
-					proxy_config->own_ip_address = duplicate_string("0.0.0.0");
+					incoming_ip = duplicate_string("0.0.0.0");
 				}
 				else
 				{
 					*separator = '\0';
-					proxy_config->own_ip_address = duplicate_string(optarg);
+					incoming_ip = duplicate_string(optarg);
 					port_str = separator + 1;
 				}
+                                if (incoming_ip == NULL)
+                                {
+                                        LOG_ERROR("unable to allocate memory for incoming IP address");
+                                        return -1;
+                                }
 
 				/* Parse the port */
 				unsigned long new_port = strtoul(port_str, NULL, 10);
@@ -169,15 +178,15 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 					printf("invalid port number %lu\r\n", new_port);
 					return -1;
 				}
-				proxy_config->listening_port = (uint16_t) new_port;
+				incoming_port = (uint16_t) new_port;
 				break;
 			}
-			case 'b':
+			case 'b': /* outgoing */
 			{
-				/* Parse the target IP address and port */
-                                char* target_ip = strtok(optarg, ":");
-				proxy_config->target_ip_address = duplicate_string(target_ip);
-                                if (proxy_config->target_ip_address == NULL)
+				/* Parse the outgoing IP address and port */
+                                char* ip = strtok(optarg, ":");
+				outgoing_ip = duplicate_string(ip);
+                                if (outgoing_ip == NULL)
                                 {
                                         LOG_ERROR("unable to allocate memory for target IP address");
                                         return -1;
@@ -195,31 +204,31 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 					printf("invalid port number %lu\r\n", dest_port);
 					return -1;
 				}
-				proxy_config->target_port = (uint16_t) dest_port;
+				outgoing_port = (uint16_t) dest_port;
 				break;
 			}
-			case 'c':
+			case 'c': /* cert */
 				certs.certificate_path = optarg;
 				break;
-			case 'e':
+			case 'e': /* key */
 				certs.private_key_path = optarg;
 				break;
-			case 'f':
+			case 'f': /* intermediate */
 				certs.intermediate_path = optarg;
 				break;
-			case 'g':
+			case 'g': /* root */
 				certs.root_path = optarg;
 				break;
-                        case 'i':
+                        case 'i': /* additionalKey */
                                 certs.additional_key_path = optarg;
                                 break;
-                        case 'j':
-                                proxy_config->tls_config.mutual_authentication = (bool) strtoul(optarg, NULL, 10);
+                        case 'j': /* mutualAuth */
+                                tls_config.mutual_authentication = (bool) strtoul(optarg, NULL, 10);
                                 break;
-                        case 'k':
-                                proxy_config->tls_config.no_encryption = (bool) strtoul(optarg, NULL, 10);
+                        case 'k': /* noEncryption */
+                                tls_config.no_encryption = (bool) strtoul(optarg, NULL, 10);
                                 break;
-                        case 'l':
+                        case 'l': /* hybrid_signature */
                         {
                                 enum asl_hybrid_signature_mode mode;
                                 if (strcmp(optarg, "both") == 0)
@@ -234,10 +243,10 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                         print_help(argv[0]);
                                         return 1;
                                 }
-                                proxy_config->tls_config.hybrid_signature_mode = mode;
+                                tls_config.hybrid_signature_mode = mode;
                                 break;
                         }
-                        case 'm':
+                        case 'm': /* keyExchangeAlg */
                         {
                                 enum asl_key_exchange_method kex_algo;
                                 if (strcmp(optarg, "secp256") == 0)
@@ -278,38 +287,49 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                         print_help(argv[0]);
                                         return 1;
                                 }
-                                proxy_config->tls_config.key_exchange_method = kex_algo;
+                                tls_config.key_exchange_method = kex_algo;
                                 break;
                         }
-                        case 'n':
-                                proxy_config->tls_config.secure_element_middleware_path = duplicate_string(optarg);
-                                if (proxy_config->tls_config.secure_element_middleware_path == NULL)
+                        case 'n': /* middleware */
+                                tls_config.secure_element_middleware_path = duplicate_string(optarg);
+                                if (tls_config.secure_element_middleware_path == NULL)
                                 {
                                         LOG_ERROR("unable to allocate memory for secure element middleware path");
                                         return -1;
                                 }
                                 break;
-                        case 'o':
-                                proxy_config->tls_config.keylog_file = duplicate_string(optarg);
-                                if (proxy_config->tls_config.keylog_file == NULL)
+                        case 'o': /* test_iterations */
+                                tester_config->iterations = (int) strtol(optarg, NULL, 10);
+                                break;
+                        case 'p': /* test_delay */
+                                tester_config->delay = (int) strtol(optarg, NULL, 10);
+                                break;
+                        case 'q': /* test_output_path */
+                                tester_config->output_path = duplicate_string(optarg);
+                                if (tester_config->output_path == NULL)
+                                {
+                                        LOG_ERROR("unable to allocate memory for output path");
+                                        return -1;
+                                }
+                                break;
+                        case 'r': /* test_tls */
+                                tester_config->use_tls = (bool) strtoul(optarg, NULL, 10);
+                                break;
+                        case 's': /* keylogFile */
+                                tls_config.keylog_file = duplicate_string(optarg);
+                                if (tls_config.keylog_file == NULL)
                                 {
                                         LOG_ERROR("unable to allocate memory for keylog file path");
                                         return -1;
                                 }
                                 break;
-                        case 'v':
+                        case 'v': /* verbose */
                                 app_config->log_level = LOG_LVL_INFO;
-                                proxy_config->log_level = LOG_LVL_INFO;
-                                if (proxy_backend_config != NULL)
-                                        proxy_backend_config->log_level = LOG_LVL_INFO;
                                 break;
-                        case 'd':
+                        case 'd': /* debug */
                                 app_config->log_level = LOG_LVL_DEBUG;
-                                proxy_config->log_level = LOG_LVL_DEBUG;
-                                if (proxy_backend_config != NULL)
-                                        proxy_backend_config->log_level = LOG_LVL_DEBUG;
                                 break;
-			case 'h':
+			case 'h': /* help */
 				print_help(argv[0]);
 				return 1;
 				break;
@@ -326,14 +346,33 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 	}
 
 	/* Set TLS config */
-	proxy_config->tls_config.device_certificate_chain.buffer = certs.chain_buffer;
-	proxy_config->tls_config.device_certificate_chain.size = certs.chain_buffer_size;
-	proxy_config->tls_config.private_key.buffer = certs.key_buffer;
-	proxy_config->tls_config.private_key.size = certs.key_buffer_size;
-        proxy_config->tls_config.private_key.additional_key_buffer = certs.additional_key_buffer;
-	proxy_config->tls_config.private_key.additional_key_size = certs.additional_key_buffer_size;
-	proxy_config->tls_config.root_certificate.buffer = certs.root_buffer;
-	proxy_config->tls_config.root_certificate.size = certs.root_buffer_size;
+	tls_config.device_certificate_chain.buffer = certs.chain_buffer;
+	tls_config.device_certificate_chain.size = certs.chain_buffer_size;
+	tls_config.private_key.buffer = certs.key_buffer;
+	tls_config.private_key.size = certs.key_buffer_size;
+        tls_config.private_key.additional_key_buffer = certs.additional_key_buffer;
+	tls_config.private_key.additional_key_size = certs.additional_key_buffer_size;
+	tls_config.root_certificate.buffer = certs.root_buffer;
+	tls_config.root_certificate.size = certs.root_buffer_size;
+
+        if (app_config->role == ROLE_NETWORK_TESTER)
+        {
+                tester_config->log_level = app_config->log_level;
+                tester_config->target_ip = outgoing_ip;
+                tester_config->target_port = outgoing_port;
+                tester_config->tls_config = tls_config;
+        }
+        else /* ROLE_REVERSE_PROXY, ROLE_FORWARD_PROXY, ROLE_ECHO_SERVER, ROLE_TLS_CLIENT*/
+        {
+                proxy_backend_config->log_level = app_config->log_level;
+
+                proxy_config->log_level = app_config->log_level;
+                proxy_config->own_ip_address = incoming_ip;
+                proxy_config->listening_port = incoming_port;
+                proxy_config->target_ip_address = outgoing_ip;
+                proxy_config->target_port = outgoing_port;
+                proxy_config->tls_config = tls_config;
+        }
 
         return 0;
 }
@@ -341,60 +380,69 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 
 /* Cleanup any structures created during argument parsing */
 void arguments_cleanup(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                       proxy_config* proxy_config)
+                       proxy_config* proxy_config, network_tester_config* tester_config)
 {
+        /* Nothing to clean here */
         (void) app_config;
         (void) proxy_backend_config;
 
-        /* Free memory of own IP address */
-        if (proxy_config->own_ip_address != NULL)
+        char* incoming_ip = NULL;
+        char* outgoing_ip = NULL;
+        asl_endpoint_configuration tls_config;
+
+        if (app_config->role == ROLE_NETWORK_TESTER)
         {
-                free((void*) proxy_config->own_ip_address);
-                proxy_config->own_ip_address = NULL;
+                outgoing_ip = (char*) tester_config->target_ip;
+                tls_config = tester_config->tls_config;
+        }
+        else /* ROLE_REVERSE_PROXY, ROLE_FORWARD_PROXY, ROLE_ECHO_SERVER, ROLE_TLS_CLIENT*/
+        {
+                incoming_ip = (char*) proxy_config->own_ip_address;
+                outgoing_ip = (char*) proxy_config->target_ip_address;
+                tls_config = proxy_config->tls_config;
         }
 
-        /* Free memory of target IP address */
-        if (proxy_config->target_ip_address != NULL)
+        /* Free memory of incoming IP address */
+        if (incoming_ip != NULL)
         {
-                free((void*) proxy_config->target_ip_address);
-                proxy_config->target_ip_address = NULL;
+                free(incoming_ip);
+        }
+
+        /* Free memory of outgoing IP address */
+        if (outgoing_ip != NULL)
+        {
+                free(outgoing_ip);
         }
 
         /* Free memory of certificates and private key */
-        if (proxy_config->tls_config.device_certificate_chain.buffer != NULL)
+        if (tls_config.device_certificate_chain.buffer != NULL)
         {
-                free((void*) proxy_config->tls_config.device_certificate_chain.buffer);
-                proxy_config->tls_config.device_certificate_chain.buffer = NULL;
+                free((void*) tls_config.device_certificate_chain.buffer);
         }
 
-        if (proxy_config->tls_config.private_key.buffer != NULL)
+        if (tls_config.private_key.buffer != NULL)
         {
-                free((void*) proxy_config->tls_config.private_key.buffer);
-                proxy_config->tls_config.private_key.buffer = NULL;
+                free((void*) tls_config.private_key.buffer);
         }
 
-        if (proxy_config->tls_config.private_key.additional_key_buffer != NULL)
+        if (tls_config.private_key.additional_key_buffer != NULL)
         {
-                free((void*) proxy_config->tls_config.private_key.additional_key_buffer);
-                proxy_config->tls_config.private_key.additional_key_buffer = NULL;
+                free((void*) tls_config.private_key.additional_key_buffer);
         }
 
-        if (proxy_config->tls_config.root_certificate.buffer != NULL)
+        if (tls_config.root_certificate.buffer != NULL)
         {
-                free((void*) proxy_config->tls_config.root_certificate.buffer);
-                proxy_config->tls_config.root_certificate.buffer = NULL;
+                free((void*) tls_config.root_certificate.buffer);
         }
 
-        if (proxy_config->tls_config.secure_element_middleware_path != NULL)
+        if (tls_config.secure_element_middleware_path != NULL)
         {
-                free((void*) proxy_config->tls_config.secure_element_middleware_path);
-                proxy_config->tls_config.secure_element_middleware_path = NULL;
+                free((void*) tls_config.secure_element_middleware_path);
         }
 
-        if (proxy_config->tls_config.keylog_file != NULL)
+        if (tls_config.keylog_file != NULL)
         {
-                free((void*) proxy_config->tls_config.keylog_file);
-                proxy_config->tls_config.keylog_file = NULL;
+                free((void*) tls_config.keylog_file);
         }
 }
 
@@ -402,6 +450,9 @@ void arguments_cleanup(application_config* app_config, proxy_backend_config* pro
 /* Helper method to dynamically duplicate a string */
 char* duplicate_string(char const* source)
 {
+        if (source == NULL)
+                return NULL;
+
         char* dest = (char*) malloc(strlen(source) + 1);
         if (dest == NULL)
         {
@@ -415,43 +466,67 @@ char* duplicate_string(char const* source)
 
 
 static void set_defaults(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                         proxy_config* proxy_config)
+                         proxy_config* proxy_config, network_tester_config* tester_config,
+                         asl_endpoint_configuration* tls_config, certificates* certs)
 {
         int32_t default_log_level = LOG_LVL_WARN;
+
+        /* Certificates */
+        certs->certificate_path = NULL;
+        certs->private_key_path = NULL;
+        certs->additional_key_path = NULL;
+        certs->intermediate_path = NULL;
+        certs->root_path = NULL;
+        certs->chain_buffer = NULL;
+        certs->chain_buffer_size = 0;
+        certs->key_buffer = NULL;
+        certs->key_buffer_size = 0;
+        certs->additional_key_buffer = NULL;
+        certs->additional_key_buffer_size = 0;
+        certs->root_buffer = NULL;
+        certs->root_buffer_size = 0;
+
+        /* TLS endpoint config */
+        tls_config->mutual_authentication = true;
+        tls_config->no_encryption = false;
+        tls_config->hybrid_signature_mode = ASL_HYBRID_SIGNATURE_MODE_DEFAULT;
+        tls_config->key_exchange_method = ASL_KEX_DEFAULT;
+        tls_config->secure_element_middleware_path = NULL;
+        tls_config->device_certificate_chain.buffer = NULL;
+        tls_config->device_certificate_chain.size = 0;
+        tls_config->private_key.buffer = NULL;
+        tls_config->private_key.size = 0;
+        tls_config->private_key.additional_key_buffer = NULL;
+        tls_config->private_key.additional_key_size = 0;
+        tls_config->root_certificate.buffer = NULL;
+        tls_config->root_certificate.size = 0;
+        tls_config->keylog_file = NULL;
 
         /* Application config */
         app_config->role = NOT_SET;
         app_config->log_level = default_log_level;
 
         /* Proxy backend config */
-        if (proxy_backend_config != NULL)
-        {
-                proxy_backend_config->log_level = default_log_level;
-        }
+        proxy_backend_config->log_level = default_log_level;
 
         /* Proxy config */
-        memset(proxy_config, 0, sizeof(*proxy_config));
         proxy_config->own_ip_address = NULL;
         proxy_config->listening_port = 0;
         proxy_config->target_ip_address = NULL;
         proxy_config->target_port = 0;
-        proxy_config->tls_config.mutual_authentication = true;
-        proxy_config->tls_config.no_encryption = false;
-        proxy_config->tls_config.hybrid_signature_mode = ASL_HYBRID_SIGNATURE_MODE_DEFAULT;
-        proxy_config->tls_config.key_exchange_method = ASL_KEX_DEFAULT;
-        proxy_config->tls_config.secure_element_middleware_path = NULL;
-        proxy_config->tls_config.device_certificate_chain.buffer = NULL;
-        proxy_config->tls_config.device_certificate_chain.size = 0;
-        proxy_config->tls_config.private_key.buffer = NULL;
-        proxy_config->tls_config.private_key.size = 0;
-        proxy_config->tls_config.private_key.additional_key_buffer = NULL;
-        proxy_config->tls_config.private_key.additional_key_size = 0;
-        proxy_config->tls_config.root_certificate.buffer = NULL;
-        proxy_config->tls_config.root_certificate.size = 0;
-#if defined(HAVE_SECRET_CALLBACK)
-        proxy_config->tls_config.keylog_file = NULL;
-#endif
         proxy_config->log_level = default_log_level;
+        proxy_config->tls_config = *tls_config;
+
+
+        /* Network tester config */
+        tester_config->log_level = default_log_level;
+        tester_config->output_path = NULL;
+        tester_config->iterations = 1;
+        tester_config->delay = 0;
+        tester_config->target_ip = NULL;
+        tester_config->target_port = 0;
+        tester_config->use_tls = false;
+        tester_config->tls_config = *tls_config;
 }
 
 
@@ -463,6 +538,7 @@ static void print_help(char const* name)
         printf("  forward_proxy                    TLS forward proxy (use \"--incoming\" and \"--outgoing\" for connection configuration)\r\n");
         printf("  echo_server                      TLS echo server (use \"--incoming\" for connection configuration)\r\n");
         printf("  tls_client                       TLS stdin client (use \"--outgoing\" for connection configuration)\r\n");
+        printf("  network_tester                   TLS network tester (use \"--outgoing\" for connection configuration)\r\n");
 
         printf("\nConnection configuration:\r\n");
         printf("  --incoming <ip:>port             configuration of the incoming TCP/TLS connection\r\n");
@@ -486,12 +562,18 @@ static void print_help(char const* name)
         printf("                                              \"secp521_mlkem1024\", \"secp384_mlkem1024\", \"x25519_mlkem512\"\r\n");
         printf("                                              \"x448_mlkem768\", \"x25519_mlkem768\"\r\n");
 
-        printf("\nSecure Element:\n");
+        printf("\nSecure Element:\r\n");
         printf("  When using a secure element for key storage, you have to supply the PKCS#11 key labels using the arguments\n");
         printf("  \"--key\" and \"--additionalKey\" prepending the string \"%s\" followed by the key label.\n", PKCS11_LABEL_IDENTIFIER);
         printf("  --middleware file_path           path to the secure element middleware\r\n");
 
-        printf("\nGeneral:\n");
+        printf("\nNetwork tester configuration:\r\n");
+        printf("  --test_iterations num            Number of handshakes to perform in the test\r\n");
+        printf("  --test_delay num_ms              Delay between handshakes in milliseconds\r\n");
+        printf("  --test_output_path path          Path to the output file (filename will be appended)\r\n");
+        printf("  --test_tls 0|1                   enable or disable TLS (default disabled)\r\n");
+
+        printf("\nGeneral:\r\n");
         printf("  --keylogFile file_path           path to the keylog file for Wireshark\r\n");
         printf("  --verbose                        enable verbose output\r\n");
         printf("  --debug                          enable debug output\r\n");

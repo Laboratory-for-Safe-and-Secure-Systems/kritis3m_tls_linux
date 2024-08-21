@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(kritis3m_proxy)
+project(kritis3m_tls)
 
 include(GNUInstallDirs)
 include(FetchContent)
@@ -10,32 +10,26 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Options
 
-# When enabled, the proxy will be built as a self-contained executable with all
-# dependencies included. When disabled, the proxy dynamically loads the dependencies
+# When enabled, the application will be built as a self-contained executable with all
+# dependencies included. When disabled, it dynamically loads the dependencies
 # at runtime.
-option(KRITIS3M_PROXY_SELF_CONTAINED "Build a self-contained proxy" ON)
+option(KRITIS3M_TLS_SELF_CONTAINED "Build a self-contained proxy" ON)
 
 # Use an externally installed ASL library. If disabled, ASL will be built.
-option(KRITIS3M_PROXY_EXTERNAL_ASL "Use external ASL library" OFF)
+option(KRITIS3M_TLS_EXTERNAL_ASL "Use external ASL library" OFF)
 
 
 # Define the main executable
-add_executable(kritis3m_proxy)
-
-# Include directories
-target_include_directories(kritis3m_proxy PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/config
+add_executable(kritis3m_tls)
+target_include_directories(kritis3m_tls PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/includes
 )
 
-# Main sources
-target_sources(kritis3m_proxy PUBLIC
+target_sources(kritis3m_tls PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/cli_parsing.c
 )
-
-# Compiler options
-target_compile_options(kritis3m_proxy PUBLIC
+target_compile_options(kritis3m_tls PUBLIC
         -Wall
         -Wextra
         -Wpedantic
@@ -100,22 +94,29 @@ endif(KRITIS3M_PROXY_EXTERNAL_ASL)
 
 
 # Link the KRITIS3M_APPLICATIONS targets
-target_link_libraries(kritis3m_proxy PUBLIC kritis3m_applications_common)
-target_link_libraries(kritis3m_proxy PUBLIC kritis3m_applications_tcp_echo_server)
-target_link_libraries(kritis3m_proxy PUBLIC kritis3m_applications_tcp_client_stdin_bridge)
-target_link_libraries(kritis3m_proxy PUBLIC kritis3m_applications_proxy)
+target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_common)
+target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_tcp_echo_server)
+target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_tcp_client_stdin_bridge)
+target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_proxy)
+target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_network_tester)
 
-# Link KRITIS3M_ASL to the KRITIS3M_APPLICATIONS_Proxy target
+
+# Link KRITIS3M_ASL to the required KRITIS3M_APPLICATIONS targets
 target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_asl)
+target_link_libraries(kritis3m_applications_network_tester PUBLIC kritis3m_asl)
+
 
 # Link KRITIS3M_ASL to the main target
-target_link_libraries(kritis3m_proxy PUBLIC kritis3m_asl)
+target_link_libraries(kritis3m_tls PUBLIC kritis3m_asl)
 
-# Install the executable
-install(TARGETS kritis3m_proxy DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# Install the executables
+install(TARGETS kritis3m_tls DESTINATION ${CMAKE_INSTALL_BINDIR})
+
 
 # Install the helper scripts
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_forward_proxy.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_forward_proxy)
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_reverse_proxy.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_reverse_proxy)
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_server.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_echo_server)
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_client.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_tls_client)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/network_tester_tls.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_network_tester_tls)

@@ -13,7 +13,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # When enabled, the application will be built as a self-contained executable with all
 # dependencies included. When disabled, it dynamically loads the dependencies
 # at runtime.
-option(KRITIS3M_TLS_SELF_CONTAINED "Build a self-contained proxy" ON)
+option(KRITIS3M_TLS_SELF_CONTAINED "Build a self-contained executable" ON)
 
 # Use an externally installed ASL library. If disabled, ASL will be built.
 option(KRITIS3M_TLS_EXTERNAL_ASL "Use external ASL library" OFF)
@@ -43,9 +43,9 @@ target_compile_options(kritis3m_tls PUBLIC
 )
 
 
-# When building a self-contained proxy, we need to build static libraries. Otherwise,
+# When building a self-contained executable, we need to build static libraries. Otherwise,
 # we build shared libraries to save space and prevent multiple-definition problems.
-if(KRITIS3M_PROXY_SELF_CONTAINED)
+if(KRITIS3M_TLS_SELF_CONTAINED)
         set(BUILD_SHARED_LIBS OFF)
 else()
         set(BUILD_SHARED_LIBS ON)
@@ -66,11 +66,11 @@ endif()
 
 
 # Add the KRITIS3M_ASL dependency
-if(KRITIS3M_PROXY_EXTERNAL_ASL)
+if(KRITIS3M_TLS_EXTERNAL_ASL)
         # Search for system-wide installed KRITIS3M_ASL
         find_package(kritis3m_asl REQUIRED)
 
-else(KRITIS3M_PROXY_EXTERNAL_ASL)
+else(KRITIS3M_TLS_EXTERNAL_ASL)
         # Add KRITIS3M_ASL as a dependency and build it
         FetchContent_Declare(kritis3m_asl
                 GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_asl.git
@@ -78,19 +78,23 @@ else(KRITIS3M_PROXY_EXTERNAL_ASL)
                 GIT_PROGRESS            TRUE
         )
 
+        if(KRITIS3M_TLS_SELF_CONTAINED)
+                set(KRITIS3M_ASL_STANDALONE OFF)
+        else()
+                set(KRITIS3M_ASL_STANDALONE ON)
+        endif()
         set(KRITIS3M_ASL_ENABLE_PKCS11 ON)
-        set(KRITIS3M_ASL_STANDALONE NOT ${KRITIS3M_PROXY_SELF_CONTAINED})
 
         FetchContent_GetProperties(kritis3m_asl)
         if(NOT kritis3m_asl_POPULATED)
                 FetchContent_Populate(kritis3m_asl)
-                if(KRITIS3M_PROXY_SELF_CONTAINED)
+                if(KRITIS3M_TLS_SELF_CONTAINED)
                         add_subdirectory(${kritis3m_asl_SOURCE_DIR} ${kritis3m_asl_BINARY_DIR} EXCLUDE_FROM_ALL)
                 else()
                         add_subdirectory(${kritis3m_asl_SOURCE_DIR} ${kritis3m_asl_BINARY_DIR})
                 endif()
         endif()
-endif(KRITIS3M_PROXY_EXTERNAL_ASL)
+endif(KRITIS3M_TLS_EXTERNAL_ASL)
 
 
 # Link the KRITIS3M_APPLICATIONS targets

@@ -37,31 +37,32 @@ certificates;
 
 static const struct option cli_options[] =
 {
-        { "incoming",           required_argument,    0, 'a' },
-        { "outgoing",           required_argument,    0, 'b' },
+        { "incoming",           required_argument,    0, 0x01 },
+        { "outgoing",           required_argument,    0, 0x02 },
 
-        { "cert",               required_argument,    0, 'c' },
-        { "key",                required_argument,    0, 'e' },
-        { "intermediate",       required_argument,    0, 'f' },
-        { "root",               required_argument,    0, 'g' },
-        { "additionalKey",      required_argument,    0, 'i' },
+        { "cert",               required_argument,    0, 0x03 },
+        { "key",                required_argument,    0, 0x04 },
+        { "intermediate",       required_argument,    0, 0x05 },
+        { "root",               required_argument,    0, 0x06 },
+        { "additionalKey",      required_argument,    0, 0x07 },
 
-        { "mutualAuth",         required_argument,    0, 'j' },
-        { "noEncryption",       required_argument,    0, 'k' },
-        { "hybrid_signature",   required_argument,    0, 'l' },
-        { "keyExchangeAlg",     required_argument,    0, 'm' },
+        { "mutualAuth",         required_argument,    0, 0x08 },
+        { "noEncryption",       required_argument,    0, 0x09 },
+        { "hybrid_signature",   required_argument,    0, 0x0A },
+        { "keyExchangeAlg",     required_argument,    0, 0x0B },
 
-        { "middleware",         required_argument,    0, 'n' },
+        { "middleware",         required_argument,    0, 0x0C },
 
-        { "test_iterations",    required_argument,    0, 'o' },
-        { "test_delay",         required_argument,    0, 'p' },
-        { "test_output_path",   required_argument,    0, 'q' },
-        { "test_tls",           required_argument,    0, 'r' },
+        { "test_iterations",    required_argument,    0, 0x0D },
+        { "test_delay",         required_argument,    0, 0x0E },
+        { "test_output_path",   required_argument,    0, 0x0F },
+        { "test_tls",           required_argument,    0, 0x10 },
+        { "test_silent",        no_argument,          0, 0x11 },
 
-        { "keylogFile",         required_argument,    0, 's' },
-        { "verbose",            no_argument,          0, 'v' },
-        { "debug",              no_argument,          0, 'd' },
-        { "help",               no_argument,          0, 'h' },
+        { "keylogFile",         required_argument,    0, 0x12 },
+        { "verbose",            no_argument,          0, 'v'  },
+        { "debug",              no_argument,          0, 'd'  },
+        { "help",               no_argument,          0, 'h'  },
 
         {NULL, 0, NULL, 0}
 };
@@ -142,14 +143,14 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 	int index = 0;
 	while (true)
 	{
-		int result = getopt_long(argc, argv, "a:b:c:e:f:g:i:j:k:l:m:n:o:p:q:r:s:vdh", cli_options, &index);
+		int result = getopt_long(argc, argv, "vdh", cli_options, &index);
 
 		if (result == -1)
 		        break; /* end of list */
 
 		switch (result)
 		{
-			case 'a': /* incoming */
+			case 0x01: /* incoming */
 			{
 				/* Check if an IP address is provided */
 				char* separator = strchr(optarg, ':');
@@ -181,7 +182,7 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 				incoming_port = (uint16_t) new_port;
 				break;
 			}
-			case 'b': /* outgoing */
+			case 0x02: /* outgoing */
 			{
 				/* Parse the outgoing IP address and port */
                                 char* ip = strtok(optarg, ":");
@@ -207,28 +208,28 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 				outgoing_port = (uint16_t) dest_port;
 				break;
 			}
-			case 'c': /* cert */
+			case 0x03: /* cert */
 				certs.certificate_path = optarg;
 				break;
-			case 'e': /* key */
+			case 0x04: /* key */
 				certs.private_key_path = optarg;
 				break;
-			case 'f': /* intermediate */
+			case 0x05: /* intermediate */
 				certs.intermediate_path = optarg;
 				break;
-			case 'g': /* root */
+			case 0x06: /* root */
 				certs.root_path = optarg;
 				break;
-                        case 'i': /* additionalKey */
+                        case 0x07: /* additionalKey */
                                 certs.additional_key_path = optarg;
                                 break;
-                        case 'j': /* mutualAuth */
+                        case 0x08: /* mutualAuth */
                                 tls_config.mutual_authentication = (bool) strtoul(optarg, NULL, 10);
                                 break;
-                        case 'k': /* noEncryption */
+                        case 0x09: /* noEncryption */
                                 tls_config.no_encryption = (bool) strtoul(optarg, NULL, 10);
                                 break;
-                        case 'l': /* hybrid_signature */
+                        case 0x0A: /* hybrid_signature */
                         {
                                 enum asl_hybrid_signature_mode mode;
                                 if (strcmp(optarg, "both") == 0)
@@ -246,7 +247,7 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                 tls_config.hybrid_signature_mode = mode;
                                 break;
                         }
-                        case 'm': /* keyExchangeAlg */
+                        case 0x0B: /* keyExchangeAlg */
                         {
                                 enum asl_key_exchange_method kex_algo;
                                 if (strcmp(optarg, "secp256") == 0)
@@ -290,7 +291,7 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                 tls_config.key_exchange_method = kex_algo;
                                 break;
                         }
-                        case 'n': /* middleware */
+                        case 0x0C: /* middleware */
                                 tls_config.secure_element_middleware_path = duplicate_string(optarg);
                                 if (tls_config.secure_element_middleware_path == NULL)
                                 {
@@ -298,13 +299,13 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                         return -1;
                                 }
                                 break;
-                        case 'o': /* test_iterations */
+                        case 0x0D: /* test_iterations */
                                 tester_config->iterations = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 'p': /* test_delay */
+                        case 0x0E: /* test_delay */
                                 tester_config->delay = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 'q': /* test_output_path */
+                        case 0x0F: /* test_output_path */
                                 tester_config->output_path = duplicate_string(optarg);
                                 if (tester_config->output_path == NULL)
                                 {
@@ -312,10 +313,13 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                         return -1;
                                 }
                                 break;
-                        case 'r': /* test_tls */
+                        case 0x10: /* test_tls */
                                 tester_config->use_tls = (bool) strtoul(optarg, NULL, 10);
                                 break;
-                        case 's': /* keylogFile */
+                        case 0x11: /* test_silent */
+                                tester_config->silent_test = true;
+                                break;
+                        case 0x12: /* keylogFile */
                                 tls_config.keylog_file = duplicate_string(optarg);
                                 if (tls_config.keylog_file == NULL)
                                 {
@@ -572,6 +576,7 @@ static void print_help(char const* name)
         printf("  --test_delay num_ms              Delay between handshakes in milliseconds\r\n");
         printf("  --test_output_path path          Path to the output file (filename will be appended)\r\n");
         printf("  --test_tls 0|1                   enable or disable TLS (default disabled)\r\n");
+        printf("  --test_silent                    disable progress printing\r\n");
 
         printf("\nGeneral:\r\n");
         printf("  --keylogFile file_path           path to the keylog file for Wireshark\r\n");

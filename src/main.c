@@ -14,7 +14,7 @@
 #include "poll_set.h"
 
 #include "tls_proxy.h"
-#include "tcp_echo_server.h"
+#include "echo_server.h"
 #include "tcp_client_stdin_bridge.h"
 #include "network_tester.h"
 
@@ -22,11 +22,6 @@
 
 
 LOG_MODULE_CREATE(kritis3m_tls);
-
-
-#define ANY_IP "0.0.0.0"
-
-#define LOCALHOST_IP "127.0.0.1"
 
 
 #define fatal(msg, ...) { \
@@ -51,6 +46,7 @@ int main(int argc, char** argv)
         application_config app_config = {0};
         proxy_backend_config tls_proxy_backend_config = {0};
 	proxy_config tls_proxy_config = {0};
+        echo_server_config echo_server_config = {0};
         network_tester_config network_tester_config = {0};
 
         /* Install the signal handler and ignore SIGPIPE */
@@ -62,8 +58,8 @@ int main(int argc, char** argv)
 
         /* Parse arguments */
         int ret = parse_cli_arguments(&app_config, &tls_proxy_backend_config,
-                                      &tls_proxy_config, &network_tester_config,
-                                      argc, argv);
+                                      &tls_proxy_config, &echo_server_config,
+                                      &network_tester_config, argc, argv);
         LOG_LVL_SET(app_config.log_level);
         if (ret < 0)
         {
@@ -74,8 +70,8 @@ int main(int argc, char** argv)
                 exit(0); /* help was printed, so we can exit here */
         }
 
-	/* Run the proxy backend */
-        if (app_config.role != ROLE_NETWORK_TESTER)
+	/* Run the proxy backend if needed for the role */
+        if ((app_config.role != ROLE_NETWORK_TESTER) && (app_config.role != ROLE_ECHO_SERVER))
         {
                 ret = tls_proxy_backend_run(&tls_proxy_backend_config);
                 if (ret != 0)
@@ -104,35 +100,34 @@ int main(int argc, char** argv)
         }
         else if (app_config.role == ROLE_ECHO_SERVER)
         {
-                 tcp_echo_server_config tcp_echo_server_config = {
-                        .own_ip_address = LOCALHOST_IP,
-                        .listening_port = 0, /* Select random available port */
-                        .log_level = app_config.log_level,
-                };
+                /* Run the TCP echo server */
+                ret = echo_server_run(&echo_server_config);
+                if (ret != 0)
+                        fatal("unable to run TLS echo server");
 
-                /* Add the TCP echo server */
-                ret = tcp_echo_server_run(&tcp_echo_server_config);
+                LOG_INFO("Started TLS echo server");
+        }
+        else if (app_config.role == ROLE_ECHO_SERVER_PROXY)
+        {
+                /* Run the TCP echo server */
+                ret = echo_server_run(&echo_server_config);
                 if (ret != 0)
                         fatal("unable to run TCP echo server");
 
                 /* Obtain the listening port of the TCP echo server */
-                tcp_echo_server_status echo_server_status;
-                if (tcp_echo_server_get_status(&echo_server_status) < 0)
+                echo_server_status echo_server_status;
+                if (echo_server_get_status(&echo_server_status) < 0)
                         fatal("unable to run TCP echo server");
 
                 /* Configure the TLS reverse proxy */
-                tls_proxy_config.target_ip_address = duplicate_string(LOCALHOST_IP);
                 tls_proxy_config.target_port = echo_server_status.listening_port;
-
-                if (tls_proxy_config.target_ip_address == NULL)
-                        fatal("unable to duplicate string");
 
                 /* Add the new TLS reverse proxy to the application backend */
                 id = tls_reverse_proxy_start(&tls_proxy_config);
                 if (id < 0)
                         fatal("unable to start TLS reverse proxy");
 
-                LOG_INFO("started TLS reverse proxy with id %d", id);
+                LOG_INFO("Started TLS echo server via a reverse proxy");
         }
         else if (app_config.role == ROLE_TLS_CLIENT)
         {
@@ -141,13 +136,6 @@ int main(int argc, char** argv)
                         .target_port = 0, /* Updated to the random port of the forward proxy */
                         .log_level = app_config.log_level,
                 };
-
-                /* Configure the forward proxy */
-                tls_proxy_config.own_ip_address = duplicate_string(LOCALHOST_IP);
-                tls_proxy_config.listening_port = 0; /* Select random available port */
-
-                if (tls_proxy_config.own_ip_address == NULL)
-                        fatal("unable to duplicate string");
 
                 /* Add the new TLS forward proxy to the application backend */
                 id = tls_forward_proxy_start(&tls_proxy_config);
@@ -174,13 +162,34 @@ int main(int argc, char** argv)
                 if (ret != 0)
                         fatal("unable to run network tester");
         }
+        else if (app_config.role == ROLE_NETWORK_TESTER_PROXY)
+        {
+                /* Start the forward proxy */
+                id = tls_forward_proxy_start(&tls_proxy_config);
+                if (id < 0)
+                        fatal("unable to start forward proxy");
+
+                /* Obtain the listing port of the forward proxy */
+                proxy_status forward_proxy_status;
+                if (tls_proxy_get_status(id, &forward_proxy_status) < 0)
+                        fatal("unable to run TLS forward proxy");
+
+                /* Update the tester config */
+                network_tester_config.target_port = forward_proxy_status.incoming_port;
+
+                /* Run the network_tester application asynchronously */
+                ret = network_tester_run(&network_tester_config);
+                if (ret != 0)
+                        fatal("unable to run network tester");
+        }
         else
         {
                 fatal("no role specified");
         }
 
         /* Free memory */
-        arguments_cleanup(&app_config, &tls_proxy_backend_config, &tls_proxy_config, &network_tester_config);
+        arguments_cleanup(&app_config, &tls_proxy_backend_config, &tls_proxy_config,
+                          &echo_server_config, &network_tester_config);
 
         ret = 0;
 
@@ -201,7 +210,7 @@ int main(int argc, char** argv)
                                 break;
                         }
                 }
-                else if (app_config.role == ROLE_NETWORK_TESTER)
+                else if ((app_config.role == ROLE_NETWORK_TESTER) || (app_config.role == ROLE_NETWORK_TESTER_PROXY))
                 {
                         network_tester_status tester_status;
                         if ((network_tester_get_status(&tester_status) < 0) || !tester_status.is_running)
@@ -218,21 +227,21 @@ int main(int argc, char** argv)
         /* We only land here if we received a terminate signal. First, we
         * kill the running server (especially its running client thread, if
         * present). Then, we kill the actual application thread. */
-        if (app_config.role != ROLE_NETWORK_TESTER)
+        if ((app_config.role != ROLE_NETWORK_TESTER) && (app_config.role != ROLE_ECHO_SERVER))
         {
                 tls_proxy_stop(id);
                 tls_proxy_backend_terminate();
         }
 
-        if (app_config.role == ROLE_ECHO_SERVER)
+        if ((app_config.role == ROLE_ECHO_SERVER) || (app_config.role == ROLE_ECHO_SERVER_PROXY))
         {
-                tcp_echo_server_terminate();
+                echo_server_terminate();
         }
         else if (app_config.role == ROLE_TLS_CLIENT)
         {
                 tcp_client_stdin_bridge_terminate();
         }
-        else if (app_config.role == ROLE_NETWORK_TESTER)
+        else if ((app_config.role == ROLE_NETWORK_TESTER) || (app_config.role == ROLE_NETWORK_TESTER_PROXY))
         {
                 network_tester_terminate();
         }

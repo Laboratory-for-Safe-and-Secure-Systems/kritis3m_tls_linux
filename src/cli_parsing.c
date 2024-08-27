@@ -44,22 +44,22 @@ static const struct option cli_options[] =
         { "key",                required_argument,    0, 0x04 },
         { "intermediate",       required_argument,    0, 0x05 },
         { "root",               required_argument,    0, 0x06 },
-        { "additionalKey",      required_argument,    0, 0x07 },
+        { "additional_key",     required_argument,    0, 0x07 },
 
-        { "mutualAuth",         required_argument,    0, 0x08 },
-        { "noEncryption",       required_argument,    0, 0x09 },
+        { "no_mutual_auth",     no_argument,          0, 0x08 },
+        { "use_null_cipher",    no_argument,          0, 0x09 },
         { "hybrid_signature",   required_argument,    0, 0x0A },
-        { "keyExchangeAlg",     required_argument,    0, 0x0B },
+        { "key_exchange_alg",   required_argument,    0, 0x0B },
 
         { "middleware",         required_argument,    0, 0x0C },
 
         { "test_iterations",    required_argument,    0, 0x0D },
         { "test_delay",         required_argument,    0, 0x0E },
         { "test_output_path",   required_argument,    0, 0x0F },
-        { "test_tls",           required_argument,    0, 0x10 },
+        { "test_no_tls",        no_argument,          0, 0x10 },
         { "test_silent",        no_argument,          0, 0x11 },
 
-        { "keylogFile",         required_argument,    0, 0x12 },
+        { "keylog_file",        required_argument,    0, 0x12 },
         { "verbose",            no_argument,          0, 'v'  },
         { "debug",              no_argument,          0, 'd'  },
         { "help",               no_argument,          0, 'h'  },
@@ -69,8 +69,9 @@ static const struct option cli_options[] =
 
 
 static void set_defaults(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                         proxy_config* proxy_config, network_tester_config* tester_config,
-                         asl_endpoint_configuration* tls_config, certificates* certs);
+                         proxy_config* proxy_config, echo_server_config* echo_server_config,
+                         network_tester_config* tester_config, asl_endpoint_configuration* tls_config,
+                         certificates* certs);
 static int read_certificates(certificates* certs, enum application_role role);
 static void print_help(char const* name);
 
@@ -80,10 +81,11 @@ static void print_help(char const* name);
  * Returns 0 on success, +1 in case the help was printed and  -1 on failure (error is printed on console).
  */
 int parse_cli_arguments(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                        proxy_config* proxy_config, network_tester_config* tester_config,
-                        size_t argc, char** argv)
+                        proxy_config* proxy_config, echo_server_config* echo_server_config,
+                        network_tester_config* tester_config, size_t argc, char** argv)
 {
-        if ((app_config == NULL) || (proxy_backend_config == NULL)|| (proxy_config == NULL)|| (tester_config == NULL))
+        if ((app_config == NULL) || (proxy_backend_config == NULL)|| (proxy_config == NULL) ||
+            (tester_config == NULL) || (echo_server_config == NULL))
         {
                 LOG_ERROR("parse_cli_arguments() mustn't be called with a NULL pointer");
                 return -1;
@@ -99,11 +101,12 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
         char* outgoing_ip = NULL;
         uint16_t outgoing_port = 0;
 
-        certificates certs;
-        asl_endpoint_configuration tls_config;
+        certificates certs = {0};
+        asl_endpoint_configuration tls_config = {0};
 
         /* Set default values */
-        set_defaults(app_config, proxy_backend_config, proxy_config, tester_config, &tls_config, &certs);
+        set_defaults(app_config, proxy_backend_config, proxy_config, echo_server_config,
+                     tester_config, &tls_config, &certs);
 
 
         /* Parse role */
@@ -119,6 +122,10 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
         {
                 app_config->role = ROLE_ECHO_SERVER;
         }
+        else if (strcmp(argv[1], "echo_server_proxy") == 0)
+        {
+                app_config->role = ROLE_ECHO_SERVER_PROXY;
+        }
         else if (strcmp(argv[1], "tls_client") == 0)
         {
                 app_config->role = ROLE_TLS_CLIENT;
@@ -126,6 +133,10 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
         else if (strcmp(argv[1], "network_tester") == 0)
         {
                 app_config->role = ROLE_NETWORK_TESTER;
+        }
+        else if (strcmp(argv[1], "network_tester_proxy") == 0)
+        {
+                app_config->role = ROLE_NETWORK_TESTER_PROXY;
         }
         else if ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))
         {
@@ -220,14 +231,14 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 			case 0x06: /* root */
 				certs.root_path = optarg;
 				break;
-                        case 0x07: /* additionalKey */
+                        case 0x07: /* additional_key */
                                 certs.additional_key_path = optarg;
                                 break;
-                        case 0x08: /* mutualAuth */
-                                tls_config.mutual_authentication = (bool) strtoul(optarg, NULL, 10);
+                        case 0x08: /* no_mutual_auth */
+                                tls_config.mutual_authentication = false;
                                 break;
-                        case 0x09: /* noEncryption */
-                                tls_config.no_encryption = (bool) strtoul(optarg, NULL, 10);
+                        case 0x09: /* use_null_cipher */
+                                tls_config.no_encryption = true;
                                 break;
                         case 0x0A: /* hybrid_signature */
                         {
@@ -247,7 +258,7 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                 tls_config.hybrid_signature_mode = mode;
                                 break;
                         }
-                        case 0x0B: /* keyExchangeAlg */
+                        case 0x0B: /* key_exchange_alg */
                         {
                                 enum asl_key_exchange_method kex_algo;
                                 if (strcmp(optarg, "secp256") == 0)
@@ -313,13 +324,13 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                         return -1;
                                 }
                                 break;
-                        case 0x10: /* test_tls */
-                                tester_config->use_tls = (bool) strtoul(optarg, NULL, 10);
+                        case 0x10: /* test_no_tls */
+                                tester_config->use_tls = false;
                                 break;
                         case 0x11: /* test_silent */
                                 tester_config->silent_test = true;
                                 break;
-                        case 0x12: /* keylogFile */
+                        case 0x12: /* keylog_file */
                                 tls_config.keylog_file = duplicate_string(optarg);
                                 if (tls_config.keylog_file == NULL)
                                 {
@@ -359,22 +370,100 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 	tls_config.root_certificate.buffer = certs.root_buffer;
 	tls_config.root_certificate.size = certs.root_buffer_size;
 
+        /* Store the parsed configuration data in the relevant structures depending on the role */
         if (app_config->role == ROLE_NETWORK_TESTER)
         {
                 tester_config->log_level = app_config->log_level;
                 tester_config->target_ip = outgoing_ip;
                 tester_config->target_port = outgoing_port;
                 tester_config->tls_config = tls_config;
+
+                if (incoming_ip != NULL)
+                {
+                        free(incoming_ip);
+                }
         }
-        else /* ROLE_REVERSE_PROXY, ROLE_FORWARD_PROXY, ROLE_ECHO_SERVER, ROLE_TLS_CLIENT*/
+        else if (app_config->role == ROLE_NETWORK_TESTER_PROXY)
+        {
+                tester_config->log_level = app_config->log_level;
+                tester_config->target_ip = duplicate_string(LOCALHOST_IP);
+                tester_config->target_port = incoming_port; /* Must be updated after the proxy started */
+                tester_config->use_tls = false;
+
+                proxy_backend_config->log_level = app_config->log_level;
+
+                proxy_config->own_ip_address = duplicate_string(LOCALHOST_IP);
+                proxy_config->listening_port = 0; /* 0 selects random available port */
+                proxy_config->target_ip_address = outgoing_ip;
+                proxy_config->target_port = outgoing_port;
+                proxy_config->log_level = LOG_LVL_WARN;
+                proxy_config->tls_config = tls_config;
+
+                if (incoming_ip != NULL)
+                {
+                        free(incoming_ip);
+                }
+        }
+        else if (app_config->role == ROLE_ECHO_SERVER)
+        {
+                echo_server_config->own_ip_address = incoming_ip;
+                echo_server_config->listening_port = incoming_port;
+                echo_server_config->log_level = app_config->log_level;
+                echo_server_config->use_tls = true;
+                echo_server_config->tls_config = tls_config;
+
+                if (outgoing_ip != NULL)
+                {
+                        free(outgoing_ip);
+                }
+        }
+        else if (app_config->role == ROLE_ECHO_SERVER_PROXY)
+        {
+                echo_server_config->own_ip_address = duplicate_string(LOCALHOST_IP);
+                echo_server_config->listening_port = 0; /* 0 selects random available port */
+                echo_server_config->log_level = app_config->log_level;
+                echo_server_config->use_tls = false;
+
+                proxy_backend_config->log_level = app_config->log_level;
+
+                proxy_config->own_ip_address = incoming_ip;
+                proxy_config->listening_port = incoming_port;
+                proxy_config->target_ip_address = duplicate_string(LOCALHOST_IP);
+                proxy_config->target_port = 0; /* Must be updated after the echo server started */
+                proxy_config->log_level = app_config->log_level;
+                proxy_config->tls_config = tls_config;
+
+                if (outgoing_ip != NULL)
+                {
+                        free(outgoing_ip);
+                }
+        }
+        else if (app_config->role == ROLE_TLS_CLIENT)
         {
                 proxy_backend_config->log_level = app_config->log_level;
 
+                proxy_config->own_ip_address = duplicate_string(LOCALHOST_IP);
+                proxy_config->listening_port = 0; /* 0 selects random available port */
+                proxy_config->target_ip_address = outgoing_ip;
+                proxy_config->target_port = outgoing_port;
                 proxy_config->log_level = app_config->log_level;
+                proxy_config->tls_config = tls_config;
+
+                if (incoming_ip != NULL)
+                {
+                        free(incoming_ip);
+                }
+        }
+        else if ((app_config->role == ROLE_REVERSE_PROXY) ||
+                 (app_config->role == ROLE_FORWARD_PROXY))
+        {
+                proxy_backend_config->log_level = app_config->log_level;
+
                 proxy_config->own_ip_address = incoming_ip;
                 proxy_config->listening_port = incoming_port;
                 proxy_config->target_ip_address = outgoing_ip;
                 proxy_config->target_port = outgoing_port;
+                proxy_config->log_level = app_config->log_level;
                 proxy_config->tls_config = tls_config;
         }
 
@@ -384,69 +473,92 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 
 /* Cleanup any structures created during argument parsing */
 void arguments_cleanup(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                       proxy_config* proxy_config, network_tester_config* tester_config)
+                       proxy_config* proxy_config, echo_server_config* echo_server_config,
+                       network_tester_config* tester_config)
 {
         /* Nothing to clean here */
         (void) app_config;
         (void) proxy_backend_config;
 
-        char* incoming_ip = NULL;
-        char* outgoing_ip = NULL;
-        asl_endpoint_configuration tls_config;
+        asl_endpoint_configuration* tls_config = NULL;
 
         if (app_config->role == ROLE_NETWORK_TESTER)
         {
-                outgoing_ip = (char*) tester_config->target_ip;
-                tls_config = tester_config->tls_config;
-        }
-        else /* ROLE_REVERSE_PROXY, ROLE_FORWARD_PROXY, ROLE_ECHO_SERVER, ROLE_TLS_CLIENT*/
-        {
-                incoming_ip = (char*) proxy_config->own_ip_address;
-                outgoing_ip = (char*) proxy_config->target_ip_address;
-                tls_config = proxy_config->tls_config;
-        }
+                free(tester_config->target_ip);
 
-        /* Free memory of incoming IP address */
-        if (incoming_ip != NULL)
-        {
-                free(incoming_ip);
+                tls_config = &tester_config->tls_config;
         }
-
-        /* Free memory of outgoing IP address */
-        if (outgoing_ip != NULL)
+        else if (app_config->role == ROLE_NETWORK_TESTER_PROXY)
         {
-                free(outgoing_ip);
+                free(tester_config->target_ip);
+                free(proxy_config->own_ip_address);
+                free(proxy_config->target_ip_address);
+
+                tls_config = &proxy_config->tls_config;
+        }
+        else if (app_config->role == ROLE_ECHO_SERVER)
+        {
+                free(echo_server_config->own_ip_address);
+
+                tls_config = &echo_server_config->tls_config;
+        }
+        else if (app_config->role == ROLE_ECHO_SERVER_PROXY)
+        {
+                free(echo_server_config->own_ip_address);
+                free(proxy_config->own_ip_address);
+                free(proxy_config->target_ip_address);
+
+                tls_config = &proxy_config->tls_config;
+        }
+        else if (app_config->role == ROLE_TLS_CLIENT)
+        {
+                free(proxy_config->own_ip_address);
+                free(proxy_config->target_ip_address);
+
+                tls_config = &proxy_config->tls_config;
+        }
+        else if (app_config->role == ROLE_REVERSE_PROXY || app_config->role == ROLE_FORWARD_PROXY)
+        {
+                free(proxy_config->own_ip_address);
+                free(proxy_config->target_ip_address);
+
+                tls_config = &proxy_config->tls_config;
+        }
+        else
+        {
+                LOG_ERROR("unsupported role");
+                return;
         }
 
         /* Free memory of certificates and private key */
-        if (tls_config.device_certificate_chain.buffer != NULL)
+        if (tls_config->device_certificate_chain.buffer != NULL)
         {
-                free((void*) tls_config.device_certificate_chain.buffer);
+                free((void*) tls_config->device_certificate_chain.buffer);
         }
 
-        if (tls_config.private_key.buffer != NULL)
+        if (tls_config->private_key.buffer != NULL)
         {
-                free((void*) tls_config.private_key.buffer);
+                free((void*) tls_config->private_key.buffer);
         }
 
-        if (tls_config.private_key.additional_key_buffer != NULL)
+        if (tls_config->private_key.additional_key_buffer != NULL)
         {
-                free((void*) tls_config.private_key.additional_key_buffer);
+                free((void*) tls_config->private_key.additional_key_buffer);
         }
 
-        if (tls_config.root_certificate.buffer != NULL)
+        if (tls_config->root_certificate.buffer != NULL)
         {
-                free((void*) tls_config.root_certificate.buffer);
+                free((void*) tls_config->root_certificate.buffer);
         }
 
-        if (tls_config.secure_element_middleware_path != NULL)
+        if (tls_config->secure_element_middleware_path != NULL)
         {
-                free((void*) tls_config.secure_element_middleware_path);
+                free((void*) tls_config->secure_element_middleware_path);
         }
 
-        if (tls_config.keylog_file != NULL)
+        if (tls_config->keylog_file != NULL)
         {
-                free((void*) tls_config.keylog_file);
+                free((void*) tls_config->keylog_file);
         }
 }
 
@@ -470,8 +582,9 @@ char* duplicate_string(char const* source)
 
 
 static void set_defaults(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                         proxy_config* proxy_config, network_tester_config* tester_config,
-                         asl_endpoint_configuration* tls_config, certificates* certs)
+                         proxy_config* proxy_config, echo_server_config* echo_server_config,
+                         network_tester_config* tester_config, asl_endpoint_configuration* tls_config,
+                         certificates* certs)
 {
         int32_t default_log_level = LOG_LVL_WARN;
 
@@ -515,12 +628,18 @@ static void set_defaults(application_config* app_config, proxy_backend_config* p
 
         /* Proxy config */
         proxy_config->own_ip_address = NULL;
-        proxy_config->listening_port = 0;
+        proxy_config->listening_port = 0; /* 0 selects random available port */
         proxy_config->target_ip_address = NULL;
         proxy_config->target_port = 0;
         proxy_config->log_level = default_log_level;
         proxy_config->tls_config = *tls_config;
 
+        /* Echo server config */
+        echo_server_config->own_ip_address = NULL;
+        echo_server_config->listening_port = 0; /* 0 selects random available port */
+        echo_server_config->log_level = default_log_level;
+        echo_server_config->use_tls = false;
+        echo_server_config->tls_config = *tls_config;
 
         /* Network tester config */
         tester_config->log_level = default_log_level;
@@ -529,7 +648,7 @@ static void set_defaults(application_config* app_config, proxy_backend_config* p
         tester_config->delay = 0;
         tester_config->target_ip = NULL;
         tester_config->target_port = 0;
-        tester_config->use_tls = false;
+        tester_config->use_tls = true;
         tester_config->tls_config = *tls_config;
 }
 
@@ -541,48 +660,50 @@ static void print_help(char const* name)
         printf("  reverse_proxy                    TLS reverse proxy (use \"--incoming\" and \"--outgoing\" for connection configuration)\r\n");
         printf("  forward_proxy                    TLS forward proxy (use \"--incoming\" and \"--outgoing\" for connection configuration)\r\n");
         printf("  echo_server                      TLS echo server (use \"--incoming\" for connection configuration)\r\n");
+        printf("  echo_server_proxy                TLS echo server via reverse proxy (use \"--incoming\" for connection configuration)\r\n");
         printf("  tls_client                       TLS stdin client (use \"--outgoing\" for connection configuration)\r\n");
         printf("  network_tester                   TLS network tester (use \"--outgoing\" for connection configuration)\r\n");
+        printf("  network_tester_proxy             TLS network tester via forward proxy (use \"--outgoing\" for connection configuration)\r\n");
 
         printf("\nConnection configuration:\r\n");
-        printf("  --incoming <ip:>port             configuration of the incoming TCP/TLS connection\r\n");
-        printf("  --outgoing ip:port               configuration of the outgoing TCP/TLS connection\r\n");
+        printf("  --incoming <ip:>port             Configuration of the incoming TCP/TLS connection\r\n");
+        printf("  --outgoing ip:port               Configuration of the outgoing TCP/TLS connection\r\n");
 
         printf("\nCertificate/Key configuration:\r\n");
-        printf("  --cert file_path                 path to the certificate file\r\n");
-        printf("  --key file_path                  path to the private key file\r\n");
-        printf("  --intermediate file_path         path to an intermediate certificate file\r\n");
-        printf("  --root file_path                 path to the root certificate file\r\n");
-        printf("  --additionalKey file_path        path to an additional private key file (hybrid signature mode)\r\n");
+        printf("  --cert file_path                 Path to the certificate file\r\n");
+        printf("  --key file_path                  Path to the private key file\r\n");
+        printf("  --intermediate file_path         Path to an intermediate certificate file\r\n");
+        printf("  --root file_path                 Path to the root certificate file\r\n");
+        printf("  --additional_key file_path       Path to an additional private key file (hybrid signature mode)\r\n");
 
         printf("\nSecurity configuration:\r\n");
-        printf("  --mutualAuth 0|1                 enable or disable mutual authentication (default enabled)\r\n");
-        printf("  --noEncryption 0|1               enable or disable encryption (default enabled)\r\n");
-        printf("  --hybrid_signature mode          mode for hybrid signatures: \"both\", \"native\", \"alternative\" (default: \"both\")\r\n");
-        printf("  --keyExchangeAlg algorithm       key exchange algorithm: (default: \"secp384_mlkem768\")\r\n");
-        printf("                                      classic: \"secp256\", \"secp384\", \"secp521\", \"x25519\", \"x448\"\r\n");
+        printf("  --no_mutual_auth                 Disable mutual authentication (default enabled)\r\n");
+        printf("  --use_null_cipher                Use a cleartext cipher without encryption (default disabled)\r\n");
+        printf("  --hybrid_signature mode          Mode for hybrid signatures: \"both\", \"native\", \"alternative\" (default: \"both\")\r\n");
+        printf("  --key_exchange_alg algorithm     Key exchange algorithm: (default: \"secp384_mlkem768\")\r\n");
+        printf("                                      Classic: \"secp256\", \"secp384\", \"secp521\", \"x25519\", \"x448\"\r\n");
         printf("                                      PQC: \"mlkem512\", \"mlkem768\", \"mlkem1024\"\r\n");
-        printf("                                      hybrid: \"secp256_mlkem512\", \"secp384_mlkem768\", \"secp256_mlkem768\"\r\n");
+        printf("                                      Hybrid: \"secp256_mlkem512\", \"secp384_mlkem768\", \"secp256_mlkem768\"\r\n");
         printf("                                              \"secp521_mlkem1024\", \"secp384_mlkem1024\", \"x25519_mlkem512\"\r\n");
         printf("                                              \"x448_mlkem768\", \"x25519_mlkem768\"\r\n");
 
         printf("\nSecure Element:\r\n");
         printf("  When using a secure element for key storage, you have to supply the PKCS#11 key labels using the arguments\n");
         printf("  \"--key\" and \"--additionalKey\" prepending the string \"%s\" followed by the key label.\n", PKCS11_LABEL_IDENTIFIER);
-        printf("  --middleware file_path           path to the secure element middleware\r\n");
+        printf("  --middleware file_path           Path to the secure element middleware\r\n");
 
         printf("\nNetwork tester configuration:\r\n");
         printf("  --test_iterations num            Number of handshakes to perform in the test\r\n");
         printf("  --test_delay num_ms              Delay between handshakes in milliseconds\r\n");
         printf("  --test_output_path path          Path to the output file (filename will be appended)\r\n");
-        printf("  --test_tls 0|1                   enable or disable TLS (default disabled)\r\n");
-        printf("  --test_silent                    disable progress printing\r\n");
+        printf("  --test_no_tls                    Disable TLS for test (plain TCP; default disabled)\r\n");
+        printf("  --test_silent                    Disable progress printing\r\n");
 
         printf("\nGeneral:\r\n");
-        printf("  --keylogFile file_path           path to the keylog file for Wireshark\r\n");
-        printf("  --verbose                        enable verbose output\r\n");
-        printf("  --debug                          enable debug output\r\n");
-        printf("  --help                           display this help and exit\r\n");
+        printf("  --keylog_file file_path          Path to the keylog file for Wireshark\r\n");
+        printf("  --verbose                        Enable verbose output\r\n");
+        printf("  --debug                          Enable debug output\r\n");
+        printf("  --help                           Display this help and exit\r\n");
 }
 
 

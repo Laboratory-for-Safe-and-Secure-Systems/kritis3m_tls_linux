@@ -7,7 +7,11 @@
 #include "logging.h"
 #include "asl.h"
 #include "tls_proxy.h"
+#include "echo_server.h"
 #include "network_tester.h"
+
+
+#define LOCALHOST_IP "127.0.0.1"
 
 
 enum application_role
@@ -16,8 +20,10 @@ enum application_role
         ROLE_REVERSE_PROXY,
         ROLE_FORWARD_PROXY,
         ROLE_ECHO_SERVER,
+        ROLE_ECHO_SERVER_PROXY,
         ROLE_TLS_CLIENT,
         ROLE_NETWORK_TESTER,
+        ROLE_NETWORK_TESTER_PROXY,
 };
 
 
@@ -34,13 +40,14 @@ application_config;
  * Returns 0 on success, +1 in case the help was printed and -1 on failure (error is printed on console).
  */
 int parse_cli_arguments(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                        proxy_config* proxy_config, network_tester_config* tester_config,
-                        size_t argc, char** argv);
+                        proxy_config* proxy_config, echo_server_config* echo_server_config,
+                        network_tester_config* tester_config, size_t argc, char** argv);
 
 
 /* Cleanup any structures created during argument parsing */
 void arguments_cleanup(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                       proxy_config* proxy_config, network_tester_config* tester_config);
+                       proxy_config* proxy_config, echo_server_config* echo_server_config,
+                       network_tester_config* tester_config);
 
 
 /* Helper method to dynamically duplicate a string */

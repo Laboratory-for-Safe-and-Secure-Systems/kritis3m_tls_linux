@@ -37,32 +37,35 @@ certificates;
 
 static const struct option cli_options[] =
 {
-        { "incoming",           required_argument,    0, 0x01 },
-        { "outgoing",           required_argument,    0, 0x02 },
+        { "incoming",             required_argument,    0, 0x01 },
+        { "outgoing",             required_argument,    0, 0x02 },
 
-        { "cert",               required_argument,    0, 0x03 },
-        { "key",                required_argument,    0, 0x04 },
-        { "intermediate",       required_argument,    0, 0x05 },
-        { "root",               required_argument,    0, 0x06 },
-        { "additional_key",     required_argument,    0, 0x07 },
+        { "cert",                 required_argument,    0, 0x03 },
+        { "key",                  required_argument,    0, 0x04 },
+        { "intermediate",         required_argument,    0, 0x05 },
+        { "root",                 required_argument,    0, 0x06 },
+        { "additional_key",       required_argument,    0, 0x07 },
 
-        { "no_mutual_auth",     no_argument,          0, 0x08 },
-        { "use_null_cipher",    no_argument,          0, 0x09 },
-        { "hybrid_signature",   required_argument,    0, 0x0A },
-        { "key_exchange_alg",   required_argument,    0, 0x0B },
+        { "no_mutual_auth",       no_argument,          0, 0x08 },
+        { "use_null_cipher",      no_argument,          0, 0x09 },
+        { "hybrid_signature",     required_argument,    0, 0x0A },
+        { "key_exchange_alg",     required_argument,    0, 0x0B },
 
-        { "middleware",         required_argument,    0, 0x0C },
+        { "middleware",           required_argument,    0, 0x0C },
 
-        { "test_iterations",    required_argument,    0, 0x0D },
-        { "test_delay",         required_argument,    0, 0x0E },
-        { "test_output_path",   required_argument,    0, 0x0F },
-        { "test_no_tls",        no_argument,          0, 0x10 },
-        { "test_silent",        no_argument,          0, 0x11 },
+        { "test_num_handshakes",  required_argument,    0, 0x0D },
+        { "test_handshake_delay", required_argument,    0, 0x0E },
+        { "test_num_messages",    required_argument,    0, 0x0F },
+        { "test_message_delay",   required_argument,    0, 0x10 },
+        { "test_message_size",    required_argument,    0, 0x11 },
+        { "test_output_path",     required_argument,    0, 0x12 },
+        { "test_no_tls",          no_argument,          0, 0x13 },
+        { "test_silent",          no_argument,          0, 0x14 },
 
-        { "keylog_file",        required_argument,    0, 0x12 },
-        { "verbose",            no_argument,          0, 'v'  },
-        { "debug",              no_argument,          0, 'd'  },
-        { "help",               no_argument,          0, 'h'  },
+        { "keylog_file",          required_argument,    0, 0x15 },
+        { "verbose",              no_argument,          0, 'v'  },
+        { "debug",                no_argument,          0, 'd'  },
+        { "help",                 no_argument,          0, 'h'  },
 
         {NULL, 0, NULL, 0}
 };
@@ -70,8 +73,7 @@ static const struct option cli_options[] =
 
 static void set_defaults(application_config* app_config, proxy_backend_config* proxy_backend_config,
                          proxy_config* proxy_config, echo_server_config* echo_server_config,
-                         network_tester_config* tester_config, asl_endpoint_configuration* tls_config,
-                         certificates* certs);
+                         asl_endpoint_configuration* tls_config, certificates* certs);
 static int read_certificates(certificates* certs, enum application_role role);
 static void print_help(char const* name);
 
@@ -106,7 +108,7 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 
         /* Set default values */
         set_defaults(app_config, proxy_backend_config, proxy_config, echo_server_config,
-                     tester_config, &tls_config, &certs);
+                     &tls_config, &certs);
 
 
         /* Parse role */
@@ -310,13 +312,22 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                         return -1;
                                 }
                                 break;
-                        case 0x0D: /* test_iterations */
-                                tester_config->iterations = (int) strtol(optarg, NULL, 10);
+                        case 0x0D: /* test_num_handshakes */
+                                tester_config->handshake_test.iterations = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 0x0E: /* test_delay */
-                                tester_config->delay = (int) strtol(optarg, NULL, 10);
+                        case 0x0E: /* test_handshake_delay */
+                                tester_config->handshake_test.delay_ms = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 0x0F: /* test_output_path */
+                        case 0x0F: /* test_num_messages */
+                                tester_config->message_latency_test.iterations = (int) strtol(optarg, NULL, 10);
+                                break;
+                        case 0x10: /* test_message_delay */
+                                tester_config->message_latency_test.delay_us = (int) strtol(optarg, NULL, 10);
+                                break;
+                        case 0x11: /* test_message_size */
+                                tester_config->message_latency_test.size = (int) strtol(optarg, NULL, 10);
+                                break;
+                        case 0x12: /* test_output_path */
                                 tester_config->output_path = duplicate_string(optarg);
                                 if (tester_config->output_path == NULL)
                                 {
@@ -324,13 +335,13 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                         return -1;
                                 }
                                 break;
-                        case 0x10: /* test_no_tls */
+                        case 0x13: /* test_no_tls */
                                 tester_config->use_tls = false;
                                 break;
-                        case 0x11: /* test_silent */
+                        case 0x14: /* test_silent */
                                 tester_config->silent_test = true;
                                 break;
-                        case 0x12: /* keylog_file */
+                        case 0x15: /* keylog_file */
                                 tls_config.keylog_file = duplicate_string(optarg);
                                 if (tls_config.keylog_file == NULL)
                                 {
@@ -583,8 +594,7 @@ char* duplicate_string(char const* source)
 
 static void set_defaults(application_config* app_config, proxy_backend_config* proxy_backend_config,
                          proxy_config* proxy_config, echo_server_config* echo_server_config,
-                         network_tester_config* tester_config, asl_endpoint_configuration* tls_config,
-                         certificates* certs)
+                         asl_endpoint_configuration* tls_config, certificates* certs)
 {
         int32_t default_log_level = LOG_LVL_WARN;
 
@@ -640,16 +650,6 @@ static void set_defaults(application_config* app_config, proxy_backend_config* p
         echo_server_config->log_level = default_log_level;
         echo_server_config->use_tls = false;
         echo_server_config->tls_config = *tls_config;
-
-        /* Network tester config */
-        tester_config->log_level = default_log_level;
-        tester_config->output_path = NULL;
-        tester_config->iterations = 1;
-        tester_config->delay = 0;
-        tester_config->target_ip = NULL;
-        tester_config->target_port = 0;
-        tester_config->use_tls = true;
-        tester_config->tls_config = *tls_config;
 }
 
 
@@ -693,8 +693,11 @@ static void print_help(char const* name)
         printf("  --middleware file_path           Path to the secure element middleware\r\n");
 
         printf("\nNetwork tester configuration:\r\n");
-        printf("  --test_iterations num            Number of handshakes to perform in the test\r\n");
-        printf("  --test_delay num_ms              Delay between handshakes in milliseconds\r\n");
+        printf("  --test_num_handshakes num        Number of handshakes to perform in the test (default 1)\r\n");
+        printf("  --test_handshake_delay num_ms    Delay between handshakes in milliseconds (default 0)\r\n");
+        printf("  --test_num_messages num          Number of echo messages to send per handshake iteration (default 0)\r\n");
+        printf("  --test_message_delay num_us      Delay between messages in microseconds (default 0)\r\n");
+        printf("  --test_message_size num          Size of the echo message in bytes (default 1)\r\n");
         printf("  --test_output_path path          Path to the output file (filename will be appended)\r\n");
         printf("  --test_no_tls                    Disable TLS for test (plain TCP; default disabled)\r\n");
         printf("  --test_silent                    Disable progress printing\r\n");

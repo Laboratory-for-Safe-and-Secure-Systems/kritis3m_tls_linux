@@ -25,9 +25,9 @@ LOG_MODULE_CREATE(kritis3m_tls);
 
 
 #define fatal(msg, ...) { \
-		LOG_ERROR("Error: " msg "", ##__VA_ARGS__); \
-		exit(1); \
-	}
+                LOG_ERROR("Error: " msg "", ##__VA_ARGS__); \
+                exit(1); \
+        }
 
 
 volatile __sig_atomic_t running = true;
@@ -45,9 +45,9 @@ int main(int argc, char** argv)
 {
         application_config app_config = {0};
         proxy_backend_config tls_proxy_backend_config = {0};
-	proxy_config tls_proxy_config = {0};
+        proxy_config tls_proxy_config = {0};
         echo_server_config echo_server_config = {0};
-        network_tester_config network_tester_config = {0};
+        network_tester_config network_tester_config = network_tester_default_config();
 
         /* Install the signal handler and ignore SIGPIPE */
         if (signal(SIGINT, signal_handler) == SIG_ERR)
@@ -70,7 +70,7 @@ int main(int argc, char** argv)
                 exit(0); /* help was printed, so we can exit here */
         }
 
-	/* Run the proxy backend if needed for the role */
+        /* Run the proxy backend if needed for the role */
         if ((app_config.role != ROLE_NETWORK_TESTER) && (app_config.role != ROLE_ECHO_SERVER))
         {
                 ret = tls_proxy_backend_run(&tls_proxy_backend_config);
@@ -246,5 +246,5 @@ int main(int argc, char** argv)
                 network_tester_terminate();
         }
 
-	return ret;
+        return ret;
 }

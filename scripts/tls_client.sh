@@ -6,7 +6,7 @@ if [ "$#" -lt 2 ]; then
 fi
 
 
-echo "Starting KRITIS3M TLS client to $1 with certs in dir $2"
+echo -e "Starting KRITIS3M TLS client to $1 with certs in dir $2\r"
 kritis3m_tls tls_client \
 	--outgoing $1 \
 	--root $2/root/cert.pem \

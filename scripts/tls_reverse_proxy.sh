@@ -6,7 +6,7 @@ if [ "$#" -lt 3 ]; then
 fi
 
 
-echo "Starting KRITIS3M TLS Reverse Proxy from $1 to $2 with certs in $3"
+echo -e "Starting KRITIS3M TLS Reverse Proxy from $1 to $2 with certs in $3\r"
 kritis3m_tls reverse_proxy \
         --incoming $1 \
         --outgoing $2 \

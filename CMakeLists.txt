@@ -125,4 +125,5 @@ install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_reverse_proxy.sh DESTIN
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_server.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_echo_server)
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_server_proxy.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_echo_server_proxy)
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_client.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_tls_client)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/network_tester_tls.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_network_tester_tls)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/network_tester.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_network_tester)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/network_tester_proxy.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_network_tester_proxy)

@@ -172,5 +172,7 @@ complete -F _kritis3m_tls_completions kritis3m_tls
 complete -F _proxy_helper_completions kritis3m_forward_proxy
 complete -F _proxy_helper_completions kritis3m_reverse_proxy
 complete -F _endpoint_helper_completions kritis3m_echo_server
+complete -F _endpoint_helper_completions kritis3m_echo_server_proxy
 complete -F _endpoint_helper_completions kritis3m_tls_client
-complete -F _endpoint_helper_completions kritis3m_network_tester_tls
+complete -F _endpoint_helper_completions kritis3m_network_tester
+complete -F _endpoint_helper_completions kritis3m_network_tester_proxy

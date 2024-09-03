@@ -420,7 +420,7 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                 echo_server_config->own_ip_address = incoming_ip;
                 echo_server_config->listening_port = incoming_port;
                 echo_server_config->log_level = app_config->log_level;
-                echo_server_config->use_tls = true;
+                echo_server_config->use_tls = tester_config->use_tls;
                 echo_server_config->tls_config = tls_config;
 
                 if (outgoing_ip != NULL)

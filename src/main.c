@@ -44,9 +44,9 @@ static void signal_handler(int signo)
 int main(int argc, char** argv)
 {
         application_config app_config = {0};
-        proxy_backend_config tls_proxy_backend_config = {0};
-        proxy_config tls_proxy_config = {0};
-        echo_server_config echo_server_config = {0};
+        proxy_backend_config tls_proxy_backend_config = tls_proxy_backend_default_config();
+        proxy_config tls_proxy_config = tls_proxy_default_config();
+        echo_server_config echo_server_config = echo_server_default_config();
         network_tester_config network_tester_config = network_tester_default_config();
 
         /* Install the signal handler and ignore SIGPIPE */

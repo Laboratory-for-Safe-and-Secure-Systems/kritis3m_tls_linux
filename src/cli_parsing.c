@@ -51,18 +51,19 @@ static const struct option cli_options[] =
         { "hybrid_signature",     required_argument,    0, 0x0A },
         { "key_exchange_alg",     required_argument,    0, 0x0B },
 
-        { "middleware",           required_argument,    0, 0x0C },
+        { "p11_long_term_module", required_argument,    0, 0x0C },
+        { "p11_ephemeral_module", required_argument,    0, 0x0D },
 
-        { "test_num_handshakes",  required_argument,    0, 0x0D },
-        { "test_handshake_delay", required_argument,    0, 0x0E },
-        { "test_num_messages",    required_argument,    0, 0x0F },
-        { "test_message_delay",   required_argument,    0, 0x10 },
-        { "test_message_size",    required_argument,    0, 0x11 },
-        { "test_output_path",     required_argument,    0, 0x12 },
-        { "test_no_tls",          no_argument,          0, 0x13 },
-        { "test_silent",          no_argument,          0, 0x14 },
+        { "test_num_handshakes",  required_argument,    0, 0x0E },
+        { "test_handshake_delay", required_argument,    0, 0x0F },
+        { "test_num_messages",    required_argument,    0, 0x10 },
+        { "test_message_delay",   required_argument,    0, 0x11 },
+        { "test_message_size",    required_argument,    0, 0x12 },
+        { "test_output_path",     required_argument,    0, 0x13 },
+        { "test_no_tls",          no_argument,          0, 0x14 },
+        { "test_silent",          no_argument,          0, 0x15 },
 
-        { "keylog_file",          required_argument,    0, 0x15 },
+        { "keylog_file",          required_argument,    0, 0x16 },
         { "verbose",              no_argument,          0, 'v'  },
         { "debug",                no_argument,          0, 'd'  },
         { "help",                 no_argument,          0, 'h'  },
@@ -71,9 +72,7 @@ static const struct option cli_options[] =
 };
 
 
-static void set_defaults(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                         proxy_config* proxy_config, echo_server_config* echo_server_config,
-                         asl_endpoint_configuration* tls_config, certificates* certs);
+static void set_defaults(application_config* app_config, certificates* certs);
 static int read_certificates(certificates* certs, enum application_role role);
 static void print_help(char const* name);
 
@@ -104,11 +103,10 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
         uint16_t outgoing_port = 0;
 
         certificates certs = {0};
-        asl_endpoint_configuration tls_config = {0};
+        asl_endpoint_configuration tls_config = asl_default_endpoint_config();
 
         /* Set default values */
-        set_defaults(app_config, proxy_backend_config, proxy_config, echo_server_config,
-                     &tls_config, &certs);
+        set_defaults(app_config, &certs);
 
 
         /* Parse role */
@@ -304,30 +302,38 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                 tls_config.key_exchange_method = kex_algo;
                                 break;
                         }
-                        case 0x0C: /* middleware */
-                                tls_config.secure_element_middleware_path = duplicate_string(optarg);
-                                if (tls_config.secure_element_middleware_path == NULL)
+                        case 0x0C: /* p11_long_term_module */
+                                tls_config.pkcs11.long_term_crypto_module_path = duplicate_string(optarg);
+                                if (tls_config.pkcs11.long_term_crypto_module_path == NULL)
                                 {
-                                        LOG_ERROR("unable to allocate memory for secure element middleware path");
+                                        LOG_ERROR("unable to allocate memory for PKCS#11 long-termin crypto module path");
                                         return -1;
                                 }
                                 break;
-                        case 0x0D: /* test_num_handshakes */
+                        case 0x0D: /* p11_ephemeral_module */
+                                tls_config.pkcs11.ephemeral_crypto_module_path = duplicate_string(optarg);
+                                if (tls_config.pkcs11.ephemeral_crypto_module_path == NULL)
+                                {
+                                        LOG_ERROR("unable to allocate memory for PKCS#11 ephemeral crypto module path");
+                                        return -1;
+                                }
+                                break;
+                        case 0x0e: /* test_num_handshakes */
                                 tester_config->handshake_test.iterations = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 0x0E: /* test_handshake_delay */
+                        case 0x0F: /* test_handshake_delay */
                                 tester_config->handshake_test.delay_ms = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 0x0F: /* test_num_messages */
+                        case 0x10: /* test_num_messages */
                                 tester_config->message_latency_test.iterations = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 0x10: /* test_message_delay */
+                        case 0x11: /* test_message_delay */
                                 tester_config->message_latency_test.delay_us = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 0x11: /* test_message_size */
+                        case 0x12: /* test_message_size */
                                 tester_config->message_latency_test.size = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 0x12: /* test_output_path */
+                        case 0x13: /* test_output_path */
                                 tester_config->output_path = duplicate_string(optarg);
                                 if (tester_config->output_path == NULL)
                                 {
@@ -335,13 +341,13 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                         return -1;
                                 }
                                 break;
-                        case 0x13: /* test_no_tls */
+                        case 0x14: /* test_no_tls */
                                 tester_config->use_tls = false;
                                 break;
-                        case 0x14: /* test_silent */
+                        case 0x15: /* test_silent */
                                 tester_config->silent_test = true;
                                 break;
-                        case 0x15: /* keylog_file */
+                        case 0x16: /* keylog_file */
                                 tls_config.keylog_file = duplicate_string(optarg);
                                 if (tls_config.keylog_file == NULL)
                                 {
@@ -562,9 +568,14 @@ void arguments_cleanup(application_config* app_config, proxy_backend_config* pro
                 free((void*) tls_config->root_certificate.buffer);
         }
 
-        if (tls_config->secure_element_middleware_path != NULL)
+        if (tls_config->pkcs11.long_term_crypto_module_path != NULL)
         {
-                free((void*) tls_config->secure_element_middleware_path);
+                free((void*) tls_config->pkcs11.long_term_crypto_module_path);
+        }
+
+        if (tls_config->pkcs11.ephemeral_crypto_module_path != NULL)
+        {
+                free((void*) tls_config->pkcs11.ephemeral_crypto_module_path);
         }
 
         if (tls_config->keylog_file != NULL)
@@ -592,12 +603,8 @@ char* duplicate_string(char const* source)
 }
 
 
-static void set_defaults(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                         proxy_config* proxy_config, echo_server_config* echo_server_config,
-                         asl_endpoint_configuration* tls_config, certificates* certs)
+static void set_defaults(application_config* app_config, certificates* certs)
 {
-        int32_t default_log_level = LOG_LVL_WARN;
-
         /* Certificates */
         certs->certificate_path = NULL;
         certs->private_key_path = NULL;
@@ -613,43 +620,9 @@ static void set_defaults(application_config* app_config, proxy_backend_config* p
         certs->root_buffer = NULL;
         certs->root_buffer_size = 0;
 
-        /* TLS endpoint config */
-        tls_config->mutual_authentication = true;
-        tls_config->no_encryption = false;
-        tls_config->hybrid_signature_mode = ASL_HYBRID_SIGNATURE_MODE_DEFAULT;
-        tls_config->key_exchange_method = ASL_KEX_DEFAULT;
-        tls_config->secure_element_middleware_path = NULL;
-        tls_config->device_certificate_chain.buffer = NULL;
-        tls_config->device_certificate_chain.size = 0;
-        tls_config->private_key.buffer = NULL;
-        tls_config->private_key.size = 0;
-        tls_config->private_key.additional_key_buffer = NULL;
-        tls_config->private_key.additional_key_size = 0;
-        tls_config->root_certificate.buffer = NULL;
-        tls_config->root_certificate.size = 0;
-        tls_config->keylog_file = NULL;
-
         /* Application config */
         app_config->role = NOT_SET;
-        app_config->log_level = default_log_level;
-
-        /* Proxy backend config */
-        proxy_backend_config->log_level = default_log_level;
-
-        /* Proxy config */
-        proxy_config->own_ip_address = NULL;
-        proxy_config->listening_port = 0; /* 0 selects random available port */
-        proxy_config->target_ip_address = NULL;
-        proxy_config->target_port = 0;
-        proxy_config->log_level = default_log_level;
-        proxy_config->tls_config = *tls_config;
-
-        /* Echo server config */
-        echo_server_config->own_ip_address = NULL;
-        echo_server_config->listening_port = 0; /* 0 selects random available port */
-        echo_server_config->log_level = default_log_level;
-        echo_server_config->use_tls = false;
-        echo_server_config->tls_config = *tls_config;
+        app_config->log_level = LOG_LVL_WARN;
 }
 
 
@@ -657,56 +630,57 @@ static void print_help(char const* name)
 {
         printf("Usage: %s ROLE [OPTIONS]\r\n", name);
         printf("Roles:\r\n");
-        printf("  reverse_proxy                    TLS reverse proxy (use \"--incoming\" and \"--outgoing\" for connection configuration)\r\n");
-        printf("  forward_proxy                    TLS forward proxy (use \"--incoming\" and \"--outgoing\" for connection configuration)\r\n");
-        printf("  echo_server                      TLS echo server (use \"--incoming\" for connection configuration)\r\n");
-        printf("  echo_server_proxy                TLS echo server via reverse proxy (use \"--incoming\" for connection configuration)\r\n");
-        printf("  tls_client                       TLS stdin client (use \"--outgoing\" for connection configuration)\r\n");
-        printf("  network_tester                   TLS network tester (use \"--outgoing\" for connection configuration)\r\n");
-        printf("  network_tester_proxy             TLS network tester via forward proxy (use \"--outgoing\" for connection configuration)\r\n");
+        printf("  reverse_proxy                      TLS reverse proxy (use \"--incoming\" and \"--outgoing\" for connection configuration)\r\n");
+        printf("  forward_proxy                      TLS forward proxy (use \"--incoming\" and \"--outgoing\" for connection configuration)\r\n");
+        printf("  echo_server                        TLS echo server (use \"--incoming\" for connection configuration)\r\n");
+        printf("  echo_server_proxy                  TLS echo server via reverse proxy (use \"--incoming\" for connection configuration)\r\n");
+        printf("  tls_client                         TLS stdin client (use \"--outgoing\" for connection configuration)\r\n");
+        printf("  network_tester                     TLS network tester (use \"--outgoing\" for connection configuration)\r\n");
+        printf("  network_tester_proxy               TLS network tester via forward proxy (use \"--outgoing\" for connection configuration)\r\n");
 
         printf("\nConnection configuration:\r\n");
-        printf("  --incoming <ip:>port             Configuration of the incoming TCP/TLS connection\r\n");
-        printf("  --outgoing ip:port               Configuration of the outgoing TCP/TLS connection\r\n");
+        printf("  --incoming <ip:>port               Configuration of the incoming TCP/TLS connection\r\n");
+        printf("  --outgoing ip:port                 Configuration of the outgoing TCP/TLS connection\r\n");
 
         printf("\nCertificate/Key configuration:\r\n");
-        printf("  --cert file_path                 Path to the certificate file\r\n");
-        printf("  --key file_path                  Path to the private key file\r\n");
-        printf("  --intermediate file_path         Path to an intermediate certificate file\r\n");
-        printf("  --root file_path                 Path to the root certificate file\r\n");
-        printf("  --additional_key file_path       Path to an additional private key file (hybrid signature mode)\r\n");
+        printf("  --cert file_path                   Path to the certificate file\r\n");
+        printf("  --key file_path                    Path to the private key file\r\n");
+        printf("  --intermediate file_path           Path to an intermediate certificate file\r\n");
+        printf("  --root file_path                   Path to the root certificate file\r\n");
+        printf("  --additional_key file_path         Path to an additional private key file (hybrid signature mode)\r\n");
 
         printf("\nSecurity configuration:\r\n");
-        printf("  --no_mutual_auth                 Disable mutual authentication (default enabled)\r\n");
-        printf("  --use_null_cipher                Use a cleartext cipher without encryption (default disabled)\r\n");
-        printf("  --hybrid_signature mode          Mode for hybrid signatures: \"both\", \"native\", \"alternative\" (default: \"both\")\r\n");
-        printf("  --key_exchange_alg algorithm     Key exchange algorithm: (default: \"secp384_mlkem768\")\r\n");
-        printf("                                      Classic: \"secp256\", \"secp384\", \"secp521\", \"x25519\", \"x448\"\r\n");
-        printf("                                      PQC: \"mlkem512\", \"mlkem768\", \"mlkem1024\"\r\n");
-        printf("                                      Hybrid: \"secp256_mlkem512\", \"secp384_mlkem768\", \"secp256_mlkem768\"\r\n");
-        printf("                                              \"secp521_mlkem1024\", \"secp384_mlkem1024\", \"x25519_mlkem512\"\r\n");
-        printf("                                              \"x448_mlkem768\", \"x25519_mlkem768\"\r\n");
+        printf("  --no_mutual_auth                   Disable mutual authentication (default enabled)\r\n");
+        printf("  --use_null_cipher                  Use a cleartext cipher without encryption (default disabled)\r\n");
+        printf("  --hybrid_signature mode            Mode for hybrid signatures: \"both\", \"native\", \"alternative\" (default: \"both\")\r\n");
+        printf("  --key_exchange_alg algorithm       Key exchange algorithm: (default: \"secp384_mlkem768\")\r\n");
+        printf("                                        Classic: \"secp256\", \"secp384\", \"secp521\", \"x25519\", \"x448\"\r\n");
+        printf("                                        PQC: \"mlkem512\", \"mlkem768\", \"mlkem1024\"\r\n");
+        printf("                                        Hybrid: \"secp256_mlkem512\", \"secp384_mlkem768\", \"secp256_mlkem768\"\r\n");
+        printf("                                                \"secp521_mlkem1024\", \"secp384_mlkem1024\", \"x25519_mlkem512\"\r\n");
+        printf("                                                \"x448_mlkem768\", \"x25519_mlkem768\"\r\n");
 
-        printf("\nSecure Element:\r\n");
-        printf("  When using a secure element for key storage, you have to supply the PKCS#11 key labels using the arguments\n");
-        printf("  \"--key\" and \"--additionalKey\" prepending the string \"%s\" followed by the key label.\n", PKCS11_LABEL_IDENTIFIER);
-        printf("  --middleware file_path           Path to the secure element middleware\r\n");
+        printf("\nPKCS#11:\r\n");
+        printf("  When using a secure element for long-term key storage, you have to supply the PKCS#11 key labels using the\n");
+        printf("  arguments \"--key\" and \"--additionalKey\", prepending the string \"%s\" followed by the key label.\r\n", PKCS11_LABEL_IDENTIFIER);
+        printf("  --p11_long_term_module file_path   Path to the secure element middleware for long-term key storage\r\n");
+        printf("  --p11_ephemeral_module file_path   Path to the PKCS#11 module for ephemeral cryptography\r\n");
 
         printf("\nNetwork tester configuration:\r\n");
-        printf("  --test_num_handshakes num        Number of handshakes to perform in the test (default 1)\r\n");
-        printf("  --test_handshake_delay num_ms    Delay between handshakes in milliseconds (default 0)\r\n");
-        printf("  --test_num_messages num          Number of echo messages to send per handshake iteration (default 0)\r\n");
-        printf("  --test_message_delay num_us      Delay between messages in microseconds (default 0)\r\n");
-        printf("  --test_message_size num          Size of the echo message in bytes (default 1)\r\n");
-        printf("  --test_output_path path          Path to the output file (filename will be appended)\r\n");
-        printf("  --test_no_tls                    Disable TLS for test (plain TCP; default disabled)\r\n");
-        printf("  --test_silent                    Disable progress printing\r\n");
+        printf("  --test_num_handshakes num          Number of handshakes to perform in the test (default 1)\r\n");
+        printf("  --test_handshake_delay num_ms      Delay between handshakes in milliseconds (default 0)\r\n");
+        printf("  --test_num_messages num            Number of echo messages to send per handshake iteration (default 0)\r\n");
+        printf("  --test_message_delay num_us        Delay between messages in microseconds (default 0)\r\n");
+        printf("  --test_message_size num            Size of the echo message in bytes (default 1)\r\n");
+        printf("  --test_output_path path            Path to the output file (filename will be appended)\r\n");
+        printf("  --test_no_tls                      Disable TLS for test (plain TCP; default disabled)\r\n");
+        printf("  --test_silent                      Disable progress printing\r\n");
 
         printf("\nGeneral:\r\n");
-        printf("  --keylog_file file_path          Path to the keylog file for Wireshark\r\n");
-        printf("  --verbose                        Enable verbose output\r\n");
-        printf("  --debug                          Enable debug output\r\n");
-        printf("  --help                           Display this help and exit\r\n");
+        printf("  --keylog_file file_path            Path to the keylog file for Wireshark\r\n");
+        printf("  --verbose                          Enable verbose output\r\n");
+        printf("  --debug                            Enable debug output\r\n");
+        printf("  --help                             Display this help and exit\r\n");
 }
 
 

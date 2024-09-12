@@ -39,7 +39,7 @@ target_compile_options(kritis3m_tls PUBLIC
         -fomit-frame-pointer
         -fdata-sections
         -ffunction-sections
-        -Wl,--gc-sections
+        # -Wl,--gc-sections
 )
 
 

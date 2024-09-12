@@ -24,8 +24,8 @@
 LOG_MODULE_CREATE(kritis3m_tls);
 
 
-#define fatal(msg, ...) { \
-                LOG_ERROR("Error: " msg "", ##__VA_ARGS__); \
+#define fatal(...) { \
+                LOG_ERROR(__VA_ARGS__); \
                 exit(1); \
         }
 

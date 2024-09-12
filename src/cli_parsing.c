@@ -52,18 +52,19 @@ static const struct option cli_options[] =
         { "key_exchange_alg",     required_argument,    0, 0x0B },
 
         { "p11_long_term_module", required_argument,    0, 0x0C },
-        { "p11_ephemeral_module", required_argument,    0, 0x0D },
+        { "p11_long_term_pin",    required_argument,    0, 0x0D },
+        { "p11_ephemeral_module", required_argument,    0, 0x0E },
 
-        { "test_num_handshakes",  required_argument,    0, 0x0E },
-        { "test_handshake_delay", required_argument,    0, 0x0F },
-        { "test_num_messages",    required_argument,    0, 0x10 },
-        { "test_message_delay",   required_argument,    0, 0x11 },
-        { "test_message_size",    required_argument,    0, 0x12 },
-        { "test_output_path",     required_argument,    0, 0x13 },
-        { "test_no_tls",          no_argument,          0, 0x14 },
-        { "test_silent",          no_argument,          0, 0x15 },
+        { "test_num_handshakes",  required_argument,    0, 0x0F },
+        { "test_handshake_delay", required_argument,    0, 0x10 },
+        { "test_num_messages",    required_argument,    0, 0x11 },
+        { "test_message_delay",   required_argument,    0, 0x12 },
+        { "test_message_size",    required_argument,    0, 0x13 },
+        { "test_output_path",     required_argument,    0, 0x14 },
+        { "test_no_tls",          no_argument,          0, 0x15 },
+        { "test_silent",          no_argument,          0, 0x16 },
 
-        { "keylog_file",          required_argument,    0, 0x16 },
+        { "keylog_file",          required_argument,    0, 0x17 },
         { "verbose",              no_argument,          0, 'v'  },
         { "debug",                no_argument,          0, 'd'  },
         { "help",                 no_argument,          0, 'h'  },
@@ -303,37 +304,45 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                 break;
                         }
                         case 0x0C: /* p11_long_term_module */
-                                tls_config.pkcs11.long_term_crypto_module_path = duplicate_string(optarg);
-                                if (tls_config.pkcs11.long_term_crypto_module_path == NULL)
+                                tls_config.pkcs11.long_term_crypto_module.path = duplicate_string(optarg);
+                                if (tls_config.pkcs11.long_term_crypto_module.path == NULL)
                                 {
                                         LOG_ERROR("unable to allocate memory for PKCS#11 long-termin crypto module path");
                                         return -1;
                                 }
                                 break;
-                        case 0x0D: /* p11_ephemeral_module */
-                                tls_config.pkcs11.ephemeral_crypto_module_path = duplicate_string(optarg);
-                                if (tls_config.pkcs11.ephemeral_crypto_module_path == NULL)
+                        case 0x0D: /* p11_long_term_pin */
+                                tls_config.pkcs11.long_term_crypto_module.pin = duplicate_string(optarg);
+                                if (tls_config.pkcs11.long_term_crypto_module.pin == NULL)
+                                {
+                                        LOG_ERROR("unable to allocate memory for PKCS#11 long-term crypto module pin");
+                                        return -1;
+                                }
+                                break;
+                        case 0x0E: /* p11_ephemeral_module */
+                                tls_config.pkcs11.ephemeral_crypto_module.path = duplicate_string(optarg);
+                                if (tls_config.pkcs11.ephemeral_crypto_module.path == NULL)
                                 {
                                         LOG_ERROR("unable to allocate memory for PKCS#11 ephemeral crypto module path");
                                         return -1;
                                 }
                                 break;
-                        case 0x0e: /* test_num_handshakes */
+                        case 0x0F: /* test_num_handshakes */
                                 tester_config->handshake_test.iterations = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 0x0F: /* test_handshake_delay */
+                        case 0x10: /* test_handshake_delay */
                                 tester_config->handshake_test.delay_ms = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 0x10: /* test_num_messages */
+                        case 0x11: /* test_num_messages */
                                 tester_config->message_latency_test.iterations = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 0x11: /* test_message_delay */
+                        case 0x12: /* test_message_delay */
                                 tester_config->message_latency_test.delay_us = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 0x12: /* test_message_size */
+                        case 0x13: /* test_message_size */
                                 tester_config->message_latency_test.size = (int) strtol(optarg, NULL, 10);
                                 break;
-                        case 0x13: /* test_output_path */
+                        case 0x14: /* test_output_path */
                                 tester_config->output_path = duplicate_string(optarg);
                                 if (tester_config->output_path == NULL)
                                 {
@@ -341,13 +350,13 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                                         return -1;
                                 }
                                 break;
-                        case 0x14: /* test_no_tls */
+                        case 0x15: /* test_no_tls */
                                 tester_config->use_tls = false;
                                 break;
-                        case 0x15: /* test_silent */
+                        case 0x16: /* test_silent */
                                 tester_config->silent_test = true;
                                 break;
-                        case 0x16: /* keylog_file */
+                        case 0x17: /* keylog_file */
                                 tls_config.keylog_file = duplicate_string(optarg);
                                 if (tls_config.keylog_file == NULL)
                                 {
@@ -568,14 +577,14 @@ void arguments_cleanup(application_config* app_config, proxy_backend_config* pro
                 free((void*) tls_config->root_certificate.buffer);
         }
 
-        if (tls_config->pkcs11.long_term_crypto_module_path != NULL)
+        if (tls_config->pkcs11.long_term_crypto_module.path != NULL)
         {
-                free((void*) tls_config->pkcs11.long_term_crypto_module_path);
+                free((void*) tls_config->pkcs11.long_term_crypto_module.path);
         }
 
-        if (tls_config->pkcs11.ephemeral_crypto_module_path != NULL)
+        if (tls_config->pkcs11.ephemeral_crypto_module.path != NULL)
         {
-                free((void*) tls_config->pkcs11.ephemeral_crypto_module_path);
+                free((void*) tls_config->pkcs11.ephemeral_crypto_module.path);
         }
 
         if (tls_config->keylog_file != NULL)
@@ -664,6 +673,7 @@ static void print_help(char const* name)
         printf("  When using a secure element for long-term key storage, you have to supply the PKCS#11 key labels using the\n");
         printf("  arguments \"--key\" and \"--additionalKey\", prepending the string \"%s\" followed by the key label.\r\n", PKCS11_LABEL_IDENTIFIER);
         printf("  --p11_long_term_module file_path   Path to the secure element middleware for long-term key storage\r\n");
+        printf("  --p11_long_term_pin pin            PIN for the secure element (default empty)\r\n");
         printf("  --p11_ephemeral_module file_path   Path to the PKCS#11 module for ephemeral cryptography\r\n");
 
         printf("\nNetwork tester configuration:\r\n");

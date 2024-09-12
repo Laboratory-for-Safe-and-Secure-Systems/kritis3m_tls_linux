@@ -38,6 +38,7 @@
 #   When using a secure element for long-term key storage, you have to supply the PKCS#11 key labels using the
 #   arguments "--key" and "--additionalKey", prepending the string "pkcs11:" followed by the key label.
 #   --p11_long_term_module file_path   Path to the secure element middleware for long-term key storage
+#   --p11_long_term_pin pin            PIN for the secure element (default empty)
 #   --p11_ephemeral_module file_path   Path to the PKCS#11 module for ephemeral cryptography
 #
 #
@@ -68,7 +69,7 @@ _kritis3m_tls_completions()
         roles="reverse_proxy forward_proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy"
         opts_connection="--incoming --outgoing"
         opts_files="--cert --key --intermediate --root --additional_key --p11_long_term_module --p11_ephemeral_module --keylog_file"
-        opts_security="--no_mutual_auth --use_null_cipher --hybrid_signature --key_exchange_alg"
+        opts_security="--no_mutual_auth --use_null_cipher --hybrid_signature --key_exchange_alg --p11_long_term_pin"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
                         --test_output_path --test_no_tls --test_silent"
         opts_general="--verbose --debug --help"
@@ -109,7 +110,8 @@ _kritis3m_tls_completions()
                         COMPREPLY=( $(compgen -W "${kex_algos}" -- ${cur}) )
                         return 0
                         ;;
-                --no_mutual_auth|--use_null_cipher|--test_num_handshakes|--test_handshake_delay|--test_num_messages|--test_message_delay|--test_message_size|--test_no_tls|--test_silent)
+                --no_mutual_auth|--use_null_cipher|--test_num_handshakes|--test_handshake_delay|--test_num_messages|--test_message_delay|--test_message_size| \
+                --test_no_tls|--test_silent|--p11_long_term_pin)
                         # No specific completion
                         COMPREPLY=()
                         return 0

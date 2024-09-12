@@ -13,7 +13,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # When enabled, the application will be built as a self-contained executable with all
 # dependencies included. When disabled, it dynamically loads the dependencies
 # at runtime.
-option(KRITIS3M_TLS_SELF_CONTAINED "Build a self-contained executable" ON)
+option(KRITIS3M_TLS_SELF_CONTAINED "Build a self-contained executable" OFF)
 
 # Use an externally installed ASL library. If disabled, ASL will be built.
 option(KRITIS3M_TLS_EXTERNAL_ASL "Use external ASL library" OFF)
@@ -84,6 +84,7 @@ else(KRITIS3M_TLS_EXTERNAL_ASL)
                 set(KRITIS3M_ASL_STANDALONE ON)
         endif()
         set(KRITIS3M_ASL_ENABLE_PKCS11 ON)
+        set(KRITIS3M_ASL_PKCS11_CRYPTO ON)
 
         FetchContent_GetProperties(kritis3m_asl)
         if(NOT kritis3m_asl_POPULATED)

@@ -1,4 +1,3 @@
-#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -699,7 +698,7 @@ static int readFile(const char* filePath, uint8_t** buffer, size_t bufferSize)
         uint8_t* destination = NULL;
 
         /* Open the file */
-        FILE* file = fopen(filePath, "r");
+        FILE* file = fopen(filePath, "rb");
 
         if (file == NULL)
         {

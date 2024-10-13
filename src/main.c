@@ -3,15 +3,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
 #include <errno.h>
-#include <getopt.h>
 #include <signal.h>
 
 #include "networking.h"
 #include "logging.h"
-#include "poll_set.h"
 
 #include "tls_proxy.h"
 #include "echo_server.h"
@@ -30,7 +27,7 @@ LOG_MODULE_CREATE(kritis3m_tls);
         }
 
 
-volatile __sig_atomic_t running = true;
+volatile bool running = true;
 
 static void signal_handler(int signo)
 {
@@ -52,9 +49,12 @@ int main(int argc, char** argv)
         /* Install the signal handler and ignore SIGPIPE */
         if (signal(SIGINT, signal_handler) == SIG_ERR)
                 fatal("can't catch SIGINT\n");
+#ifndef _WIN32
         if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
                 fatal("can't ignore SIGPIPE\n");
+#endif
 
+        initialize_network_interfaces();
 
         /* Parse arguments */
         int ret = parse_cli_arguments(&app_config, &tls_proxy_backend_config,

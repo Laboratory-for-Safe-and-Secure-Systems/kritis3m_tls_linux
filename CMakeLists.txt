@@ -18,7 +18,7 @@ endif()
 # When enabled, the application will be built as a self-contained executable with all
 # dependencies included. When disabled, it dynamically loads the dependencies
 # at runtime.
-option(KRITIS3M_TLS_SELF_CONTAINED "Build a self-contained executable" ON)
+option(KRITIS3M_TLS_SELF_CONTAINED "Build a self-contained executable" OFF)
 
 # Use an externally installed ASL library. If disabled, ASL will be built.
 option(KRITIS3M_TLS_EXTERNAL_ASL "Use external ASL library" OFF)
@@ -34,20 +34,16 @@ target_sources(kritis3m_tls PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/cli_parsing.c
 )
-target_compile_options(kritis3m_tls PUBLIC
-        -march=native
-        -fomit-frame-pointer
-        -fdata-sections
-        -ffunction-sections
-        # -Wl,--gc-sections
-)
-
 if (NOT MSVC)
         target_compile_options(kritis3m_tls PUBLIC
                 -Wall
                 -Wextra
                 -Wpedantic
                 -Werror
+                -march=native
+                -fomit-frame-pointer
+                -fdata-sections
+                -ffunction-sections
                 # -Wa,--noexecstack
                 -Wl,--gc-sections
         )
@@ -93,7 +89,7 @@ else(KRITIS3M_TLS_EXTERNAL_ASL)
         else()
                 set(KRITIS3M_ASL_STANDALONE ON)
         endif()
-        set(KRITIS3M_ASL_ENABLE_PKCS11 OFF)
+        set(KRITIS3M_ASL_ENABLE_PKCS11 ON)
         set(KRITIS3M_ASL_PKCS11_CRYPTO OFF)
 
         FetchContent_GetProperties(kritis3m_asl)
@@ -124,6 +120,15 @@ target_link_libraries(kritis3m_applications_echo_server PUBLIC kritis3m_asl)
 
 # Link KRITIS3M_ASL to the main target
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_asl)
+
+
+# Statically link the pthread library on Windows
+if(WIN32)
+        target_link_options(kritis3m_tls PUBLIC
+                -Wl,-Bstatic
+        )
+        target_link_libraries(kritis3m_tls PUBLIC winpthread)
+endif()
 
 
 # Install the executables

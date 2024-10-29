@@ -45,7 +45,7 @@ if (NOT MSVC)
                 -fdata-sections
                 -ffunction-sections
                 # -Wa,--noexecstack
-                -Wl,--gc-sections
+                # -Wl,--gc-sections
         )
 endif()
 

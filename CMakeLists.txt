@@ -24,6 +24,10 @@ option(KRITIS3M_TLS_SELF_CONTAINED "Build a self-contained executable" OFF)
 option(KRITIS3M_TLS_EXTERNAL_ASL "Use external ASL library" OFF)
 
 
+# Set the C standard to C17
+set(C_STANDARD 17)
+
+
 # Define the main executable
 add_executable(kritis3m_tls)
 target_include_directories(kritis3m_tls PUBLIC
@@ -48,6 +52,11 @@ if (NOT MSVC)
                 # -Wl,--gc-sections
         )
 endif()
+
+
+# Add the _GNU_SOURCE macro to enable GNU extensions.
+add_compile_definitions(_GNU_SOURCE)
+
 
 # When building a self-contained executable, we need to build static libraries. Otherwise,
 # we build shared libraries to save space and prevent multiple-definition problems.

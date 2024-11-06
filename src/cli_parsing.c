@@ -2,8 +2,10 @@
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
+#include <ctype.h>
 
 #include "logging.h"
+#include "networking.h"
 
 #include "cli_parsing.h"
 
@@ -75,6 +77,8 @@ static const struct option cli_options[] =
 static void set_defaults(application_config* app_config, certificates* certs);
 static int read_certificates(certificates* certs, enum application_role role);
 static void print_help(char const* name);
+static int parse_ip_address(char* input, char** ip, uint16_t* port);
+static int readFile(const char* filePath, uint8_t** buffer, size_t bufferSize);
 
 
 /* Parse the provided argv array and store the information in the provided config variables.
@@ -162,63 +166,24 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 		switch (result)
 		{
 			case 0x01: /* incoming */
-			{
-				/* Check if an IP address is provided */
-				char* separator = strchr(optarg, ':');
-				char* port_str = NULL;
-				if (separator == NULL)
-				{
-					port_str = optarg;
-					incoming_ip = duplicate_string("0.0.0.0");
-				}
-				else
-				{
-					*separator = '\0';
-					incoming_ip = duplicate_string(optarg);
-					port_str = separator + 1;
-				}
-                                if (incoming_ip == NULL)
+                                if (parse_ip_address(optarg, &incoming_ip, &incoming_port) != 0)
                                 {
-                                        LOG_ERROR("unable to allocate memory for incoming IP address");
+                                        LOG_ERROR("unable to parse incoming IP address");
                                         return -1;
                                 }
-
-				/* Parse the port */
-				unsigned long new_port = strtoul(port_str, NULL, 10);
-				if ((new_port == 0) || (new_port > 65535))
-				{
-					printf("invalid port number %lu\r\n", new_port);
-					return -1;
-				}
-				incoming_port = (uint16_t) new_port;
-				break;
-			}
+                                break;
 			case 0x02: /* outgoing */
-			{
-				/* Parse the outgoing IP address and port */
-                                char* ip = strtok(optarg, ":");
-				outgoing_ip = duplicate_string(ip);
-                                if (outgoing_ip == NULL)
+                                if (parse_ip_address(optarg, &outgoing_ip, &outgoing_port) != 0)
                                 {
-                                        LOG_ERROR("unable to allocate memory for target IP address");
+                                        LOG_ERROR("unable to parse outgoing IP address");
                                         return -1;
                                 }
-
-				char* port_str = strtok(NULL, ":");
-				if (port_str == NULL)
+                                if (outgoing_port == 0)
                                 {
-                                        LOG_ERROR("no port number provided");
+                                        LOG_ERROR("outgoing port must not be 0");
                                         return -1;
                                 }
-                                unsigned long dest_port = strtoul(port_str, NULL, 10);
-				if ((dest_port == 0) || (dest_port > 65535))
-				{
-					printf("invalid port number %lu\r\n", dest_port);
-					return -1;
-				}
-				outgoing_port = (uint16_t) dest_port;
-				break;
-			}
+                                break;
 			case 0x03: /* cert */
 				certs.certificate_path = optarg;
 				break;
@@ -690,6 +655,166 @@ static void print_help(char const* name)
         printf("  --verbose                          Enable verbose output\r\n");
         printf("  --debug                            Enable debug output\r\n");
         printf("  --help                             Display this help and exit\r\n");
+}
+
+
+static int is_numeric(char const* str)
+{
+        while (*str)
+        {
+                if (!isdigit(*str))
+                        return 0;
+                str++;
+        }
+
+        return 1;
+}
+
+static int parse_ip_address(char* input, char** ip, uint16_t* port)
+{
+        /* Search for the first colon.
+         *
+         * 1) If non is found, we have either only an IPv4 address, or only an URI, or
+         *    only a port number, e.g. "127.0.0.1", "localhost" or "4433".
+         *
+         * 2) If we only find a single colon, we have either an IPv4 address or an URI
+         *    with a port number, e.g. "127.0.0.1:4433" or "localhost:4433".
+         *
+         * 3) If we find multiple colons, we have an IPv6 address. In this case, we have
+         *    to check whether a port is also provided. If so, the IPv6 address must be
+         *    wrapped in square brackets, e.g. "[::1]:4433".
+         *    Otherwise, only an address is given, e.g. "::1".
+         *
+         * Rough code at the momemt, but it works for now...
+         * ToDo: Refactor this code to make it more readable and maintainable.
+         */
+        char* first_colon = strchr(input, ':');
+
+        if (first_colon == NULL)
+        {
+                /* First case */
+
+                struct in_addr addr;
+                if (net_addr_pton(AF_INET, input, &addr) == 1)
+                {
+                        /* We have an IPv4 address */
+                        *ip = duplicate_string(input);
+                        if (*ip == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for IP address");
+                                return -1;
+                        }
+                        *port = 0;
+                }
+                else if (is_numeric(input))
+                {
+                        /* We have a port number */
+                        *ip = NULL;
+                        unsigned long new_port = strtoul(input, NULL, 10);
+                        if ((new_port == 0) || (new_port > 65535))
+                        {
+                                LOG_ERROR("invalid port number %lu", new_port);
+                                return -1;
+                        }
+                        *port = (uint16_t) new_port;
+                }
+                else
+                {
+                        /* We have an URI */
+                        *ip = duplicate_string(input);
+                        if (*ip == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for IP address");
+                                return -1;
+                        }
+                        *port = 0;
+                }
+        }
+        else
+        {
+                char* last_colon = strchr(first_colon + 1, ':');
+
+                if (last_colon == NULL)
+                {
+                        /* Second case */
+
+                        *first_colon = '\0';
+                        *ip = duplicate_string(input);
+                        if (*ip == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for IP address");
+                                return -1;
+                        }
+                        unsigned long new_port = strtoul(first_colon+1, NULL, 10);
+                        if ((new_port == 0) || (new_port > 65535))
+                        {
+                                LOG_ERROR("invalid port number %lu", new_port);
+                                return -1;
+                        }
+                        *port = (uint16_t) new_port;
+                }
+                else
+                {
+                        /* Third case */
+
+                        /* Move to the last colon*/
+                        char* tmp = last_colon;
+                        while ((tmp = strchr(tmp+1, ':')) != NULL)
+                        {
+                                last_colon = tmp;
+                        }
+
+                        if (*(last_colon-1) == ']')
+                        {
+                                if (*input != '[')
+                                {
+                                        LOG_ERROR("invalid IPv6 address: %s", input);
+                                        return -1;
+                                }
+
+                                /* Port is given */
+                                *(last_colon-1) = '\0';
+
+                                *ip = duplicate_string(input + 1);
+                                if (*ip == NULL)
+                                {
+                                        LOG_ERROR("unable to allocate memory for IP address");
+                                        return -1;
+                                }
+                                unsigned long new_port = strtoul(last_colon+1, NULL, 10);
+                                if ((new_port == 0) || (new_port > 65535))
+                                {
+                                        LOG_ERROR("invalid port number %lu", new_port);
+                                        return -1;
+                                }
+                                *port = (uint16_t) new_port;
+                        }
+                        else
+                        {
+                                /* Check if the user wrongly provided a port without square brackets */
+                                *last_colon = '\0';
+                                struct in6_addr addr;
+                                if (net_addr_pton(AF_INET6, input, &addr) == 1)
+                                {
+                                        *last_colon = ':';
+                                        LOG_ERROR("missing square brackets around IPv6 address before port: %s", input);
+                                        return -1;
+                                }
+                                *last_colon = ':';
+
+                                /* No port given */
+                                *ip = duplicate_string(input);
+                                if (*ip == NULL)
+                                {
+                                        LOG_ERROR("unable to allocate memory for IP address");
+                                        return -1;
+                                }
+                                *port = 0;
+                        }
+                }
+        }
+
+        return 0;
 }
 
 

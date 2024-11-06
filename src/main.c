@@ -54,8 +54,6 @@ int main(int argc, char** argv)
                 fatal("can't ignore SIGPIPE\n");
 #endif
 
-        initialize_network_interfaces();
-
         /* Parse arguments */
         int ret = parse_cli_arguments(&app_config, &tls_proxy_backend_config,
                                       &tls_proxy_config, &echo_server_config,
@@ -69,6 +67,8 @@ int main(int argc, char** argv)
         {
                 exit(0); /* help was printed, so we can exit here */
         }
+
+        initialize_network_interfaces(app_config.log_level);
 
         /* Run the proxy backend if needed for the role */
         if ((app_config.role != ROLE_NETWORK_TESTER) && (app_config.role != ROLE_ECHO_SERVER))
@@ -120,7 +120,7 @@ int main(int argc, char** argv)
                         fatal("unable to run TCP echo server");
 
                 /* Configure the TLS reverse proxy */
-                tls_proxy_config.target_port = echo_server_status.listening_port;
+                tls_proxy_config.target_port = echo_server_status.listening_port_v4;
 
                 /* Add the new TLS reverse proxy to the application backend */
                 id = tls_reverse_proxy_start(&tls_proxy_config);
@@ -148,7 +148,7 @@ int main(int argc, char** argv)
                         fatal("unable to run TLS forward proxy");
 
                 /* Add the TCP client stdin bridge */
-                tcp_client_stdin_bridge_config.target_port = forward_proxy_status.incoming_port;
+                tcp_client_stdin_bridge_config.target_port = forward_proxy_status.incoming_port_v4;
                 ret = tcp_client_stdin_bridge_run(&tcp_client_stdin_bridge_config);
                 if (ret != 0)
                         fatal("unable to run TCP client stdin bridge");
@@ -175,7 +175,7 @@ int main(int argc, char** argv)
                         fatal("unable to run TLS forward proxy");
 
                 /* Update the tester config */
-                network_tester_config.target_port = forward_proxy_status.incoming_port;
+                network_tester_config.target_port = forward_proxy_status.incoming_port_v4;
 
                 /* Run the network_tester application asynchronously */
                 ret = network_tester_run(&network_tester_config);

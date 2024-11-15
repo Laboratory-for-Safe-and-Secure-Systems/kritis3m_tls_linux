@@ -7,6 +7,8 @@ include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+enable_language(C)
+
 # Necessary to allow FetchContent_Populate
 if(POLICY CMP0169)
         cmake_policy(SET CMP0169 OLD)
@@ -82,6 +84,10 @@ endif()
 
 # Add the KRITIS3M_ASL dependency
 if(KRITIS3M_TLS_EXTERNAL_ASL)
+        # Search for system-wide installed libraries in both lib and lib64 paths
+        set(FIND_LIBRARY_USE_LIB32_PATHS TRUE)
+        set(FIND_LIBRARY_USE_LIB64_PATHS TRUE)
+
         # Search for system-wide installed KRITIS3M_ASL
         find_package(kritis3m_asl REQUIRED)
 

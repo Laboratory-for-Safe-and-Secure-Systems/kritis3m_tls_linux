@@ -9,87 +9,83 @@
 
 #include "cli_parsing.h"
 
-
 LOG_MODULE_CREATE(cli_parsing);
-
 
 typedef struct certificates
 {
-        char const* certificate_path;
-        char const* private_key_path;
-        char const* additional_key_path;
-        char const* intermediate_path;
-        char const* root_path;
+        char const *certificate_path;
+        char const *private_key_path;
+        char const *additional_key_path;
+        char const *intermediate_path;
+        char const *root_path;
 
-        uint8_t* chain_buffer; /* Entity and intermediate certificates */
+        uint8_t *chain_buffer; /* Entity and intermediate certificates */
         size_t chain_buffer_size;
 
-        uint8_t* key_buffer;
+        uint8_t *key_buffer;
         size_t key_buffer_size;
 
-        uint8_t* additional_key_buffer;
+        uint8_t *additional_key_buffer;
         size_t additional_key_buffer_size;
 
-        uint8_t* root_buffer;
+        uint8_t *root_buffer;
         size_t root_buffer_size;
-}
-certificates;
-
+} certificates;
 
 static const struct option cli_options[] =
-{
-        { "incoming",             required_argument,    0, 0x01 },
-        { "outgoing",             required_argument,    0, 0x02 },
+    {
+        {"incoming", required_argument, 0, 0x01},
+        {"outgoing", required_argument, 0, 0x02},
 
-        { "cert",                 required_argument,    0, 0x03 },
-        { "key",                  required_argument,    0, 0x04 },
-        { "intermediate",         required_argument,    0, 0x05 },
-        { "root",                 required_argument,    0, 0x06 },
-        { "additional_key",       required_argument,    0, 0x07 },
+        {"cert", required_argument, 0, 0x03},
+        {"key", required_argument, 0, 0x04},
+        {"intermediate", required_argument, 0, 0x05},
+        {"root", required_argument, 0, 0x06},
+        {"additional_key", required_argument, 0, 0x07},
 
-        { "no_mutual_auth",       no_argument,          0, 0x08 },
-        { "use_null_cipher",      no_argument,          0, 0x09 },
-        { "hybrid_signature",     required_argument,    0, 0x0A },
-        { "key_exchange_alg",     required_argument,    0, 0x0B },
+        {"no_mutual_auth", no_argument, 0, 0x08},
+        {"use_null_cipher", no_argument, 0, 0x09},
+        {"hybrid_signature", required_argument, 0, 0x0A},
+        {"key_exchange_alg", required_argument, 0, 0x0B},
 
-        { "p11_long_term_module", required_argument,    0, 0x0C },
-        { "p11_long_term_pin",    required_argument,    0, 0x0D },
-        { "p11_ephemeral_module", required_argument,    0, 0x0E },
+        {"p11_long_term_module", required_argument, 0, 0x0C},
+        {"p11_long_term_pin", required_argument, 0, 0x0D},
+        {"p11_ephemeral_module", required_argument, 0, 0x0E},
 
-        { "test_num_handshakes",  required_argument,    0, 0x0F },
-        { "test_handshake_delay", required_argument,    0, 0x10 },
-        { "test_num_messages",    required_argument,    0, 0x11 },
-        { "test_message_delay",   required_argument,    0, 0x12 },
-        { "test_message_size",    required_argument,    0, 0x13 },
-        { "test_output_path",     required_argument,    0, 0x14 },
-        { "test_no_tls",          no_argument,          0, 0x15 },
-        { "test_silent",          no_argument,          0, 0x16 },
+        {"test_num_handshakes", required_argument, 0, 0x0F},
+        {"test_handshake_delay", required_argument, 0, 0x10},
+        {"test_num_messages", required_argument, 0, 0x11},
+        {"test_message_delay", required_argument, 0, 0x12},
+        {"test_message_size", required_argument, 0, 0x13},
+        {"test_output_path", required_argument, 0, 0x14},
+        {"test_no_tls", no_argument, 0, 0x15},
+        {"test_silent", no_argument, 0, 0x16},
 
-        { "keylog_file",          required_argument,    0, 0x17 },
-        { "verbose",              no_argument,          0, 'v'  },
-        { "debug",                no_argument,          0, 'd'  },
-        { "help",                 no_argument,          0, 'h'  },
+        {"keylog_file", required_argument, 0, 0x17},
 
-        {NULL, 0, NULL, 0}
-};
+        {"mgmt_path", required_argument, 0, 0x18},
 
+        {"verbose", no_argument, 0, 'v'},
+        {"debug", no_argument, 0, 'd'},
+        {"help", no_argument, 0, 'h'},
 
-static void set_defaults(application_config* app_config, certificates* certs);
-static int read_certificates(certificates* certs, enum application_role role);
-static void print_help(char const* name);
-static int parse_ip_address(char* input, char** ip, uint16_t* port);
-static int readFile(const char* filePath, uint8_t** buffer, size_t bufferSize);
+        {NULL, 0, NULL, 0}};
 
+static void set_defaults(application_config *app_config, certificates *certs);
+static int read_certificates(certificates *certs, enum application_role role);
+static void print_help(char const *name);
+static int parse_ip_address(char *input, char **ip, uint16_t *port);
+static int readFile(const char *filePath, uint8_t **buffer, size_t bufferSize);
 
 /* Parse the provided argv array and store the information in the provided config variables.
  *
  * Returns 0 on success, +1 in case the help was printed and  -1 on failure (error is printed on console).
  */
-int parse_cli_arguments(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                        proxy_config* proxy_config, echo_server_config* echo_server_config,
-                        network_tester_config* tester_config, size_t argc, char** argv)
+int parse_cli_arguments(application_config *app_config, proxy_backend_config *proxy_backend_config,
+                        proxy_config *proxy_config, echo_server_config *echo_server_config,
+                        network_tester_config *tester_config, char **mgmt_config_path, size_t argc, char **argv)
 {
-        if ((app_config == NULL) || (proxy_backend_config == NULL)|| (proxy_config == NULL) ||
+        if ((app_config == NULL) || (proxy_backend_config == NULL) || (proxy_config == NULL) ||
             (tester_config == NULL) || (echo_server_config == NULL))
         {
                 LOG_ERROR("parse_cli_arguments() mustn't be called with a NULL pointer");
@@ -101,9 +97,9 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                 return 1;
         }
 
-        char* incoming_ip = NULL;
+        char *incoming_ip = NULL;
         uint16_t incoming_port = 0;
-        char* outgoing_ip = NULL;
+        char *outgoing_ip = NULL;
         uint16_t outgoing_port = 0;
 
         certificates certs = {0};
@@ -111,7 +107,6 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
 
         /* Set default values */
         set_defaults(app_config, &certs);
-
 
         /* Parse role */
         if (strcmp(argv[1], "reverse_proxy") == 0)
@@ -142,6 +137,10 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
         {
                 app_config->role = ROLE_NETWORK_TESTER_PROXY;
         }
+        else if (strcmp(argv[1], "management_client") == 0)
+        {
+                app_config->role = ROLE_MANAGEMENT_CLIENT;
+        }
         else if ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))
         {
                 print_help(argv[0]);
@@ -154,211 +153,225 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
                 return 1;
         }
 
-	/* Parse arguments */
-	int index = 0;
-	while (true)
-	{
-		int result = getopt_long(argc, argv, "vdh", cli_options, &index);
+        /* Parse arguments */
+        int index = 0;
+        while (true)
+        {
+                int result = getopt_long(argc, argv, "vdh", cli_options, &index);
 
-		if (result == -1)
-		        break; /* end of list */
+                if (result == -1)
+                        break; /* end of list */
 
-		switch (result)
-		{
-			case 0x01: /* incoming */
-                                if (parse_ip_address(optarg, &incoming_ip, &incoming_port) != 0)
-                                {
-                                        LOG_ERROR("unable to parse incoming IP address");
-                                        return -1;
-                                }
-                                break;
-			case 0x02: /* outgoing */
-                                if (parse_ip_address(optarg, &outgoing_ip, &outgoing_port) != 0)
-                                {
-                                        LOG_ERROR("unable to parse outgoing IP address");
-                                        return -1;
-                                }
-                                if (outgoing_port == 0)
-                                {
-                                        LOG_ERROR("outgoing port must not be 0");
-                                        return -1;
-                                }
-                                break;
-			case 0x03: /* cert */
-				certs.certificate_path = optarg;
-				break;
-			case 0x04: /* key */
-				certs.private_key_path = optarg;
-				break;
-			case 0x05: /* intermediate */
-				certs.intermediate_path = optarg;
-				break;
-			case 0x06: /* root */
-				certs.root_path = optarg;
-				break;
-                        case 0x07: /* additional_key */
-                                certs.additional_key_path = optarg;
-                                break;
-                        case 0x08: /* no_mutual_auth */
-                                tls_config.mutual_authentication = false;
-                                break;
-                        case 0x09: /* use_null_cipher */
-                                tls_config.no_encryption = true;
-                                break;
-                        case 0x0A: /* hybrid_signature */
+                switch (result)
+                {
+                case 0x01: /* incoming */
+                        if (parse_ip_address(optarg, &incoming_ip, &incoming_port) != 0)
                         {
-                                enum asl_hybrid_signature_mode mode;
-                                if (strcmp(optarg, "both") == 0)
-                                        mode = ASL_HYBRID_SIGNATURE_MODE_BOTH;
-                                else if (strcmp(optarg, "native") == 0)
-                                        mode = ASL_HYBRID_SIGNATURE_MODE_NATIVE;
-                                else if (strcmp(optarg, "alternative") == 0)
-                                        mode = ASL_HYBRID_SIGNATURE_MODE_ALTERNATIVE;
-                                else
-                                {
-                                        printf("invalid hybrid signature mode: %s\r\n", optarg);
-                                        print_help(argv[0]);
-                                        return 1;
-                                }
-                                tls_config.hybrid_signature_mode = mode;
-                                break;
+                                LOG_ERROR("unable to parse incoming IP address");
+                                return -1;
                         }
-                        case 0x0B: /* key_exchange_alg */
+                        break;
+                case 0x02: /* outgoing */
+                        if (parse_ip_address(optarg, &outgoing_ip, &outgoing_port) != 0)
                         {
-                                enum asl_key_exchange_method kex_algo;
-                                if (strcmp(optarg, "secp256") == 0)
-                                        kex_algo = ASL_KEX_CLASSIC_SECP256;
-                                else if (strcmp(optarg, "secp384") == 0)
-                                        kex_algo = ASL_KEX_CLASSIC_SECP384;
-                                else if (strcmp(optarg, "secp521") == 0)
-                                        kex_algo = ASL_KEX_CLASSIC_SECP521;
-                                else if (strcmp(optarg, "x25519") == 0)
-                                        kex_algo = ASL_KEX_CLASSIC_X25519;
-                                else if (strcmp(optarg, "x448") == 0)
-                                        kex_algo = ASL_KEX_CLASSIC_X448;
-                                else if (strcmp(optarg, "mlkem512") == 0)
-                                        kex_algo = ASL_KEX_PQC_MLKEM512;
-                                else if (strcmp(optarg, "mlkem768") == 0)
-                                        kex_algo = ASL_KEX_PQC_MLKEM768;
-                                else if (strcmp(optarg, "mlkem1024") == 0)
-                                        kex_algo = ASL_KEX_PQC_MLKEM1024;
-                                else if (strcmp(optarg, "secp256_mlkem512") == 0)
-                                        kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM512;
-                                else if (strcmp(optarg, "secp384_mlkem768") == 0)
-                                        kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM768;
-                                else if (strcmp(optarg, "secp256_mlkem768") == 0)
-                                        kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM768;
-                                else if (strcmp(optarg, "secp521_mlkem1024") == 0)
-                                        kex_algo = ASL_KEX_HYBRID_SECP521_MLKEM1024;
-                                else if (strcmp(optarg, "secp384_mlkem1024") == 0)
-                                        kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM1024;
-                                else if (strcmp(optarg, "x25519_mlkem512") == 0)
-                                        kex_algo = ASL_KEX_HYBRID_X25519_MLKEM512;
-                                else if (strcmp(optarg, "x448_mlkem768") == 0)
-                                        kex_algo = ASL_KEX_HYBRID_X448_MLKEM768;
-                                else if (strcmp(optarg, "x25519_mlkem768") == 0)
-                                        kex_algo = ASL_KEX_HYBRID_X25519_MLKEM768;
-                                else
-                                {
-                                        printf("invalid key exchange algorithm: %s\r\n", optarg);
-                                        print_help(argv[0]);
-                                        return 1;
-                                }
-                                tls_config.key_exchange_method = kex_algo;
-                                break;
+                                LOG_ERROR("unable to parse outgoing IP address");
+                                return -1;
                         }
-                        case 0x0C: /* p11_long_term_module */
-                                tls_config.pkcs11.long_term_crypto_module.path = duplicate_string(optarg);
-                                if (tls_config.pkcs11.long_term_crypto_module.path == NULL)
-                                {
-                                        LOG_ERROR("unable to allocate memory for PKCS#11 long-termin crypto module path");
-                                        return -1;
-                                }
-                                break;
-                        case 0x0D: /* p11_long_term_pin */
-                                tls_config.pkcs11.long_term_crypto_module.pin = duplicate_string(optarg);
-                                if (tls_config.pkcs11.long_term_crypto_module.pin == NULL)
-                                {
-                                        LOG_ERROR("unable to allocate memory for PKCS#11 long-term crypto module pin");
-                                        return -1;
-                                }
-                                break;
-                        case 0x0E: /* p11_ephemeral_module */
-                                tls_config.pkcs11.ephemeral_crypto_module.path = duplicate_string(optarg);
-                                if (tls_config.pkcs11.ephemeral_crypto_module.path == NULL)
-                                {
-                                        LOG_ERROR("unable to allocate memory for PKCS#11 ephemeral crypto module path");
-                                        return -1;
-                                }
-                                break;
-                        case 0x0F: /* test_num_handshakes */
-                                tester_config->handshake_test.iterations = (int) strtol(optarg, NULL, 10);
-                                break;
-                        case 0x10: /* test_handshake_delay */
-                                tester_config->handshake_test.delay_ms = (int) strtol(optarg, NULL, 10);
-                                break;
-                        case 0x11: /* test_num_messages */
-                                tester_config->message_latency_test.iterations = (int) strtol(optarg, NULL, 10);
-                                break;
-                        case 0x12: /* test_message_delay */
-                                tester_config->message_latency_test.delay_us = (int) strtol(optarg, NULL, 10);
-                                break;
-                        case 0x13: /* test_message_size */
-                                tester_config->message_latency_test.size = (int) strtol(optarg, NULL, 10);
-                                break;
-                        case 0x14: /* test_output_path */
-                                tester_config->output_path = duplicate_string(optarg);
-                                if (tester_config->output_path == NULL)
-                                {
-                                        LOG_ERROR("unable to allocate memory for output path");
-                                        return -1;
-                                }
-                                break;
-                        case 0x15: /* test_no_tls */
-                                tester_config->use_tls = false;
-                                break;
-                        case 0x16: /* test_silent */
-                                tester_config->silent_test = true;
-                                break;
-                        case 0x17: /* keylog_file */
-                                tls_config.keylog_file = duplicate_string(optarg);
-                                if (tls_config.keylog_file == NULL)
-                                {
-                                        LOG_ERROR("unable to allocate memory for keylog file path");
-                                        return -1;
-                                }
-                                break;
-                        case 'v': /* verbose */
-                                app_config->log_level = LOG_LVL_INFO;
-                                break;
-                        case 'd': /* debug */
-                                app_config->log_level = LOG_LVL_DEBUG;
-                                break;
-			case 'h': /* help */
-				print_help(argv[0]);
-				return 1;
-				break;
-			default:
+                        if (outgoing_port == 0)
+                        {
+                                LOG_ERROR("outgoing port must not be 0");
+                                return -1;
+                        }
+                        break;
+                case 0x03: /* cert */
+                        certs.certificate_path = optarg;
+                        break;
+                case 0x04: /* key */
+                        certs.private_key_path = optarg;
+                        break;
+                case 0x05: /* intermediate */
+                        certs.intermediate_path = optarg;
+                        break;
+                case 0x06: /* root */
+                        certs.root_path = optarg;
+                        break;
+                case 0x07: /* additional_key */
+                        certs.additional_key_path = optarg;
+                        break;
+                case 0x08: /* no_mutual_auth */
+                        tls_config.mutual_authentication = false;
+                        break;
+                case 0x09: /* use_null_cipher */
+                        tls_config.no_encryption = true;
+                        break;
+                case 0x0A: /* hybrid_signature */
+                {
+                        enum asl_hybrid_signature_mode mode;
+                        if (strcmp(optarg, "both") == 0)
+                                mode = ASL_HYBRID_SIGNATURE_MODE_BOTH;
+                        else if (strcmp(optarg, "native") == 0)
+                                mode = ASL_HYBRID_SIGNATURE_MODE_NATIVE;
+                        else if (strcmp(optarg, "alternative") == 0)
+                                mode = ASL_HYBRID_SIGNATURE_MODE_ALTERNATIVE;
+                        else
+                        {
+                                printf("invalid hybrid signature mode: %s\r\n", optarg);
                                 print_help(argv[0]);
                                 return 1;
-		}
-    	}
+                        }
+                        tls_config.hybrid_signature_mode = mode;
+                        break;
+                }
+                case 0x0B: /* key_exchange_alg */
+                {
+                        enum asl_key_exchange_method kex_algo;
+                        if (strcmp(optarg, "secp256") == 0)
+                                kex_algo = ASL_KEX_CLASSIC_SECP256;
+                        else if (strcmp(optarg, "secp384") == 0)
+                                kex_algo = ASL_KEX_CLASSIC_SECP384;
+                        else if (strcmp(optarg, "secp521") == 0)
+                                kex_algo = ASL_KEX_CLASSIC_SECP521;
+                        else if (strcmp(optarg, "x25519") == 0)
+                                kex_algo = ASL_KEX_CLASSIC_X25519;
+                        else if (strcmp(optarg, "x448") == 0)
+                                kex_algo = ASL_KEX_CLASSIC_X448;
+                        else if (strcmp(optarg, "mlkem512") == 0)
+                                kex_algo = ASL_KEX_PQC_MLKEM512;
+                        else if (strcmp(optarg, "mlkem768") == 0)
+                                kex_algo = ASL_KEX_PQC_MLKEM768;
+                        else if (strcmp(optarg, "mlkem1024") == 0)
+                                kex_algo = ASL_KEX_PQC_MLKEM1024;
+                        else if (strcmp(optarg, "secp256_mlkem512") == 0)
+                                kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM512;
+                        else if (strcmp(optarg, "secp384_mlkem768") == 0)
+                                kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM768;
+                        else if (strcmp(optarg, "secp256_mlkem768") == 0)
+                                kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM768;
+                        else if (strcmp(optarg, "secp521_mlkem1024") == 0)
+                                kex_algo = ASL_KEX_HYBRID_SECP521_MLKEM1024;
+                        else if (strcmp(optarg, "secp384_mlkem1024") == 0)
+                                kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM1024;
+                        else if (strcmp(optarg, "x25519_mlkem512") == 0)
+                                kex_algo = ASL_KEX_HYBRID_X25519_MLKEM512;
+                        else if (strcmp(optarg, "x448_mlkem768") == 0)
+                                kex_algo = ASL_KEX_HYBRID_X448_MLKEM768;
+                        else if (strcmp(optarg, "x25519_mlkem768") == 0)
+                                kex_algo = ASL_KEX_HYBRID_X25519_MLKEM768;
+                        else
+                        {
+                                printf("invalid key exchange algorithm: %s\r\n", optarg);
+                                print_help(argv[0]);
+                                return 1;
+                        }
+                        tls_config.key_exchange_method = kex_algo;
+                        break;
+                }
+                case 0x0C: /* p11_long_term_module */
+                        tls_config.pkcs11.long_term_crypto_module.path = duplicate_string(optarg);
+                        if (tls_config.pkcs11.long_term_crypto_module.path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for PKCS#11 long-termin crypto module path");
+                                return -1;
+                        }
+                        break;
+                case 0x0D: /* p11_long_term_pin */
+                        tls_config.pkcs11.long_term_crypto_module.pin = duplicate_string(optarg);
+                        if (tls_config.pkcs11.long_term_crypto_module.pin == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for PKCS#11 long-term crypto module pin");
+                                return -1;
+                        }
+                        break;
+                case 0x0E: /* p11_ephemeral_module */
+                        tls_config.pkcs11.ephemeral_crypto_module.path = duplicate_string(optarg);
+                        if (tls_config.pkcs11.ephemeral_crypto_module.path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for PKCS#11 ephemeral crypto module path");
+                                return -1;
+                        }
+                        break;
+                case 0x0F: /* test_num_handshakes */
+                        tester_config->handshake_test.iterations = (int)strtol(optarg, NULL, 10);
+                        break;
+                case 0x10: /* test_handshake_delay */
+                        tester_config->handshake_test.delay_ms = (int)strtol(optarg, NULL, 10);
+                        break;
+                case 0x11: /* test_num_messages */
+                        tester_config->message_latency_test.iterations = (int)strtol(optarg, NULL, 10);
+                        break;
+                case 0x12: /* test_message_delay */
+                        tester_config->message_latency_test.delay_us = (int)strtol(optarg, NULL, 10);
+                        break;
+                case 0x13: /* test_message_size */
+                        tester_config->message_latency_test.size = (int)strtol(optarg, NULL, 10);
+                        break;
+                case 0x14: /* test_output_path */
+                        tester_config->output_path = duplicate_string(optarg);
+                        if (tester_config->output_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for output path");
+                                return -1;
+                        }
+                        break;
+                case 0x15: /* test_no_tls */
+                        tester_config->use_tls = false;
+                        break;
+                case 0x16: /* test_silent */
+                        tester_config->silent_test = true;
+                        break;
+                case 0x17: /* keylog_file */
+                        tls_config.keylog_file = duplicate_string(optarg);
+                        if (tls_config.keylog_file == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for keylog file path");
+                                return -1;
+                        }
+                        break;
+                case 0x18: // management
+                {
+                        *mgmt_config_path = duplicate_string(optarg);
+                        if (*mgmt_config_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for management file path");
 
-	/* Read certificates */
-    	if (read_certificates(&certs, app_config->role) != 0)
-	{
-        	return -1;
-	}
+                                return -1;
+                        }
+                        break;
+                }
+                case 'v': /* verbose */
+                        app_config->log_level = LOG_LVL_INFO;
+                        break;
+                case 'd': /* debug */
+                        app_config->log_level = LOG_LVL_DEBUG;
+                        break;
+                case 'h': /* help */
+                        print_help(argv[0]);
+                        return 1;
+                        break;
+                default:
+                        print_help(argv[0]);
+                        return 1;
+                }
+        }
+        if ((app_config->role == ROLE_MANAGEMENT_CLIENT) &&
+            (*mgmt_config_path != NULL))
+                return 0;
 
-	/* Set TLS config */
-	tls_config.device_certificate_chain.buffer = certs.chain_buffer;
-	tls_config.device_certificate_chain.size = certs.chain_buffer_size;
-	tls_config.private_key.buffer = certs.key_buffer;
-	tls_config.private_key.size = certs.key_buffer_size;
+        /* Read certificates */
+        if (read_certificates(&certs, app_config->role) != 0)
+        {
+                return -1;
+        }
+
+        /* Set TLS config */
+        tls_config.device_certificate_chain.buffer = certs.chain_buffer;
+        tls_config.device_certificate_chain.size = certs.chain_buffer_size;
+        tls_config.private_key.buffer = certs.key_buffer;
+        tls_config.private_key.size = certs.key_buffer_size;
         tls_config.private_key.additional_key_buffer = certs.additional_key_buffer;
-	tls_config.private_key.additional_key_size = certs.additional_key_buffer_size;
-	tls_config.root_certificate.buffer = certs.root_buffer;
-	tls_config.root_certificate.size = certs.root_buffer_size;
+        tls_config.private_key.additional_key_size = certs.additional_key_buffer_size;
+        tls_config.root_certificate.buffer = certs.root_buffer;
+        tls_config.root_certificate.size = certs.root_buffer_size;
 
         /* Store the parsed configuration data in the relevant structures depending on the role */
         if (app_config->role == ROLE_NETWORK_TESTER)
@@ -460,17 +473,16 @@ int parse_cli_arguments(application_config* app_config, proxy_backend_config* pr
         return 0;
 }
 
-
 /* Cleanup any structures created during argument parsing */
-void arguments_cleanup(application_config* app_config, proxy_backend_config* proxy_backend_config,
-                       proxy_config* proxy_config, echo_server_config* echo_server_config,
-                       network_tester_config* tester_config)
+void arguments_cleanup(application_config *app_config, proxy_backend_config *proxy_backend_config,
+                       proxy_config *proxy_config, echo_server_config *echo_server_config, char **management_file_path,
+                       network_tester_config *tester_config)
 {
         /* Nothing to clean here */
-        (void) app_config;
-        (void) proxy_backend_config;
+        (void)app_config;
+        (void)proxy_backend_config;
 
-        asl_endpoint_configuration* tls_config = NULL;
+        asl_endpoint_configuration *tls_config = NULL;
 
         if (app_config->role == ROLE_NETWORK_TESTER)
         {
@@ -485,6 +497,13 @@ void arguments_cleanup(application_config* app_config, proxy_backend_config* pro
                 free(proxy_config->target_ip_address);
 
                 tls_config = &proxy_config->tls_config;
+        }
+
+        else if (app_config->role == ROLE_MANAGEMENT_CLIENT)
+        {
+                free(*management_file_path);
+
+                tls_config = &tester_config->tls_config;
         }
         else if (app_config->role == ROLE_ECHO_SERVER)
         {
@@ -523,48 +542,47 @@ void arguments_cleanup(application_config* app_config, proxy_backend_config* pro
         /* Free memory of certificates and private key */
         if (tls_config->device_certificate_chain.buffer != NULL)
         {
-                free((void*) tls_config->device_certificate_chain.buffer);
+                free((void *)tls_config->device_certificate_chain.buffer);
         }
 
         if (tls_config->private_key.buffer != NULL)
         {
-                free((void*) tls_config->private_key.buffer);
+                free((void *)tls_config->private_key.buffer);
         }
 
         if (tls_config->private_key.additional_key_buffer != NULL)
         {
-                free((void*) tls_config->private_key.additional_key_buffer);
+                free((void *)tls_config->private_key.additional_key_buffer);
         }
 
         if (tls_config->root_certificate.buffer != NULL)
         {
-                free((void*) tls_config->root_certificate.buffer);
+                free((void *)tls_config->root_certificate.buffer);
         }
 
         if (tls_config->pkcs11.long_term_crypto_module.path != NULL)
         {
-                free((void*) tls_config->pkcs11.long_term_crypto_module.path);
+                free((void *)tls_config->pkcs11.long_term_crypto_module.path);
         }
 
         if (tls_config->pkcs11.ephemeral_crypto_module.path != NULL)
         {
-                free((void*) tls_config->pkcs11.ephemeral_crypto_module.path);
+                free((void *)tls_config->pkcs11.ephemeral_crypto_module.path);
         }
 
         if (tls_config->keylog_file != NULL)
         {
-                free((void*) tls_config->keylog_file);
+                free((void *)tls_config->keylog_file);
         }
 }
 
-
 /* Helper method to dynamically duplicate a string */
-char* duplicate_string(char const* source)
+char *duplicate_string(char const *source)
 {
         if (source == NULL)
                 return NULL;
 
-        char* dest = (char*) malloc(strlen(source) + 1);
+        char *dest = (char *)malloc(strlen(source) + 1);
         if (dest == NULL)
         {
                 LOG_ERROR("unable to allocate memory for string duplication");
@@ -575,8 +593,7 @@ char* duplicate_string(char const* source)
         return dest;
 }
 
-
-static void set_defaults(application_config* app_config, certificates* certs)
+static void set_defaults(application_config *app_config, certificates *certs)
 {
         /* Certificates */
         certs->certificate_path = NULL;
@@ -598,8 +615,7 @@ static void set_defaults(application_config* app_config, certificates* certs)
         app_config->log_level = LOG_LVL_WARN;
 }
 
-
-static void print_help(char const* name)
+static void print_help(char const *name)
 {
         printf("Usage: %s ROLE [OPTIONS]\r\n", name);
         printf("Roles:\r\n");
@@ -610,6 +626,7 @@ static void print_help(char const* name)
         printf("  tls_client                         TLS stdin client (use \"--outgoing\" for connection configuration)\r\n");
         printf("  network_tester                     TLS network tester (use \"--outgoing\" for connection configuration)\r\n");
         printf("  network_tester_proxy               TLS network tester via forward proxy (use \"--outgoing\" for connection configuration)\r\n");
+        printf("  management_client                 Use Management Client (use \"--mgmt_path to provide config file path)\r\n");
 
         printf("\nConnection configuration:\r\n");
         printf("  --incoming <ip:>port               Configuration of the incoming TCP/TLS connection\r\n");
@@ -655,10 +672,12 @@ static void print_help(char const* name)
         printf("  --verbose                          Enable verbose output\r\n");
         printf("  --debug                            Enable debug output\r\n");
         printf("  --help                             Display this help and exit\r\n");
+
+        printf("\nManagement:\r\n");
+        printf("  --mgmt_path                        Path to management config\r\n");
 }
 
-
-static int is_numeric(char const* str)
+static int is_numeric(char const *str)
 {
         while (*str)
         {
@@ -670,7 +689,7 @@ static int is_numeric(char const* str)
         return 1;
 }
 
-static int parse_ip_address(char* input, char** ip, uint16_t* port)
+static int parse_ip_address(char *input, char **ip, uint16_t *port)
 {
         /* Search for the first colon.
          *
@@ -688,7 +707,7 @@ static int parse_ip_address(char* input, char** ip, uint16_t* port)
          * Rough code at the momemt, but it works for now...
          * ToDo: Refactor this code to make it more readable and maintainable.
          */
-        char* first_colon = strchr(input, ':');
+        char *first_colon = strchr(input, ':');
 
         if (first_colon == NULL)
         {
@@ -716,7 +735,7 @@ static int parse_ip_address(char* input, char** ip, uint16_t* port)
                                 LOG_ERROR("invalid port number %lu", new_port);
                                 return -1;
                         }
-                        *port = (uint16_t) new_port;
+                        *port = (uint16_t)new_port;
                 }
                 else
                 {
@@ -732,7 +751,7 @@ static int parse_ip_address(char* input, char** ip, uint16_t* port)
         }
         else
         {
-                char* last_colon = strchr(first_colon + 1, ':');
+                char *last_colon = strchr(first_colon + 1, ':');
 
                 if (last_colon == NULL)
                 {
@@ -745,26 +764,26 @@ static int parse_ip_address(char* input, char** ip, uint16_t* port)
                                 LOG_ERROR("unable to allocate memory for IP address");
                                 return -1;
                         }
-                        unsigned long new_port = strtoul(first_colon+1, NULL, 10);
+                        unsigned long new_port = strtoul(first_colon + 1, NULL, 10);
                         if ((new_port == 0) || (new_port > 65535))
                         {
                                 LOG_ERROR("invalid port number %lu", new_port);
                                 return -1;
                         }
-                        *port = (uint16_t) new_port;
+                        *port = (uint16_t)new_port;
                 }
                 else
                 {
                         /* Third case */
 
                         /* Move to the last colon*/
-                        char* tmp = last_colon;
-                        while ((tmp = strchr(tmp+1, ':')) != NULL)
+                        char *tmp = last_colon;
+                        while ((tmp = strchr(tmp + 1, ':')) != NULL)
                         {
                                 last_colon = tmp;
                         }
 
-                        if (*(last_colon-1) == ']')
+                        if (*(last_colon - 1) == ']')
                         {
                                 if (*input != '[')
                                 {
@@ -773,7 +792,7 @@ static int parse_ip_address(char* input, char** ip, uint16_t* port)
                                 }
 
                                 /* Port is given */
-                                *(last_colon-1) = '\0';
+                                *(last_colon - 1) = '\0';
 
                                 *ip = duplicate_string(input + 1);
                                 if (*ip == NULL)
@@ -781,13 +800,13 @@ static int parse_ip_address(char* input, char** ip, uint16_t* port)
                                         LOG_ERROR("unable to allocate memory for IP address");
                                         return -1;
                                 }
-                                unsigned long new_port = strtoul(last_colon+1, NULL, 10);
+                                unsigned long new_port = strtoul(last_colon + 1, NULL, 10);
                                 if ((new_port == 0) || (new_port > 65535))
                                 {
                                         LOG_ERROR("invalid port number %lu", new_port);
                                         return -1;
                                 }
-                                *port = (uint16_t) new_port;
+                                *port = (uint16_t)new_port;
                         }
                         else
                         {
@@ -817,13 +836,12 @@ static int parse_ip_address(char* input, char** ip, uint16_t* port)
         return 0;
 }
 
-
-static int readFile(const char* filePath, uint8_t** buffer, size_t bufferSize)
+static int readFile(const char *filePath, uint8_t **buffer, size_t bufferSize)
 {
-        uint8_t* destination = NULL;
+        uint8_t *destination = NULL;
 
         /* Open the file */
-        FILE* file = fopen(filePath, "rb");
+        FILE *file = fopen(filePath, "rb");
 
         if (file == NULL)
         {
@@ -839,12 +857,12 @@ static int readFile(const char* filePath, uint8_t** buffer, size_t bufferSize)
         /* Allocate buffer for file content */
         if (*buffer == NULL && bufferSize == 0)
         {
-                *buffer = (uint8_t*) malloc(fileSize);
+                *buffer = (uint8_t *)malloc(fileSize);
                 destination = *buffer;
         }
         else if (*buffer != NULL && bufferSize > 0)
         {
-                *buffer = (uint8_t*) realloc(*buffer, bufferSize + fileSize);
+                *buffer = (uint8_t *)realloc(*buffer, bufferSize + fileSize);
                 destination = *buffer + bufferSize;
         }
 
@@ -874,13 +892,12 @@ static int readFile(const char* filePath, uint8_t** buffer, size_t bufferSize)
         return bytesRead;
 }
 
-
 /* Read all certificate and key files from the paths provided in the `certs`
  * structure and store the data in the buffers. Memory is allocated internally
  * and must be freed by the user.
  *
  * Returns 0 on success, -1 on failure (error is printed on console). */
-static int read_certificates(struct certificates* certs, enum application_role role)
+static int read_certificates(struct certificates *certs, enum application_role role)
 {
         /* Read certificate chain */
         if (certs->certificate_path != NULL)
@@ -919,7 +936,7 @@ static int read_certificates(struct certificates* certs, enum application_role r
         {
                 if (strncmp(certs->private_key_path, PKCS11_LABEL_IDENTIFIER, PKCS11_LABEL_IDENTIFIER_LEN) == 0)
                 {
-                        certs->key_buffer = (uint8_t*) duplicate_string(certs->private_key_path);
+                        certs->key_buffer = (uint8_t *)duplicate_string(certs->private_key_path);
                         if (certs->key_buffer == NULL)
                         {
                                 LOG_ERROR("unable to allocate memory for key label");
@@ -951,7 +968,7 @@ static int read_certificates(struct certificates* certs, enum application_role r
         {
                 if (strncmp(certs->additional_key_path, PKCS11_LABEL_IDENTIFIER, PKCS11_LABEL_IDENTIFIER_LEN) == 0)
                 {
-                        certs->additional_key_buffer = (uint8_t*) duplicate_string(certs->additional_key_path);
+                        certs->additional_key_buffer = (uint8_t *)duplicate_string(certs->additional_key_path);
                         if (certs->additional_key_buffer == NULL)
                         {
                                 LOG_ERROR("unable to allocate memory for key label");

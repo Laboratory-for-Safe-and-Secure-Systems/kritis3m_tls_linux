@@ -68,12 +68,15 @@ else()
         set(BUILD_SHARED_LIBS ON)
 endif()
 
+set(LOCAL_KRITIS3M_APPLICATIONS_PATH "/home/philipp/kritis/linux_development/kritis3m_workspace/repositories/kritis3m_applications")
+
 
 # Add the KRITIS3M_APPLICATION dependency
 FetchContent_Declare(kritis3m_applications
-        GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_applications.git
-        GIT_TAG                 origin/main
-        GIT_PROGRESS            TRUE
+        SOURCE_DIR ${LOCAL_KRITIS3M_APPLICATIONS_PATH}
+        # GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_applications.git
+        # GIT_TAG                 origin/management
+        # GIT_PROGRESS            TRUE
 )
 FetchContent_GetProperties(kritis3m_applications)
 if(NOT kritis3m_applications_POPULATED)
@@ -125,13 +128,16 @@ target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_echo_server)
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_tcp_client_stdin_bridge)
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_proxy)
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_network_tester)
-
+target_link_libraries(kritis3m_tls PUBLIC kritis3m_service)
 
 # Link KRITIS3M_ASL to the required KRITIS3M_APPLICATIONS targets
 target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_network_tester PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_echo_server PUBLIC kritis3m_asl)
+target_link_libraries(kritis3m_service PUBLIC kritis3m_asl)
+target_link_libraries(kritis3m_http_libs PUBLIC kritis3m_asl)
 
+target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_service)
 
 # Link KRITIS3M_ASL to the main target
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_asl)

@@ -14,37 +14,37 @@
 #include "echo_server.h"
 #include "tcp_client_stdin_bridge.h"
 #include "network_tester.h"
+#include "http_service.h"
+#include "kritis3m_scale_service.h"
 
 #include "cli_parsing.h"
 
-
 LOG_MODULE_CREATE(kritis3m_tls);
 
-
-#define fatal(...) { \
+#define fatal(...)                      \
+        {                               \
                 LOG_ERROR(__VA_ARGS__); \
-                exit(1); \
+                exit(1);                \
         }
-
 
 volatile bool running = true;
 
 static void signal_handler(int signo)
 {
-        (void) signo;
+        (void)signo;
 
         /* Indicate the main process to stop */
         running = false;
 }
 
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
         application_config app_config = {0};
         proxy_backend_config tls_proxy_backend_config = tls_proxy_backend_default_config();
         proxy_config tls_proxy_config = tls_proxy_default_config();
         echo_server_config echo_server_config = echo_server_default_config();
         network_tester_config network_tester_config = network_tester_default_config();
+        char *management_file_path;
 
         /* Install the signal handler and ignore SIGPIPE */
         if (signal(SIGINT, signal_handler) == SIG_ERR)
@@ -57,7 +57,7 @@ int main(int argc, char** argv)
         /* Parse arguments */
         int ret = parse_cli_arguments(&app_config, &tls_proxy_backend_config,
                                       &tls_proxy_config, &echo_server_config,
-                                      &network_tester_config, argc, argv);
+                                      &network_tester_config, &management_file_path, argc, argv);
         LOG_LVL_SET(app_config.log_level);
         if (ret < 0)
         {
@@ -66,6 +66,15 @@ int main(int argc, char** argv)
         else if (ret > 0)
         {
                 exit(0); /* help was printed, so we can exit here */
+        }
+
+        if ((app_config.role == ROLE_MANAGEMENT_CLIENT) || (management_file_path != NULL)){
+                ret = init_kritis3m_service(management_file_path);
+
+                while (1){
+                        sleep(1000* 1000);
+                }
+
         }
 
         initialize_network_interfaces(app_config.log_level);
@@ -132,9 +141,9 @@ int main(int argc, char** argv)
         else if (app_config.role == ROLE_TLS_CLIENT)
         {
                 tcp_client_stdin_bridge_config tcp_client_stdin_bridge_config = {
-                        .target_ip_address = LOCALHOST_IP,
-                        .target_port = 0, /* Updated to the random port of the forward proxy */
-                        .log_level = app_config.log_level,
+                    .target_ip_address = LOCALHOST_IP,
+                    .target_port = 0, /* Updated to the random port of the forward proxy */
+                    .log_level = app_config.log_level,
                 };
 
                 /* Add the new TLS forward proxy to the application backend */
@@ -189,7 +198,7 @@ int main(int argc, char** argv)
 
         /* Free memory */
         arguments_cleanup(&app_config, &tls_proxy_backend_config, &tls_proxy_config,
-                          &echo_server_config, &network_tester_config);
+                          &echo_server_config, &management_file_path, &network_tester_config);
 
         ret = 0;
 
@@ -225,8 +234,8 @@ int main(int argc, char** argv)
         LOG_INFO("Terminating...");
 
         /* We only land here if we received a terminate signal. First, we
-        * kill the running server (especially its running client thread, if
-        * present). Then, we kill the actual application thread. */
+         * kill the running server (especially its running client thread, if
+         * present). Then, we kill the actual application thread. */
         if ((app_config.role != ROLE_NETWORK_TESTER) && (app_config.role != ROLE_ECHO_SERVER))
         {
                 tls_proxy_stop(id);

@@ -1,0 +1,14 @@
+{
+  "management_service": {
+    "serial_number": "kritis3m1_module",
+    "server_addr": "0.0.0.0:8080",
+    "management_identity": {
+      "identity": "management_service",
+      "server_addr": "192.168.0.1:1231",
+      "server_url": "",
+      "revocation_list_url": ""
+    }
+  },
+  "config_path": "../config",
+  "crypto_path": "../config/crypto"
+}

@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
+#include <sys/stat.h>
 
 #include "networking.h"
 #include "logging.h"
@@ -29,9 +30,9 @@ LOG_MODULE_CREATE(kritis3m_tls);
 
 volatile bool running = true;
 
-static void signal_handler(int signo)
+static void signal_handler(int signum)
 {
-        (void)signo;
+        (void)signum;
 
         /* Indicate the main process to stop */
         running = false;
@@ -49,6 +50,7 @@ int main(int argc, char **argv)
         /* Install the signal handler and ignore SIGPIPE */
         if (signal(SIGINT, signal_handler) == SIG_ERR)
                 fatal("can't catch SIGINT\n");
+        signal(SIGTERM, signal_handler);
 #ifndef _WIN32
         if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
                 fatal("can't ignore SIGPIPE\n");
@@ -68,17 +70,8 @@ int main(int argc, char **argv)
                 exit(0); /* help was printed, so we can exit here */
         }
 
-        if ((app_config.role == ROLE_MANAGEMENT_CLIENT) || (management_file_path != NULL)){
-                ret = init_kritis3m_service(management_file_path);
-
-                while (1){
-                        sleep(1000* 1000);
-                }
-
-        }
-
-        initialize_network_interfaces(app_config.log_level);
-
+        #ifndef USE_MANAGEMENT
+        // initialize_network_interfaces(app_config.log_level);
         /* Run the proxy backend if needed for the role */
         if ((app_config.role != ROLE_NETWORK_TESTER) && (app_config.role != ROLE_ECHO_SERVER))
         {
@@ -86,6 +79,7 @@ int main(int argc, char **argv)
                 if (ret != 0)
                         fatal("unable to run tls proxy backend");
         }
+        #endif
 
         int id = -1;
 
@@ -191,6 +185,14 @@ int main(int argc, char **argv)
                 if (ret != 0)
                         fatal("unable to run network tester");
         }
+        else if ((app_config.role == ROLE_MANAGEMENT_CLIENT) || (management_file_path != NULL))
+        {
+                ret = start_kritis3m_service(management_file_path, app_config.log_level);
+                if (ret < 0)
+                {
+                        return -1;
+                }
+        }
         else
         {
                 fatal("no role specified");
@@ -201,9 +203,10 @@ int main(int argc, char **argv)
                           &echo_server_config, &management_file_path, &network_tester_config);
 
         ret = 0;
-
+        int counter = 0;
         while (running)
         {
+                counter++;
                 // proxy_status proxy_status;
                 // if (tls_proxy_get_status(id, &proxy_status) < 0)
                 //         fatal("unable to obtain proxy status");
@@ -228,11 +231,15 @@ int main(int argc, char **argv)
                         }
                 }
 
-                usleep(100 * 1000);
+                usleep(1000 * 1000);
+                if (counter > 10)
+                        break;
         }
 
         LOG_INFO("Terminating...");
 
+
+        #ifndef USE_MANAGEMENT
         /* We only land here if we received a terminate signal. First, we
          * kill the running server (especially its running client thread, if
          * present). Then, we kill the actual application thread. */
@@ -241,6 +248,7 @@ int main(int argc, char **argv)
                 tls_proxy_stop(id);
                 tls_proxy_backend_terminate();
         }
+        #endif
 
         if ((app_config.role == ROLE_ECHO_SERVER) || (app_config.role == ROLE_ECHO_SERVER_PROXY))
         {
@@ -253,6 +261,11 @@ int main(int argc, char **argv)
         else if ((app_config.role == ROLE_NETWORK_TESTER) || (app_config.role == ROLE_NETWORK_TESTER_PROXY))
         {
                 network_tester_terminate();
+        }
+        else if ((app_config.role == ROLE_MANAGEMENT_CLIENT) || (management_file_path != NULL))
+        {
+                LOG_INFO("stoping kritis3m_service");
+                stop_kritis3m_service();
         }
 
         return ret;

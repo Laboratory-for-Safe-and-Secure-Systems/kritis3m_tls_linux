@@ -1,7 +1,9 @@
 
 {
   "management_service": {
-    "serial_number": "kritis3m1_module",
+    "serial_number": "feldgeraet1",
+    "secure_middleware_path": "",
+    "pin": "", 
     "server_addr": "192.168.1.4:8080",
     "management_identity": {
       "identity": "management_service",

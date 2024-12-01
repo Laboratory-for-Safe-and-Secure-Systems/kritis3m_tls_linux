@@ -203,10 +203,8 @@ int main(int argc, char **argv)
                           &echo_server_config, &management_file_path, &network_tester_config);
 
         ret = 0;
-        int counter = 0;
         while (running)
         {
-                counter++;
                 // proxy_status proxy_status;
                 // if (tls_proxy_get_status(id, &proxy_status) < 0)
                 //         fatal("unable to obtain proxy status");
@@ -230,10 +228,7 @@ int main(int argc, char **argv)
                                 break;
                         }
                 }
-
                 usleep(1000 * 1000);
-                if (counter > 10)
-                        break;
         }
 
         LOG_INFO("Terminating...");

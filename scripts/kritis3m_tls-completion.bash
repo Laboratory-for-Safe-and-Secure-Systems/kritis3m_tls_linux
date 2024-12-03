@@ -11,6 +11,7 @@
 #   tls_client                         TLS stdin client (use "--outgoing" for connection configuration)
 #   network_tester                     TLS network tester (use "--outgoing" for connection configuration)
 #   network_tester_proxy               TLS network tester via forward proxy (use "--outgoing" for connection configuration)
+#   management_client                  Management Client (use "--mgmt_path to provide config file path)
 #
 # Connection configuration:
 #   --incoming <ip:>port               Configuration of the incoming TCP/TLS connection
@@ -43,11 +44,17 @@
 #
 #
 # Network tester configuration:
-#   --test_iterations num              Number of handshakes to perform in the test
-#   --test_delay num_ms                Delay between handshakes in milliseconds
+#   --test_num_handshakes num          Number of handshakes to perform in the test (default 1)
+#   --test_handshake_delay num_ms      Delay between handshakes in milliseconds (default 0)
+#   --test_num_messages num            Number of echo messages to send per handshake iteration (default 0)
+#   --test_message_delay num_us        Delay between messages in microseconds (default 0)
+#   --test_message_size num            Size of the echo message in bytes (default 1)
 #   --test_output_path path            Path to the output file (filename will be appended)
 #   --test_no_tls                      Disable TLS for test (plain TCP; default disabled)
 #   --test_silent                      Disable progress printing
+#
+# Management:
+#   --mgmt_path                        Path to management config
 #
 # General:
 #   --keylog_file file_path            Path to the keylog file for Wireshark
@@ -66,12 +73,13 @@ _kritis3m_tls_completions()
         _get_comp_words_by_ref -n : cur
         _get_comp_words_by_ref -n : prev
 
-        roles="reverse_proxy forward_proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy"
+        roles="reverse_proxy forward_proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy management_client"
         opts_connection="--incoming --outgoing"
         opts_files="--cert --key --intermediate --root --additional_key --p11_long_term_module --p11_ephemeral_module --keylog_file"
         opts_security="--no_mutual_auth --use_null_cipher --hybrid_signature --key_exchange_alg --p11_long_term_pin"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
                         --test_output_path --test_no_tls --test_silent"
+        opts_mgmt="--mgmt_path"
         opts_general="--verbose --debug --help"
 
         hybrid_modes="both native alternative"
@@ -85,20 +93,20 @@ _kritis3m_tls_completions()
         fi
 
         if [[ ${cur} == -* ]]; then
-                COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_general}" -- ${cur}) )
+                COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_mgmt} ${opts_general}" -- ${cur}) )
                 return 0
         fi
 
         case "${prev}" in
-                reverse_proxy|forward_proxy|echo_server|echo_server_proxy|tls_client|network_tester|network_tester_proxy)
-                        COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_general}" -- ${cur}) )
+                reverse_proxy|forward_proxy|echo_server|echo_server_proxy|tls_client|network_tester|network_tester_proxy|management_client)
+                        COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_mgmt} ${opts_general}" -- ${cur}) )
                         return 0
                         ;;
                 --incoming|--outgoing)
                         COMPREPLY=( $(compgen -W "ip:port port" -- ${cur}) )
                         return 0
                         ;;
-                --cert|--key|--intermediate|--root|--additional_key|--p11_long_term_module|--p11_ephemeral_module|--keylog_file|--test_output_path)
+                --cert|--key|--intermediate|--root|--additional_key|--p11_long_term_module|--p11_ephemeral_module|--keylog_file|--test_output_path|--mgmt_path)
                         _filedir
                         return 0
                         ;;

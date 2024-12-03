@@ -50,7 +50,8 @@ int main(int argc, char **argv)
         /* Install the signal handler and ignore SIGPIPE */
         if (signal(SIGINT, signal_handler) == SIG_ERR)
                 fatal("can't catch SIGINT\n");
-        signal(SIGTERM, signal_handler);
+        if (signal(SIGTERM, signal_handler) == SIG_ERR)
+                fatal("can't catch SIGTERM\n");
 #ifndef _WIN32
         if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
                 fatal("can't ignore SIGPIPE\n");
@@ -70,21 +71,15 @@ int main(int argc, char **argv)
                 exit(0); /* help was printed, so we can exit here */
         }
 
-        #ifndef USE_MANAGEMENT
-        // initialize_network_interfaces(app_config.log_level);
-        /* Run the proxy backend if needed for the role */
-        if ((app_config.role != ROLE_NETWORK_TESTER) && (app_config.role != ROLE_ECHO_SERVER))
-        {
-                ret = tls_proxy_backend_run(&tls_proxy_backend_config);
-                if (ret != 0)
-                        fatal("unable to run tls proxy backend");
-        }
-        #endif
-
         int id = -1;
 
         if (app_config.role == ROLE_REVERSE_PROXY)
         {
+                /* Run the proxy backend */
+                ret = tls_proxy_backend_run(&tls_proxy_backend_config);
+                if (ret != 0)
+                        fatal("unable to run tls proxy backend");
+
                 /* Add the new TLS reverse proxy to the application backend */
                 id = tls_reverse_proxy_start(&tls_proxy_config);
                 if (id < 0)
@@ -94,6 +89,11 @@ int main(int argc, char **argv)
         }
         else if (app_config.role == ROLE_FORWARD_PROXY)
         {
+                /* Run the proxy backend */
+                ret = tls_proxy_backend_run(&tls_proxy_backend_config);
+                if (ret != 0)
+                        fatal("unable to run tls proxy backend");
+
                 /* Add the new TLS forward proxy to the application backend */
                 id = tls_forward_proxy_start(&tls_proxy_config);
                 if (id < 0)
@@ -112,6 +112,11 @@ int main(int argc, char **argv)
         }
         else if (app_config.role == ROLE_ECHO_SERVER_PROXY)
         {
+                /* Run the proxy backend */
+                ret = tls_proxy_backend_run(&tls_proxy_backend_config);
+                if (ret != 0)
+                        fatal("unable to run tls proxy backend");
+
                 /* Run the TCP echo server */
                 ret = echo_server_run(&echo_server_config);
                 if (ret != 0)
@@ -140,6 +145,11 @@ int main(int argc, char **argv)
                     .log_level = app_config.log_level,
                 };
 
+                /* Run the proxy backend */
+                ret = tls_proxy_backend_run(&tls_proxy_backend_config);
+                if (ret != 0)
+                        fatal("unable to run tls proxy backend");
+
                 /* Add the new TLS forward proxy to the application backend */
                 id = tls_forward_proxy_start(&tls_proxy_config);
                 if (id < 0)
@@ -167,6 +177,11 @@ int main(int argc, char **argv)
         }
         else if (app_config.role == ROLE_NETWORK_TESTER_PROXY)
         {
+                /* Run the proxy backend */
+                ret = tls_proxy_backend_run(&tls_proxy_backend_config);
+                if (ret != 0)
+                        fatal("unable to run tls proxy backend");
+
                 /* Start the forward proxy */
                 id = tls_forward_proxy_start(&tls_proxy_config);
                 if (id < 0)
@@ -234,16 +249,14 @@ int main(int argc, char **argv)
         LOG_INFO("Terminating...");
 
 
-        #ifndef USE_MANAGEMENT
         /* We only land here if we received a terminate signal. First, we
          * kill the running server (especially its running client thread, if
          * present). Then, we kill the actual application thread. */
-        if ((app_config.role != ROLE_NETWORK_TESTER) && (app_config.role != ROLE_ECHO_SERVER))
+        if (id != -1)
         {
                 tls_proxy_stop(id);
                 tls_proxy_backend_terminate();
         }
-        #endif
 
         if ((app_config.role == ROLE_ECHO_SERVER) || (app_config.role == ROLE_ECHO_SERVER_PROXY))
         {

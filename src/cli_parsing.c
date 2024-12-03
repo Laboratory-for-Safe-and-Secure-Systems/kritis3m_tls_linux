@@ -626,7 +626,7 @@ static void print_help(char const *name)
         printf("  tls_client                         TLS stdin client (use \"--outgoing\" for connection configuration)\r\n");
         printf("  network_tester                     TLS network tester (use \"--outgoing\" for connection configuration)\r\n");
         printf("  network_tester_proxy               TLS network tester via forward proxy (use \"--outgoing\" for connection configuration)\r\n");
-        printf("  management_client                 Use Management Client (use \"--mgmt_path to provide config file path)\r\n");
+        printf("  management_client                  Management Client (use \"--mgmt_path to provide config file path)\r\n");
 
         printf("\nConnection configuration:\r\n");
         printf("  --incoming <ip:>port               Configuration of the incoming TCP/TLS connection\r\n");
@@ -667,14 +667,16 @@ static void print_help(char const *name)
         printf("  --test_no_tls                      Disable TLS for test (plain TCP; default disabled)\r\n");
         printf("  --test_silent                      Disable progress printing\r\n");
 
+        printf("\nManagement:\r\n");
+        printf("  --mgmt_path                        Path to management config\r\n");
+
         printf("\nGeneral:\r\n");
         printf("  --keylog_file file_path            Path to the keylog file for Wireshark\r\n");
         printf("  --verbose                          Enable verbose output\r\n");
         printf("  --debug                            Enable debug output\r\n");
         printf("  --help                             Display this help and exit\r\n");
 
-        printf("\nManagement:\r\n");
-        printf("  --mgmt_path                        Path to management config\r\n");
+
 }
 
 static int is_numeric(char const *str)

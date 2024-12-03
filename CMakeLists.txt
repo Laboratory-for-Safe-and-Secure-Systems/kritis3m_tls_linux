@@ -68,15 +68,13 @@ else()
         set(BUILD_SHARED_LIBS ON)
 endif()
 
-set(LOCAL_KRITIS3M_APPLICATIONS_PATH "/home/philipp/kritis/linux_development/kritis3m_workspace/repositories/kritis3m_applications")
-
 
 # Add the KRITIS3M_APPLICATION dependency
 FetchContent_Declare(kritis3m_applications
-        SOURCE_DIR ${LOCAL_KRITIS3M_APPLICATIONS_PATH}
-        # GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_applications.git
-        # GIT_TAG                 origin/management
-        # GIT_PROGRESS            TRUE
+        GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_applications.git
+        GIT_TAG                 origin/management
+        GIT_PROGRESS            TRUE
+        USES_TERMINAL_DOWNLOAD  TRUE
 )
 FetchContent_GetProperties(kritis3m_applications)
 if(NOT kritis3m_applications_POPULATED)

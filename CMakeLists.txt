@@ -72,7 +72,7 @@ endif()
 # Add the KRITIS3M_APPLICATION dependency
 FetchContent_Declare(kritis3m_applications
         GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_applications.git
-        GIT_TAG                 origin/management
+        GIT_TAG                 origin/main
         GIT_PROGRESS            TRUE
         USES_TERMINAL_DOWNLOAD  TRUE
 )

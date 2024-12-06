@@ -1,8 +1,8 @@
-#include <stdio.h>
-#include <string.h>
+#include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
-#include <ctype.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "logging.h"
 #include "networking.h"
@@ -13,27 +13,26 @@ LOG_MODULE_CREATE(cli_parsing);
 
 typedef struct certificates
 {
-        char const *certificate_path;
-        char const *private_key_path;
-        char const *additional_key_path;
-        char const *intermediate_path;
-        char const *root_path;
+        char const* certificate_path;
+        char const* private_key_path;
+        char const* additional_key_path;
+        char const* intermediate_path;
+        char const* root_path;
 
-        uint8_t *chain_buffer; /* Entity and intermediate certificates */
+        uint8_t* chain_buffer; /* Entity and intermediate certificates */
         size_t chain_buffer_size;
 
-        uint8_t *key_buffer;
+        uint8_t* key_buffer;
         size_t key_buffer_size;
 
-        uint8_t *additional_key_buffer;
+        uint8_t* additional_key_buffer;
         size_t additional_key_buffer_size;
 
-        uint8_t *root_buffer;
+        uint8_t* root_buffer;
         size_t root_buffer_size;
 } certificates;
 
-static const struct option cli_options[] =
-    {
+static const struct option cli_options[] = {
         {"incoming", required_argument, 0, 0x01},
         {"outgoing", required_argument, 0, 0x02},
 
@@ -69,21 +68,27 @@ static const struct option cli_options[] =
         {"debug", no_argument, 0, 'd'},
         {"help", no_argument, 0, 'h'},
 
-        {NULL, 0, NULL, 0}};
+        {NULL, 0, NULL, 0},
+};
 
-static void set_defaults(application_config *app_config, certificates *certs);
-static int read_certificates(certificates *certs, enum application_role role);
-static void print_help(char const *name);
-static int parse_ip_address(char *input, char **ip, uint16_t *port);
-static int readFile(const char *filePath, uint8_t **buffer, size_t bufferSize);
+static void set_defaults(application_config* app_config, certificates* certs);
+static int read_certificates(certificates* certs, enum application_role role);
+static void print_help(char const* name);
+static int parse_ip_address(char* input, char** ip, uint16_t* port);
+static int readFile(const char* filePath, uint8_t** buffer, size_t bufferSize);
 
 /* Parse the provided argv array and store the information in the provided config variables.
  *
  * Returns 0 on success, +1 in case the help was printed and  -1 on failure (error is printed on console).
  */
-int parse_cli_arguments(application_config *app_config, proxy_backend_config *proxy_backend_config,
-                        proxy_config *proxy_config, echo_server_config *echo_server_config,
-                        network_tester_config *tester_config, char **mgmt_config_path, size_t argc, char **argv)
+int parse_cli_arguments(application_config* app_config,
+                        proxy_backend_config* proxy_backend_config,
+                        proxy_config* proxy_config,
+                        echo_server_config* echo_server_config,
+                        network_tester_config* tester_config,
+                        char** mgmt_config_path,
+                        size_t argc,
+                        char** argv)
 {
         if ((app_config == NULL) || (proxy_backend_config == NULL) || (proxy_config == NULL) ||
             (tester_config == NULL) || (echo_server_config == NULL))
@@ -97,9 +102,9 @@ int parse_cli_arguments(application_config *app_config, proxy_backend_config *pr
                 return 1;
         }
 
-        char *incoming_ip = NULL;
+        char* incoming_ip = NULL;
         uint16_t incoming_port = 0;
-        char *outgoing_ip = NULL;
+        char* outgoing_ip = NULL;
         uint16_t outgoing_port = 0;
 
         certificates certs = {0};
@@ -205,72 +210,73 @@ int parse_cli_arguments(application_config *app_config, proxy_backend_config *pr
                         tls_config.no_encryption = true;
                         break;
                 case 0x0A: /* hybrid_signature */
-                {
-                        enum asl_hybrid_signature_mode mode;
-                        if (strcmp(optarg, "both") == 0)
-                                mode = ASL_HYBRID_SIGNATURE_MODE_BOTH;
-                        else if (strcmp(optarg, "native") == 0)
-                                mode = ASL_HYBRID_SIGNATURE_MODE_NATIVE;
-                        else if (strcmp(optarg, "alternative") == 0)
-                                mode = ASL_HYBRID_SIGNATURE_MODE_ALTERNATIVE;
-                        else
                         {
-                                printf("invalid hybrid signature mode: %s\r\n", optarg);
-                                print_help(argv[0]);
-                                return 1;
+                                enum asl_hybrid_signature_mode mode;
+                                if (strcmp(optarg, "both") == 0)
+                                        mode = ASL_HYBRID_SIGNATURE_MODE_BOTH;
+                                else if (strcmp(optarg, "native") == 0)
+                                        mode = ASL_HYBRID_SIGNATURE_MODE_NATIVE;
+                                else if (strcmp(optarg, "alternative") == 0)
+                                        mode = ASL_HYBRID_SIGNATURE_MODE_ALTERNATIVE;
+                                else
+                                {
+                                        printf("invalid hybrid signature mode: %s\r\n", optarg);
+                                        print_help(argv[0]);
+                                        return 1;
+                                }
+                                tls_config.hybrid_signature_mode = mode;
+                                break;
                         }
-                        tls_config.hybrid_signature_mode = mode;
-                        break;
-                }
                 case 0x0B: /* key_exchange_alg */
-                {
-                        enum asl_key_exchange_method kex_algo;
-                        if (strcmp(optarg, "secp256") == 0)
-                                kex_algo = ASL_KEX_CLASSIC_SECP256;
-                        else if (strcmp(optarg, "secp384") == 0)
-                                kex_algo = ASL_KEX_CLASSIC_SECP384;
-                        else if (strcmp(optarg, "secp521") == 0)
-                                kex_algo = ASL_KEX_CLASSIC_SECP521;
-                        else if (strcmp(optarg, "x25519") == 0)
-                                kex_algo = ASL_KEX_CLASSIC_X25519;
-                        else if (strcmp(optarg, "x448") == 0)
-                                kex_algo = ASL_KEX_CLASSIC_X448;
-                        else if (strcmp(optarg, "mlkem512") == 0)
-                                kex_algo = ASL_KEX_PQC_MLKEM512;
-                        else if (strcmp(optarg, "mlkem768") == 0)
-                                kex_algo = ASL_KEX_PQC_MLKEM768;
-                        else if (strcmp(optarg, "mlkem1024") == 0)
-                                kex_algo = ASL_KEX_PQC_MLKEM1024;
-                        else if (strcmp(optarg, "secp256_mlkem512") == 0)
-                                kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM512;
-                        else if (strcmp(optarg, "secp384_mlkem768") == 0)
-                                kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM768;
-                        else if (strcmp(optarg, "secp256_mlkem768") == 0)
-                                kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM768;
-                        else if (strcmp(optarg, "secp521_mlkem1024") == 0)
-                                kex_algo = ASL_KEX_HYBRID_SECP521_MLKEM1024;
-                        else if (strcmp(optarg, "secp384_mlkem1024") == 0)
-                                kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM1024;
-                        else if (strcmp(optarg, "x25519_mlkem512") == 0)
-                                kex_algo = ASL_KEX_HYBRID_X25519_MLKEM512;
-                        else if (strcmp(optarg, "x448_mlkem768") == 0)
-                                kex_algo = ASL_KEX_HYBRID_X448_MLKEM768;
-                        else if (strcmp(optarg, "x25519_mlkem768") == 0)
-                                kex_algo = ASL_KEX_HYBRID_X25519_MLKEM768;
-                        else
                         {
-                                printf("invalid key exchange algorithm: %s\r\n", optarg);
-                                print_help(argv[0]);
-                                return 1;
+                                enum asl_key_exchange_method kex_algo;
+                                if (strcmp(optarg, "secp256") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_SECP256;
+                                else if (strcmp(optarg, "secp384") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_SECP384;
+                                else if (strcmp(optarg, "secp521") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_SECP521;
+                                else if (strcmp(optarg, "x25519") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_X25519;
+                                else if (strcmp(optarg, "x448") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_X448;
+                                else if (strcmp(optarg, "mlkem512") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM512;
+                                else if (strcmp(optarg, "mlkem768") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM768;
+                                else if (strcmp(optarg, "mlkem1024") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM1024;
+                                else if (strcmp(optarg, "secp256_mlkem512") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM512;
+                                else if (strcmp(optarg, "secp384_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM768;
+                                else if (strcmp(optarg, "secp256_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM768;
+                                else if (strcmp(optarg, "secp521_mlkem1024") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP521_MLKEM1024;
+                                else if (strcmp(optarg, "secp384_mlkem1024") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM1024;
+                                else if (strcmp(optarg, "x25519_mlkem512") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_X25519_MLKEM512;
+                                else if (strcmp(optarg, "x448_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_X448_MLKEM768;
+                                else if (strcmp(optarg, "x25519_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_X25519_MLKEM768;
+                                else
+                                {
+                                        printf("invalid key exchange algorithm: %s\r\n", optarg);
+                                        print_help(argv[0]);
+                                        return 1;
+                                }
+                                tls_config.key_exchange_method = kex_algo;
+                                break;
                         }
-                        tls_config.key_exchange_method = kex_algo;
-                        break;
-                }
                 case 0x0C: /* p11_long_term_module */
                         tls_config.pkcs11.long_term_crypto_module.path = duplicate_string(optarg);
                         if (tls_config.pkcs11.long_term_crypto_module.path == NULL)
                         {
-                                LOG_ERROR("unable to allocate memory for PKCS#11 long-termin crypto module path");
+                                LOG_ERROR("unable to allocate memory for PKCS#11 "
+                                          "long-termin crypto module path");
                                 return -1;
                         }
                         break;
@@ -278,7 +284,8 @@ int parse_cli_arguments(application_config *app_config, proxy_backend_config *pr
                         tls_config.pkcs11.long_term_crypto_module.pin = duplicate_string(optarg);
                         if (tls_config.pkcs11.long_term_crypto_module.pin == NULL)
                         {
-                                LOG_ERROR("unable to allocate memory for PKCS#11 long-term crypto module pin");
+                                LOG_ERROR("unable to allocate memory for PKCS#11 long-term "
+                                          "crypto module pin");
                                 return -1;
                         }
                         break;
@@ -286,24 +293,25 @@ int parse_cli_arguments(application_config *app_config, proxy_backend_config *pr
                         tls_config.pkcs11.ephemeral_crypto_module.path = duplicate_string(optarg);
                         if (tls_config.pkcs11.ephemeral_crypto_module.path == NULL)
                         {
-                                LOG_ERROR("unable to allocate memory for PKCS#11 ephemeral crypto module path");
+                                LOG_ERROR("unable to allocate memory for PKCS#11 ephemeral "
+                                          "crypto module path");
                                 return -1;
                         }
                         break;
                 case 0x0F: /* test_num_handshakes */
-                        tester_config->handshake_test.iterations = (int)strtol(optarg, NULL, 10);
+                        tester_config->handshake_test.iterations = (int) strtol(optarg, NULL, 10);
                         break;
                 case 0x10: /* test_handshake_delay */
-                        tester_config->handshake_test.delay_ms = (int)strtol(optarg, NULL, 10);
+                        tester_config->handshake_test.delay_ms = (int) strtol(optarg, NULL, 10);
                         break;
                 case 0x11: /* test_num_messages */
-                        tester_config->message_latency_test.iterations = (int)strtol(optarg, NULL, 10);
+                        tester_config->message_latency_test.iterations = (int) strtol(optarg, NULL, 10);
                         break;
                 case 0x12: /* test_message_delay */
-                        tester_config->message_latency_test.delay_us = (int)strtol(optarg, NULL, 10);
+                        tester_config->message_latency_test.delay_us = (int) strtol(optarg, NULL, 10);
                         break;
                 case 0x13: /* test_message_size */
-                        tester_config->message_latency_test.size = (int)strtol(optarg, NULL, 10);
+                        tester_config->message_latency_test.size = (int) strtol(optarg, NULL, 10);
                         break;
                 case 0x14: /* test_output_path */
                         tester_config->output_path = duplicate_string(optarg);
@@ -328,16 +336,17 @@ int parse_cli_arguments(application_config *app_config, proxy_backend_config *pr
                         }
                         break;
                 case 0x18: // management
-                {
-                        *mgmt_config_path = duplicate_string(optarg);
-                        if (*mgmt_config_path == NULL)
                         {
-                                LOG_ERROR("unable to allocate memory for management file path");
+                                *mgmt_config_path = duplicate_string(optarg);
+                                if (*mgmt_config_path == NULL)
+                                {
+                                        LOG_ERROR("unable to allocate memory for "
+                                                  "management file path");
 
-                                return -1;
+                                        return -1;
+                                }
+                                break;
                         }
-                        break;
-                }
                 case 'v': /* verbose */
                         app_config->log_level = LOG_LVL_INFO;
                         break;
@@ -353,8 +362,7 @@ int parse_cli_arguments(application_config *app_config, proxy_backend_config *pr
                         return 1;
                 }
         }
-        if ((app_config->role == ROLE_MANAGEMENT_CLIENT) &&
-            (*mgmt_config_path != NULL))
+        if ((app_config->role == ROLE_MANAGEMENT_CLIENT) && (*mgmt_config_path != NULL))
                 return 0;
 
         /* Read certificates */
@@ -457,8 +465,7 @@ int parse_cli_arguments(application_config *app_config, proxy_backend_config *pr
                         free(incoming_ip);
                 }
         }
-        else if ((app_config->role == ROLE_REVERSE_PROXY) ||
-                 (app_config->role == ROLE_FORWARD_PROXY))
+        else if ((app_config->role == ROLE_REVERSE_PROXY) || (app_config->role == ROLE_FORWARD_PROXY))
         {
                 proxy_backend_config->log_level = app_config->log_level;
 
@@ -474,15 +481,18 @@ int parse_cli_arguments(application_config *app_config, proxy_backend_config *pr
 }
 
 /* Cleanup any structures created during argument parsing */
-void arguments_cleanup(application_config *app_config, proxy_backend_config *proxy_backend_config,
-                       proxy_config *proxy_config, echo_server_config *echo_server_config, char **management_file_path,
-                       network_tester_config *tester_config)
+void arguments_cleanup(application_config* app_config,
+                       proxy_backend_config* proxy_backend_config,
+                       proxy_config* proxy_config,
+                       echo_server_config* echo_server_config,
+                       char** management_file_path,
+                       network_tester_config* tester_config)
 {
         /* Nothing to clean here */
-        (void)app_config;
-        (void)proxy_backend_config;
+        (void) app_config;
+        (void) proxy_backend_config;
 
-        asl_endpoint_configuration *tls_config = NULL;
+        asl_endpoint_configuration* tls_config = NULL;
 
         if (app_config->role == ROLE_NETWORK_TESTER)
         {
@@ -542,47 +552,47 @@ void arguments_cleanup(application_config *app_config, proxy_backend_config *pro
         /* Free memory of certificates and private key */
         if (tls_config->device_certificate_chain.buffer != NULL)
         {
-                free((void *)tls_config->device_certificate_chain.buffer);
+                free((void*) tls_config->device_certificate_chain.buffer);
         }
 
         if (tls_config->private_key.buffer != NULL)
         {
-                free((void *)tls_config->private_key.buffer);
+                free((void*) tls_config->private_key.buffer);
         }
 
         if (tls_config->private_key.additional_key_buffer != NULL)
         {
-                free((void *)tls_config->private_key.additional_key_buffer);
+                free((void*) tls_config->private_key.additional_key_buffer);
         }
 
         if (tls_config->root_certificate.buffer != NULL)
         {
-                free((void *)tls_config->root_certificate.buffer);
+                free((void*) tls_config->root_certificate.buffer);
         }
 
         if (tls_config->pkcs11.long_term_crypto_module.path != NULL)
         {
-                free((void *)tls_config->pkcs11.long_term_crypto_module.path);
+                free((void*) tls_config->pkcs11.long_term_crypto_module.path);
         }
 
         if (tls_config->pkcs11.ephemeral_crypto_module.path != NULL)
         {
-                free((void *)tls_config->pkcs11.ephemeral_crypto_module.path);
+                free((void*) tls_config->pkcs11.ephemeral_crypto_module.path);
         }
 
         if (tls_config->keylog_file != NULL)
         {
-                free((void *)tls_config->keylog_file);
+                free((void*) tls_config->keylog_file);
         }
 }
 
 /* Helper method to dynamically duplicate a string */
-char *duplicate_string(char const *source)
+char* duplicate_string(char const* source)
 {
         if (source == NULL)
                 return NULL;
 
-        char *dest = (char *)malloc(strlen(source) + 1);
+        char* dest = (char*) malloc(strlen(source) + 1);
         if (dest == NULL)
         {
                 LOG_ERROR("unable to allocate memory for string duplication");
@@ -593,7 +603,7 @@ char *duplicate_string(char const *source)
         return dest;
 }
 
-static void set_defaults(application_config *app_config, certificates *certs)
+static void set_defaults(application_config* app_config, certificates* certs)
 {
         /* Certificates */
         certs->certificate_path = NULL;
@@ -615,56 +625,89 @@ static void set_defaults(application_config *app_config, certificates *certs)
         app_config->log_level = LOG_LVL_WARN;
 }
 
-static void print_help(char const *name)
+static void print_help(char const* name)
 {
         printf("Usage: %s ROLE [OPTIONS]\r\n", name);
         printf("Roles:\r\n");
-        printf("  reverse_proxy                      TLS reverse proxy (use \"--incoming\" and \"--outgoing\" for connection configuration)\r\n");
-        printf("  forward_proxy                      TLS forward proxy (use \"--incoming\" and \"--outgoing\" for connection configuration)\r\n");
-        printf("  echo_server                        TLS echo server (use \"--incoming\" for connection configuration)\r\n");
-        printf("  echo_server_proxy                  TLS echo server via reverse proxy (use \"--incoming\" for connection configuration)\r\n");
-        printf("  tls_client                         TLS stdin client (use \"--outgoing\" for connection configuration)\r\n");
-        printf("  network_tester                     TLS network tester (use \"--outgoing\" for connection configuration)\r\n");
-        printf("  network_tester_proxy               TLS network tester via forward proxy (use \"--outgoing\" for connection configuration)\r\n");
-        printf("  management_client                  Management Client (use \"--mgmt_path to provide config file path)\r\n");
+        printf("  reverse_proxy                      TLS reverse proxy (use \"--incoming\" and "
+               "\"--outgoing\" for connection configuration)\r\n");
+        printf("  forward_proxy                      TLS forward proxy (use \"--incoming\" and "
+               "\"--outgoing\" for connection configuration)\r\n");
+        printf("  echo_server                        TLS echo server (use \"--incoming\" for "
+               "connection configuration)\r\n");
+        printf("  echo_server_proxy                  TLS echo server via reverse proxy (use "
+               "\"--incoming\" for connection configuration)\r\n");
+        printf("  tls_client                         TLS stdin client (use \"--outgoing\" for "
+               "connection configuration)\r\n");
+        printf("  network_tester                     TLS network tester (use \"--outgoing\" for "
+               "connection configuration)\r\n");
+        printf("  network_tester_proxy               TLS network tester via forward proxy (use "
+               "\"--outgoing\" for connection configuration)\r\n");
+        printf("  management_client                  Management Client (use \"--mgmt_path to "
+               "provide config file path)\r\n");
 
         printf("\nConnection configuration:\r\n");
-        printf("  --incoming <ip:>port               Configuration of the incoming TCP/TLS connection\r\n");
-        printf("  --outgoing ip:port                 Configuration of the outgoing TCP/TLS connection\r\n");
+        printf("  --incoming <ip:>port               Configuration of the incoming TCP/TLS "
+               "connection\r\n");
+        printf("  --outgoing ip:port                 Configuration of the outgoing TCP/TLS "
+               "connection\r\n");
 
         printf("\nCertificate/Key configuration:\r\n");
         printf("  --cert file_path                   Path to the certificate file\r\n");
         printf("  --key file_path                    Path to the private key file\r\n");
         printf("  --intermediate file_path           Path to an intermediate certificate file\r\n");
         printf("  --root file_path                   Path to the root certificate file\r\n");
-        printf("  --additional_key file_path         Path to an additional private key file (hybrid signature mode)\r\n");
+        printf("  --additional_key file_path         Path to an additional private key file "
+               "(hybrid signature mode)\r\n");
 
         printf("\nSecurity configuration:\r\n");
-        printf("  --no_mutual_auth                   Disable mutual authentication (default enabled)\r\n");
-        printf("  --use_null_cipher                  Use a cleartext cipher without encryption (default disabled)\r\n");
-        printf("  --hybrid_signature mode            Mode for hybrid signatures: \"both\", \"native\", \"alternative\" (default: \"both\")\r\n");
-        printf("  --key_exchange_alg algorithm       Key exchange algorithm: (default: \"secp384_mlkem768\")\r\n");
-        printf("                                        Classic: \"secp256\", \"secp384\", \"secp521\", \"x25519\", \"x448\"\r\n");
-        printf("                                        PQC: \"mlkem512\", \"mlkem768\", \"mlkem1024\"\r\n");
-        printf("                                        Hybrid: \"secp256_mlkem512\", \"secp384_mlkem768\", \"secp256_mlkem768\"\r\n");
-        printf("                                                \"secp521_mlkem1024\", \"secp384_mlkem1024\", \"x25519_mlkem512\"\r\n");
-        printf("                                                \"x448_mlkem768\", \"x25519_mlkem768\"\r\n");
+        printf("  --no_mutual_auth                   Disable mutual authentication (default "
+               "enabled)\r\n");
+        printf("  --use_null_cipher                  Use a cleartext cipher without encryption "
+               "(default disabled)\r\n");
+        printf("  --hybrid_signature mode            Mode for hybrid signatures: \"both\", "
+               "\"native\", \"alternative\" (default: \"both\")\r\n");
+        printf("  --key_exchange_alg algorithm       Key exchange algorithm: (default: "
+               "\"secp384_mlkem768\")\r\n");
+        printf("                                        Classic: \"secp256\", \"secp384\", "
+               "\"secp521\", \"x25519\", \"x448\"\r\n");
+        printf("                                        PQC: \"mlkem512\", \"mlkem768\", "
+               "\"mlkem1024\"\r\n");
+        printf("                                        Hybrid: \"secp256_mlkem512\", "
+               "\"secp384_mlkem768\", \"secp256_mlkem768\"\r\n");
+        printf("                                                \"secp521_mlkem1024\", "
+               "\"secp384_mlkem1024\", \"x25519_mlkem512\"\r\n");
+        printf("                                                \"x448_mlkem768\", "
+               "\"x25519_mlkem768\"\r\n");
 
         printf("\nPKCS#11:\r\n");
-        printf("  When using a secure element for long-term key storage, you have to supply the PKCS#11 key labels using the\n");
-        printf("  arguments \"--key\" and \"--additionalKey\", prepending the string \"%s\" followed by the key label.\r\n", PKCS11_LABEL_IDENTIFIER);
-        printf("  --p11_long_term_module file_path   Path to the secure element middleware for long-term key storage\r\n");
-        printf("  --p11_long_term_pin pin            PIN for the secure element (default empty)\r\n");
-        printf("  --p11_ephemeral_module file_path   Path to the PKCS#11 module for ephemeral cryptography\r\n");
+        printf("  When using a secure element for long-term key storage, you have to supply the "
+               "PKCS#11 key labels using the\n");
+        printf("  arguments \"--key\" and \"--additionalKey\", prepending the string \"%s\" "
+               "followed by the key label.\r\n",
+               PKCS11_LABEL_IDENTIFIER);
+        printf("  --p11_long_term_module file_path   Path to the secure element middleware for "
+               "long-term key storage\r\n");
+        printf("  --p11_long_term_pin pin            PIN for the secure element (default "
+               "empty)\r\n");
+        printf("  --p11_ephemeral_module file_path   Path to the PKCS#11 module for ephemeral "
+               "cryptography\r\n");
 
         printf("\nNetwork tester configuration:\r\n");
-        printf("  --test_num_handshakes num          Number of handshakes to perform in the test (default 1)\r\n");
-        printf("  --test_handshake_delay num_ms      Delay between handshakes in milliseconds (default 0)\r\n");
-        printf("  --test_num_messages num            Number of echo messages to send per handshake iteration (default 0)\r\n");
-        printf("  --test_message_delay num_us        Delay between messages in microseconds (default 0)\r\n");
-        printf("  --test_message_size num            Size of the echo message in bytes (default 1)\r\n");
-        printf("  --test_output_path path            Path to the output file (filename will be appended)\r\n");
-        printf("  --test_no_tls                      Disable TLS for test (plain TCP; default disabled)\r\n");
+        printf("  --test_num_handshakes num          Number of handshakes to perform in the test "
+               "(default 1)\r\n");
+        printf("  --test_handshake_delay num_ms      Delay between handshakes in milliseconds "
+               "(default 0)\r\n");
+        printf("  --test_num_messages num            Number of echo messages to send per handshake "
+               "iteration (default 0)\r\n");
+        printf("  --test_message_delay num_us        Delay between messages in microseconds "
+               "(default 0)\r\n");
+        printf("  --test_message_size num            Size of the echo message in bytes (default "
+               "1)\r\n");
+        printf("  --test_output_path path            Path to the output file (filename will be "
+               "appended)\r\n");
+        printf("  --test_no_tls                      Disable TLS for test (plain TCP; default "
+               "disabled)\r\n");
         printf("  --test_silent                      Disable progress printing\r\n");
 
         printf("\nManagement:\r\n");
@@ -675,11 +718,9 @@ static void print_help(char const *name)
         printf("  --verbose                          Enable verbose output\r\n");
         printf("  --debug                            Enable debug output\r\n");
         printf("  --help                             Display this help and exit\r\n");
-
-
 }
 
-static int is_numeric(char const *str)
+static int is_numeric(char const* str)
 {
         while (*str)
         {
@@ -691,7 +732,7 @@ static int is_numeric(char const *str)
         return 1;
 }
 
-static int parse_ip_address(char *input, char **ip, uint16_t *port)
+static int parse_ip_address(char* input, char** ip, uint16_t* port)
 {
         /* Search for the first colon.
          *
@@ -709,7 +750,7 @@ static int parse_ip_address(char *input, char **ip, uint16_t *port)
          * Rough code at the momemt, but it works for now...
          * ToDo: Refactor this code to make it more readable and maintainable.
          */
-        char *first_colon = strchr(input, ':');
+        char* first_colon = strchr(input, ':');
 
         if (first_colon == NULL)
         {
@@ -737,7 +778,7 @@ static int parse_ip_address(char *input, char **ip, uint16_t *port)
                                 LOG_ERROR("invalid port number %lu", new_port);
                                 return -1;
                         }
-                        *port = (uint16_t)new_port;
+                        *port = (uint16_t) new_port;
                 }
                 else
                 {
@@ -753,7 +794,7 @@ static int parse_ip_address(char *input, char **ip, uint16_t *port)
         }
         else
         {
-                char *last_colon = strchr(first_colon + 1, ':');
+                char* last_colon = strchr(first_colon + 1, ':');
 
                 if (last_colon == NULL)
                 {
@@ -772,14 +813,14 @@ static int parse_ip_address(char *input, char **ip, uint16_t *port)
                                 LOG_ERROR("invalid port number %lu", new_port);
                                 return -1;
                         }
-                        *port = (uint16_t)new_port;
+                        *port = (uint16_t) new_port;
                 }
                 else
                 {
                         /* Third case */
 
                         /* Move to the last colon*/
-                        char *tmp = last_colon;
+                        char* tmp = last_colon;
                         while ((tmp = strchr(tmp + 1, ':')) != NULL)
                         {
                                 last_colon = tmp;
@@ -808,7 +849,7 @@ static int parse_ip_address(char *input, char **ip, uint16_t *port)
                                         LOG_ERROR("invalid port number %lu", new_port);
                                         return -1;
                                 }
-                                *port = (uint16_t)new_port;
+                                *port = (uint16_t) new_port;
                         }
                         else
                         {
@@ -818,7 +859,9 @@ static int parse_ip_address(char *input, char **ip, uint16_t *port)
                                 if (net_addr_pton(AF_INET6, input, &addr) == 1)
                                 {
                                         *last_colon = ':';
-                                        LOG_ERROR("missing square brackets around IPv6 address before port: %s", input);
+                                        LOG_ERROR("missing square brackets around IPv6 address "
+                                                  "before port: %s",
+                                                  input);
                                         return -1;
                                 }
                                 *last_colon = ':';
@@ -838,12 +881,12 @@ static int parse_ip_address(char *input, char **ip, uint16_t *port)
         return 0;
 }
 
-static int readFile(const char *filePath, uint8_t **buffer, size_t bufferSize)
+static int readFile(const char* filePath, uint8_t** buffer, size_t bufferSize)
 {
-        uint8_t *destination = NULL;
+        uint8_t* destination = NULL;
 
         /* Open the file */
-        FILE *file = fopen(filePath, "rb");
+        FILE* file = fopen(filePath, "rb");
 
         if (file == NULL)
         {
@@ -859,12 +902,12 @@ static int readFile(const char *filePath, uint8_t **buffer, size_t bufferSize)
         /* Allocate buffer for file content */
         if (*buffer == NULL && bufferSize == 0)
         {
-                *buffer = (uint8_t *)malloc(fileSize);
+                *buffer = (uint8_t*) malloc(fileSize);
                 destination = *buffer;
         }
         else if (*buffer != NULL && bufferSize > 0)
         {
-                *buffer = (uint8_t *)realloc(*buffer, bufferSize + fileSize);
+                *buffer = (uint8_t*) realloc(*buffer, bufferSize + fileSize);
                 destination = *buffer + bufferSize;
         }
 
@@ -899,13 +942,12 @@ static int readFile(const char *filePath, uint8_t **buffer, size_t bufferSize)
  * and must be freed by the user.
  *
  * Returns 0 on success, -1 on failure (error is printed on console). */
-static int read_certificates(struct certificates *certs, enum application_role role)
+static int read_certificates(struct certificates* certs, enum application_role role)
 {
         /* Read certificate chain */
         if (certs->certificate_path != NULL)
         {
-                int cert_size = readFile(certs->certificate_path,
-                                         &certs->chain_buffer, 0);
+                int cert_size = readFile(certs->certificate_path, &certs->chain_buffer, 0);
                 if (cert_size < 0)
                 {
                         LOG_ERROR("unable to read certificate from file %s", certs->certificate_path);
@@ -917,10 +959,12 @@ static int read_certificates(struct certificates *certs, enum application_role r
                 if (certs->intermediate_path != NULL)
                 {
                         int inter_size = readFile(certs->intermediate_path,
-                                                  &certs->chain_buffer, cert_size);
+                                                  &certs->chain_buffer,
+                                                  cert_size);
                         if (inter_size < 0)
                         {
-                                LOG_ERROR("unable to read intermediate certificate from file %s", certs->intermediate_path);
+                                LOG_ERROR("unable to read intermediate certificate from file %s",
+                                          certs->intermediate_path);
                                 goto error;
                         }
 
@@ -936,9 +980,11 @@ static int read_certificates(struct certificates *certs, enum application_role r
         /* Read private key */
         if (certs->private_key_path != 0)
         {
-                if (strncmp(certs->private_key_path, PKCS11_LABEL_IDENTIFIER, PKCS11_LABEL_IDENTIFIER_LEN) == 0)
+                if (strncmp(certs->private_key_path,
+                            PKCS11_LABEL_IDENTIFIER,
+                            PKCS11_LABEL_IDENTIFIER_LEN) == 0)
                 {
-                        certs->key_buffer = (uint8_t *)duplicate_string(certs->private_key_path);
+                        certs->key_buffer = (uint8_t*) duplicate_string(certs->private_key_path);
                         if (certs->key_buffer == NULL)
                         {
                                 LOG_ERROR("unable to allocate memory for key label");
@@ -948,11 +994,11 @@ static int read_certificates(struct certificates *certs, enum application_role r
                 }
                 else
                 {
-                        int key_size = readFile(certs->private_key_path,
-                                                &certs->key_buffer, 0);
+                        int key_size = readFile(certs->private_key_path, &certs->key_buffer, 0);
                         if (key_size < 0)
                         {
-                                LOG_ERROR("unable to read private key from file %s", certs->private_key_path);
+                                LOG_ERROR("unable to read private key from file %s",
+                                          certs->private_key_path);
                                 goto error;
                         }
 
@@ -968,9 +1014,12 @@ static int read_certificates(struct certificates *certs, enum application_role r
         /* Read addtional private key */
         if (certs->additional_key_path != 0)
         {
-                if (strncmp(certs->additional_key_path, PKCS11_LABEL_IDENTIFIER, PKCS11_LABEL_IDENTIFIER_LEN) == 0)
+                if (strncmp(certs->additional_key_path,
+                            PKCS11_LABEL_IDENTIFIER,
+                            PKCS11_LABEL_IDENTIFIER_LEN) == 0)
                 {
-                        certs->additional_key_buffer = (uint8_t *)duplicate_string(certs->additional_key_path);
+                        certs->additional_key_buffer = (uint8_t*) duplicate_string(
+                                certs->additional_key_path);
                         if (certs->additional_key_buffer == NULL)
                         {
                                 LOG_ERROR("unable to allocate memory for key label");
@@ -981,10 +1030,12 @@ static int read_certificates(struct certificates *certs, enum application_role r
                 else
                 {
                         int key_size = readFile(certs->additional_key_path,
-                                                &certs->additional_key_buffer, 0);
+                                                &certs->additional_key_buffer,
+                                                0);
                         if (key_size < 0)
                         {
-                                LOG_ERROR("unable to read private key from file %s", certs->additional_key_path);
+                                LOG_ERROR("unable to read private key from file %s",
+                                          certs->additional_key_path);
                                 goto error;
                         }
 
@@ -995,8 +1046,7 @@ static int read_certificates(struct certificates *certs, enum application_role r
         /* Read root certificate */
         if (certs->root_path != 0)
         {
-                int root_size = readFile(certs->root_path,
-                                         &certs->root_buffer, 0);
+                int root_size = readFile(certs->root_path, &certs->root_buffer, 0);
                 if (root_size < 0)
                 {
                         LOG_ERROR("unable to read root certificate from file %s", certs->root_path);

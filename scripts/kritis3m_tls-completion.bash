@@ -1,71 +1,68 @@
-#/usr/bin/env bash
+#!/usr/bin/env bash
 
 # Help print
 #
 # Usage: kritis3m_tls ROLE [OPTIONS]
 # Roles:
-#   reverse_proxy                      TLS reverse proxy (use "--incoming" and "--outgoing" for connection configuration)
-#   forward_proxy                      TLS forward proxy (use "--incoming" and "--outgoing" for connection configuration)
-#   echo_server                        TLS echo server (use "--incoming" for connection configuration)
-#   echo_server_proxy                  TLS echo server via reverse proxy (use "--incoming" for connection configuration)
-#   tls_client                         TLS stdin client (use "--outgoing" for connection configuration)
-#   network_tester                     TLS network tester (use "--outgoing" for connection configuration)
-#   network_tester_proxy               TLS network tester via forward proxy (use "--outgoing" for connection configuration)
-#   management_client                  Management Client (use "--mgmt_path to provide config file path)
+#   reverse_proxy                  TLS reverse proxy (use "--incoming" and "--outgoing" for connection configuration)
+#   forward_proxy                  TLS forward proxy (use "--incoming" and "--outgoing" for connection configuration)
+#   echo_server                    TLS echo server (use "--incoming" for connection configuration)
+#   echo_server_proxy              TLS echo server via reverse proxy (use "--incoming" for connection configuration)
+#   tls_client                     TLS stdin client (use "--outgoing" for connection configuration)
+#   network_tester                 TLS network tester (use "--outgoing" for connection configuration)
+#   network_tester_proxy           TLS network tester via forward proxy (use "--outgoing" for connection configuration)
+#   management_client              Management Client (use "--mgmt_path to provide config file path)
 #
 # Connection configuration:
-#   --incoming <ip:>port               Configuration of the incoming TCP/TLS connection
-#   --outgoing ip:port                 Configuration of the outgoing TCP/TLS connection
+#   --incoming <ip:>port           Configuration of the incoming TCP/TLS connection
+#   --outgoing ip:port             Configuration of the outgoing TCP/TLS connection
 #
 # Certificate/Key configuration:
-#   --cert file_path                   Path to the certificate file
-#   --key file_path                    Path to the private key file
-#   --intermediate file_path           Path to an intermediate certificate file
-#   --root file_path                   Path to the root certificate file
-#   --additional_key file_path         Path to an additional private key file (hybrid signature mode)
+#   --cert file_path               Path to the certificate file
+#   --key file_path                Path to the private key file
+#   --intermediate file_path       Path to an intermediate certificate file
+#   --root file_path               Path to the root certificate file
+#   --additional_key file_path     Path to an additional private key file (hybrid certificate)
 #
 # Security configuration:
-#   --no_mutual_auth                   Disable mutual authentication (default enabled)
-#   --use_null_cipher                  Use a cleartext cipher without encryption (default disabled)
-#   --hybrid_signature mode            Mode for hybrid signatures: "both", "native", "alternative" (default: "both")
-#   --key_exchange_alg algorithm       Key exchange algorithm: (default: "secp384_mlkem768")
-#                                         Classic: "secp256", "secp384", "secp521", "x25519", "x448"
-#                                         PQC: "mlkem512", "mlkem768", "mlkem1024"
-#                                         Hybrid: "secp256_mlkem512", "secp384_mlkem768", "secp256_mlkem768"
-#                                                 "secp521_mlkem1024", "secp384_mlkem1024", "x25519_mlkem512"
-#                                                 "x448_mlkem768", "x25519_mlkem768"
+#   --no_mutual_auth               Disable mutual authentication (default enabled)
+#   --use_null_cipher              Use a cleartext cipher without encryption (default disabled)
+#   --hybrid_signature mode        Mode for hybrid signatures: "both", "native", "alternative" (default: "both")
+#   --key_exchange_alg algorithm   Key exchange algorithm: (default: "secp384_mlkem768")
+#                                     Classic: "secp256", "secp384", "secp521", "x25519", "x448"
+#                                     PQC: "mlkem512", "mlkem768", "mlkem1024"
+#                                     Hybrid: "secp256_mlkem512", "secp384_mlkem768", "secp256_mlkem768"
+#                                             "secp521_mlkem1024", "secp384_mlkem1024", "x25519_mlkem512"
+#                                             "x448_mlkem768", "x25519_mlkem768"
 #
 # PKCS#11:
 #   When using a secure element for long-term key storage, you have to supply the PKCS#11 key labels using the
 #   arguments "--key" and "--additionalKey", prepending the string "pkcs11:" followed by the key label.
-#   --p11_long_term_module file_path   Path to the secure element middleware for long-term key storage
-#   --p11_long_term_pin pin            PIN for the secure element (default empty)
-#   --p11_ephemeral_module file_path   Path to the PKCS#11 module for ephemeral cryptography
-#
+#   As an alternative, the file provided by "--key" and "--additionalKey" may also contain the key label with
+#   the same identifier before it. In this case, the label must be the first line of the file.
+#   --pkcs11_module file_path      Path to the secure element middleware for long-term key storage
+#   --pkcs11_pin pin               PIN for the secure element (default empty)
 #
 # Network tester configuration:
-#   --test_num_handshakes num          Number of handshakes to perform in the test (default 1)
-#   --test_handshake_delay num_ms      Delay between handshakes in milliseconds (default 0)
-#   --test_num_messages num            Number of echo messages to send per handshake iteration (default 0)
-#   --test_message_delay num_us        Delay between messages in microseconds (default 0)
-#   --test_message_size num            Size of the echo message in bytes (default 1)
-#   --test_output_path path            Path to the output file (filename will be appended)
-#   --test_no_tls                      Disable TLS for test (plain TCP; default disabled)
-#   --test_silent                      Disable progress printing
+#   --test_num_handshakes num      Number of handshakes to perform in the test (default 1)
+#   --test_handshake_delay num_ms  Delay between handshakes in milliseconds (default 0)
+#   --test_num_messages num        Number of echo messages to send per handshake iteration (default 0)
+#   --test_message_delay num_us    Delay between messages in microseconds (default 0)
+#   --test_message_size num        Size of the echo message in bytes (default 1)
+#   --test_output_path path        Path to the output file (filename will be appended)
+#   --test_no_tls                  Disable TLS for test (plain TCP; default disabled)
+#   --test_silent                  Disable progress printing
 #
 # Management:
-#   --mgmt_path                        Path to management config
+#   --mgmt_path                    Path to management config
 #
 # General:
-#   --keylog_file file_path            Path to the keylog file for Wireshark
-#   --verbose                          Enable verbose output
-#   --debug                            Enable debug output
-#   --help                             Display this help and exit
-#
+#   --keylog_file file_path        Path to the keylog file for Wireshark
+#   --verbose                      Enable verbose output
+#   --debug                        Enable debug output
+#   --help                         Display this help and exit
 
-
-_kritis3m_tls_completions()
-{
+_kritis3m_tls_completions() {
         local cur prev roles opts_connection opts_files opts_security opts_tester opts_general hybrid_modes kex_algos
 
         COMPREPLY=()
@@ -75,8 +72,8 @@ _kritis3m_tls_completions()
 
         roles="reverse_proxy forward_proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy management_client"
         opts_connection="--incoming --outgoing"
-        opts_files="--cert --key --intermediate --root --additional_key --p11_long_term_module --p11_ephemeral_module --keylog_file"
-        opts_security="--no_mutual_auth --use_null_cipher --hybrid_signature --key_exchange_alg --p11_long_term_pin"
+        opts_files="--cert --key --intermediate --root --additional_key --pkcs11_module --keylog_file"
+        opts_security="--no_mutual_auth --use_null_cipher --hybrid_signature --key_exchange_alg --pkcs11_pin"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
                         --test_output_path --test_no_tls --test_silent"
         opts_mgmt="--mgmt_path"
@@ -87,52 +84,52 @@ _kritis3m_tls_completions()
                    secp256_mlkem512 secp384_mlkem768 secp256_mlkem768 secp521_mlkem1024
                    secp384_mlkem1024 x25519_mlkem512 x448_mlkem768 x25519_mlkem768"
 
-        if [[ ${COMP_CWORD} -eq 1 ]] ; then
-                COMPREPLY=( $(compgen -W "${roles}" -- ${cur}) )
+        if [[ ${COMP_CWORD} -eq 1 ]]; then
+                COMPREPLY=($(compgen -W "${roles}" -- ${cur}))
                 return 0
         fi
 
         if [[ ${cur} == -* ]]; then
-                COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_mgmt} ${opts_general}" -- ${cur}) )
+                COMPREPLY=($(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_mgmt} ${opts_general}" -- ${cur}))
                 return 0
         fi
 
         case "${prev}" in
-                reverse_proxy|forward_proxy|echo_server|echo_server_proxy|tls_client|network_tester|network_tester_proxy|management_client)
-                        COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_mgmt} ${opts_general}" -- ${cur}) )
-                        return 0
-                        ;;
-                --incoming|--outgoing)
-                        COMPREPLY=( $(compgen -W "ip:port port" -- ${cur}) )
-                        return 0
-                        ;;
-                --cert|--key|--intermediate|--root|--additional_key|--p11_long_term_module|--p11_ephemeral_module|--keylog_file|--test_output_path|--mgmt_path)
-                        _filedir
-                        return 0
-                        ;;
-                --hybrid_signature)
-                        COMPREPLY=( $(compgen -W "${hybrid_modes}" -- ${cur}) )
-                        return 0
-                        ;;
-                --key_exchange_alg)
-                        COMPREPLY=( $(compgen -W "${kex_algos}" -- ${cur}) )
-                        return 0
-                        ;;
-                --no_mutual_auth|--use_null_cipher|--test_num_handshakes|--test_handshake_delay|--test_num_messages|--test_message_delay|--test_message_size| \
-                --test_no_tls|--test_silent|--p11_long_term_pin)
-                        # No specific completion
-                        COMPREPLY=()
-                        return 0
-                        ;;
-                *)
-                        COMPREPLY=( $(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_general}" -- ${cur}) )
-                        return 0
-                        ;;
+        reverse_proxy | forward_proxy | echo_server | echo_server_proxy | tls_client | network_tester | network_tester_proxy | management_client)
+                COMPREPLY=($(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_mgmt} ${opts_general}" -- ${cur}))
+                return 0
+                ;;
+        --incoming | --outgoing)
+                COMPREPLY=($(compgen -W "ip:port port" -- ${cur}))
+                return 0
+                ;;
+        --cert | --key | --intermediate | --root | --additional_key | --pkcs11_module | --keylog_file | --test_output_path | --mgmt_path)
+                _filedir
+                return 0
+                ;;
+        --hybrid_signature)
+                COMPREPLY=($(compgen -W "${hybrid_modes}" -- ${cur}))
+                return 0
+                ;;
+        --key_exchange_alg)
+                COMPREPLY=($(compgen -W "${kex_algos}" -- ${cur}))
+                return 0
+                ;;
+        --no_mutual_auth | --use_null_cipher | --test_num_handshakes | --test_handshake_delay | --test_num_messages | --test_message_delay | --test_message_size | \
+                --test_no_tls | --test_silent | --pkcs11_pin)
+                # No specific completion
+                COMPREPLY=()
+                return 0
+                ;;
+        *)
+                COMPREPLY=($(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_general}" -- ${cur}))
+                return 0
+                ;;
         esac
 }
 
 _proxy_helper_completions() {
-        local cur prev opts
+        local cur prev
         COMPREPLY=()
 
         _get_comp_words_by_ref -n : cur
@@ -158,7 +155,7 @@ _proxy_helper_completions() {
 }
 
 _endpoint_helper_completions() {
-        local cur prev opts
+        local cur prev
         COMPREPLY=()
 
         _get_comp_words_by_ref -n : cur

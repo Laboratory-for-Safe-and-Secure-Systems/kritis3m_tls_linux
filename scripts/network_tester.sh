@@ -5,11 +5,10 @@ if [ "$#" -lt 2 ]; then
 	exit 2
 fi
 
-
 echo -e "Starting KRITIS3M TLS network tester to $1 with certs in dir $2\r"
 kritis3m_tls network_tester \
-	--outgoing $1 \
-	--root $2/root/cert.pem \
-	--cert $2/client/chain.pem \
-	--key $2/client/privateKey.pem \
-	${@:3}
+	--outgoing "$1" \
+	--root "$2"/root.pem \
+	--cert "$2"/chain.pem \
+	--key "$2"/privateKey.pem \
+	"${@:3}"

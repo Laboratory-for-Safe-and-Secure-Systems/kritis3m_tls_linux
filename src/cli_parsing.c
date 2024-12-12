@@ -47,9 +47,8 @@ static const struct option cli_options[] = {
         {"hybrid_signature", required_argument, 0, 0x0A},
         {"key_exchange_alg", required_argument, 0, 0x0B},
 
-        {"p11_long_term_module", required_argument, 0, 0x0C},
-        {"p11_long_term_pin", required_argument, 0, 0x0D},
-        {"p11_ephemeral_module", required_argument, 0, 0x0E},
+        {"pkcs11_module", required_argument, 0, 0x0C},
+        {"pkcs11_pin", required_argument, 0, 0x0D},
 
         {"test_num_handshakes", required_argument, 0, 0x0F},
         {"test_handshake_delay", required_argument, 0, 0x10},
@@ -271,30 +270,21 @@ int parse_cli_arguments(application_config* app_config,
                                 tls_config.key_exchange_method = kex_algo;
                                 break;
                         }
-                case 0x0C: /* p11_long_term_module */
-                        tls_config.pkcs11.long_term_crypto_module.path = duplicate_string(optarg);
-                        if (tls_config.pkcs11.long_term_crypto_module.path == NULL)
+                case 0x0C: /* pkcs11_module */
+                        tls_config.pkcs11.module_path = duplicate_string(optarg);
+                        if (tls_config.pkcs11.module_path == NULL)
                         {
                                 LOG_ERROR("unable to allocate memory for PKCS#11 "
                                           "long-termin crypto module path");
                                 return -1;
                         }
                         break;
-                case 0x0D: /* p11_long_term_pin */
-                        tls_config.pkcs11.long_term_crypto_module.pin = duplicate_string(optarg);
-                        if (tls_config.pkcs11.long_term_crypto_module.pin == NULL)
+                case 0x0D: /* pkcs11_pin */
+                        tls_config.pkcs11.module_pin = duplicate_string(optarg);
+                        if (tls_config.pkcs11.module_pin == NULL)
                         {
                                 LOG_ERROR("unable to allocate memory for PKCS#11 long-term "
                                           "crypto module pin");
-                                return -1;
-                        }
-                        break;
-                case 0x0E: /* p11_ephemeral_module */
-                        tls_config.pkcs11.ephemeral_crypto_module.path = duplicate_string(optarg);
-                        if (tls_config.pkcs11.ephemeral_crypto_module.path == NULL)
-                        {
-                                LOG_ERROR("unable to allocate memory for PKCS#11 ephemeral "
-                                          "crypto module path");
                                 return -1;
                         }
                         break;
@@ -570,14 +560,9 @@ void arguments_cleanup(application_config* app_config,
                 free((void*) tls_config->root_certificate.buffer);
         }
 
-        if (tls_config->pkcs11.long_term_crypto_module.path != NULL)
+        if (tls_config->pkcs11.module_path != NULL)
         {
-                free((void*) tls_config->pkcs11.long_term_crypto_module.path);
-        }
-
-        if (tls_config->pkcs11.ephemeral_crypto_module.path != NULL)
-        {
-                free((void*) tls_config->pkcs11.ephemeral_crypto_module.path);
+                free((void*) tls_config->pkcs11.module_path);
         }
 
         if (tls_config->keylog_file != NULL)
@@ -627,97 +612,67 @@ static void set_defaults(application_config* app_config, certificates* certs)
 
 static void print_help(char const* name)
 {
+        /* clang-format off */
         printf("Usage: %s ROLE [OPTIONS]\r\n", name);
         printf("Roles:\r\n");
-        printf("  reverse_proxy                      TLS reverse proxy (use \"--incoming\" and "
-               "\"--outgoing\" for connection configuration)\r\n");
-        printf("  forward_proxy                      TLS forward proxy (use \"--incoming\" and "
-               "\"--outgoing\" for connection configuration)\r\n");
-        printf("  echo_server                        TLS echo server (use \"--incoming\" for "
-               "connection configuration)\r\n");
-        printf("  echo_server_proxy                  TLS echo server via reverse proxy (use "
-               "\"--incoming\" for connection configuration)\r\n");
-        printf("  tls_client                         TLS stdin client (use \"--outgoing\" for "
-               "connection configuration)\r\n");
-        printf("  network_tester                     TLS network tester (use \"--outgoing\" for "
-               "connection configuration)\r\n");
-        printf("  network_tester_proxy               TLS network tester via forward proxy (use "
-               "\"--outgoing\" for connection configuration)\r\n");
-        printf("  management_client                  Management Client (use \"--mgmt_path to "
-               "provide config file path)\r\n");
+        printf("  reverse_proxy                  TLS reverse proxy (use \"--incoming\" and \"--outgoing\" for connection configuration)\r\n");
+        printf("  forward_proxy                  TLS forward proxy (use \"--incoming\" and \"--outgoing\" for connection configuration)\r\n");
+        printf("  echo_server                    TLS echo server (use \"--incoming\" for connection configuration)\r\n");
+        printf("  echo_server_proxy              TLS echo server via reverse proxy (use \"--incoming\" for connection configuration)\r\n");
+        printf("  tls_client                     TLS stdin client (use \"--outgoing\" for connection configuration)\r\n");
+        printf("  network_tester                 TLS network tester (use \"--outgoing\" for connection configuration)\r\n");
+        printf("  network_tester_proxy           TLS network tester via forward proxy (use \"--outgoing\" for connection configuration)\r\n");
+        printf("  management_client              Management Client (use \"--mgmt_path to provide config file path)\r\n");
 
         printf("\nConnection configuration:\r\n");
-        printf("  --incoming <ip:>port               Configuration of the incoming TCP/TLS "
-               "connection\r\n");
-        printf("  --outgoing ip:port                 Configuration of the outgoing TCP/TLS "
-               "connection\r\n");
+        printf("  --incoming <ip:>port           Configuration of the incoming TCP/TLS connection\r\n");
+        printf("  --outgoing ip:port             Configuration of the outgoing TCP/TLS connection\r\n");
 
         printf("\nCertificate/Key configuration:\r\n");
-        printf("  --cert file_path                   Path to the certificate file\r\n");
-        printf("  --key file_path                    Path to the private key file\r\n");
-        printf("  --intermediate file_path           Path to an intermediate certificate file\r\n");
-        printf("  --root file_path                   Path to the root certificate file\r\n");
-        printf("  --additional_key file_path         Path to an additional private key file "
-               "(hybrid signature mode)\r\n");
+        printf("  --cert file_path               Path to the certificate file\r\n");
+        printf("  --key file_path                Path to the private key file\r\n");
+        printf("  --intermediate file_path       Path to an intermediate certificate file\r\n");
+        printf("  --root file_path               Path to the root certificate file\r\n");
+        printf("  --additional_key file_path     Path to an additional private key file (hybrid certificate)\r\n");
 
         printf("\nSecurity configuration:\r\n");
-        printf("  --no_mutual_auth                   Disable mutual authentication (default "
-               "enabled)\r\n");
-        printf("  --use_null_cipher                  Use a cleartext cipher without encryption "
-               "(default disabled)\r\n");
-        printf("  --hybrid_signature mode            Mode for hybrid signatures: \"both\", "
-               "\"native\", \"alternative\" (default: \"both\")\r\n");
-        printf("  --key_exchange_alg algorithm       Key exchange algorithm: (default: "
-               "\"secp384_mlkem768\")\r\n");
-        printf("                                        Classic: \"secp256\", \"secp384\", "
-               "\"secp521\", \"x25519\", \"x448\"\r\n");
-        printf("                                        PQC: \"mlkem512\", \"mlkem768\", "
-               "\"mlkem1024\"\r\n");
-        printf("                                        Hybrid: \"secp256_mlkem512\", "
-               "\"secp384_mlkem768\", \"secp256_mlkem768\"\r\n");
-        printf("                                                \"secp521_mlkem1024\", "
-               "\"secp384_mlkem1024\", \"x25519_mlkem512\"\r\n");
-        printf("                                                \"x448_mlkem768\", "
-               "\"x25519_mlkem768\"\r\n");
+        printf("  --no_mutual_auth               Disable mutual authentication (default enabled)\r\n");
+        printf("  --use_null_cipher              Use a cleartext cipher without encryption (default disabled)\r\n");
+        printf("  --hybrid_signature mode        Mode for hybrid signatures: \"both\", \"native\", \"alternative\" (default: \"both\")\r\n");
+        printf("  --key_exchange_alg algorithm   Key exchange algorithm: (default: \"secp384_mlkem768\")\r\n");
+        printf("                                    Classic: \"secp256\", \"secp384\", \"secp521\", \"x25519\", \"x448\"\r\n");
+        printf("                                    PQC: \"mlkem512\", \"mlkem768\", \"mlkem1024\"\r\n");
+        printf("                                    Hybrid: \"secp256_mlkem512\", \"secp384_mlkem768\", \"secp256_mlkem768\"\r\n");
+        printf("                                            \"secp521_mlkem1024\", \"secp384_mlkem1024\", \"x25519_mlkem512\"\r\n");
+        printf("                                            \"x448_mlkem768\", \"x25519_mlkem768\"\r\n");
 
         printf("\nPKCS#11:\r\n");
-        printf("  When using a secure element for long-term key storage, you have to supply the "
-               "PKCS#11 key labels using the\n");
-        printf("  arguments \"--key\" and \"--additionalKey\", prepending the string \"%s\" "
-               "followed by the key label.\r\n",
-               PKCS11_LABEL_IDENTIFIER);
-        printf("  --p11_long_term_module file_path   Path to the secure element middleware for "
-               "long-term key storage\r\n");
-        printf("  --p11_long_term_pin pin            PIN for the secure element (default "
-               "empty)\r\n");
-        printf("  --p11_ephemeral_module file_path   Path to the PKCS#11 module for ephemeral "
-               "cryptography\r\n");
+        printf("  When using a secure element for long-term key storage, you have to supply the PKCS#11 key labels using the\n");
+        printf("  arguments \"--key\" and \"--additionalKey\", prepending the string \"%s\" followed by the key label.\r\n", PKCS11_LABEL_IDENTIFIER);
+        printf("  As an alternative, the file provided by \"--key\" and \"--additionalKey\" may also contain the key label with\r\n");
+        printf("  the same identifier before it. In this case, the label must be the first line of the file.\r\n");
+        printf("  --pkcs11_module file_path      Path to the secure element middleware for long-term key storage\r\n");
+        printf("  --pkcs11_pin pin               PIN for the secure element (default empty)\r\n");
 
         printf("\nNetwork tester configuration:\r\n");
-        printf("  --test_num_handshakes num          Number of handshakes to perform in the test "
-               "(default 1)\r\n");
-        printf("  --test_handshake_delay num_ms      Delay between handshakes in milliseconds "
-               "(default 0)\r\n");
-        printf("  --test_num_messages num            Number of echo messages to send per handshake "
-               "iteration (default 0)\r\n");
-        printf("  --test_message_delay num_us        Delay between messages in microseconds "
-               "(default 0)\r\n");
-        printf("  --test_message_size num            Size of the echo message in bytes (default "
-               "1)\r\n");
-        printf("  --test_output_path path            Path to the output file (filename will be "
-               "appended)\r\n");
-        printf("  --test_no_tls                      Disable TLS for test (plain TCP; default "
-               "disabled)\r\n");
-        printf("  --test_silent                      Disable progress printing\r\n");
+        printf("  --test_num_handshakes num      Number of handshakes to perform in the test (default 1)\r\n");
+        printf("  --test_handshake_delay num_ms  Delay between handshakes in milliseconds (default 0)\r\n");
+        printf("  --test_num_messages num        Number of echo messages to send per handshake iteration (default 0)\r\n");
+        printf("  --test_message_delay num_us    Delay between messages in microseconds (default 0)\r\n");
+        printf("  --test_message_size num        Size of the echo message in bytes (default 1)\r\n");
+        printf("  --test_output_path path        Path to the output file (filename will be appended)\r\n");
+        printf("  --test_no_tls                  Disable TLS for test (plain TCP; default disabled)\r\n");
+        printf("  --test_silent                  Disable progress printing\r\n");
 
         printf("\nManagement:\r\n");
-        printf("  --mgmt_path                        Path to management config\r\n");
+        printf("  --mgmt_path                    Path to management config\r\n");
 
         printf("\nGeneral:\r\n");
-        printf("  --keylog_file file_path            Path to the keylog file for Wireshark\r\n");
-        printf("  --verbose                          Enable verbose output\r\n");
-        printf("  --debug                            Enable debug output\r\n");
-        printf("  --help                             Display this help and exit\r\n");
+        printf("  --keylog_file file_path        Path to the keylog file for Wireshark\r\n");
+        printf("  --verbose                      Enable verbose output\r\n");
+        printf("  --debug                        Enable debug output\r\n");
+        printf("  --help                         Display this help and exit\r\n");
+        /* clang-format on */
 }
 
 static int is_numeric(char const* str)

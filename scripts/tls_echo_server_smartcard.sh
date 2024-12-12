@@ -5,12 +5,11 @@ if [ "$#" -lt 4 ]; then
 	exit 2
 fi
 
-
 echo -e "Starting KRITIS3M TLS server on port $1 with certs in dir $2\r"
 kritis3m_tls echo_server \
-	--incoming $1 \
-	--root $2/root/cert.pem \
-	--cert $2/server/chain.pem \
-	--key pkcs11:$3 \
-	--p11_long_term_module $4 \
-	${@:5}
+	--incoming "$1" \
+	--root "$2"/root.pem \
+	--cert "$2"/chain.pem \
+	--key pkcs11:"$3" \
+	--pkcs11_module "$4" \
+	"${@:5}"

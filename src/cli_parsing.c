@@ -49,6 +49,7 @@ static const struct option cli_options[] = {
 
         {"pkcs11_module", required_argument, 0, 0x0C},
         {"pkcs11_pin", required_argument, 0, 0x0D},
+        {"pkcs11_crypto_all", no_argument, 0, 0x0E},
 
         {"test_num_handshakes", required_argument, 0, 0x0F},
         {"test_handshake_delay", required_argument, 0, 0x10},
@@ -274,8 +275,7 @@ int parse_cli_arguments(application_config* app_config,
                         tls_config.pkcs11.module_path = duplicate_string(optarg);
                         if (tls_config.pkcs11.module_path == NULL)
                         {
-                                LOG_ERROR("unable to allocate memory for PKCS#11 "
-                                          "long-termin crypto module path");
+                                LOG_ERROR("unable to allocate memory for PKCS#11 module path");
                                 return -1;
                         }
                         break;
@@ -283,10 +283,12 @@ int parse_cli_arguments(application_config* app_config,
                         tls_config.pkcs11.module_pin = duplicate_string(optarg);
                         if (tls_config.pkcs11.module_pin == NULL)
                         {
-                                LOG_ERROR("unable to allocate memory for PKCS#11 long-term "
-                                          "crypto module pin");
+                                LOG_ERROR("unable to allocate memory for PKCS#11 module pin");
                                 return -1;
                         }
+                        break;
+                case 0x0E: /* pkcs11_crypto_all */
+                        tls_config.pkcs11.use_for_all = true;
                         break;
                 case 0x0F: /* test_num_handshakes */
                         tester_config->handshake_test.iterations = (int) strtol(optarg, NULL, 10);
@@ -653,6 +655,7 @@ static void print_help(char const* name)
         printf("  the same identifier before it. In this case, the label must be the first line of the file.\r\n");
         printf("  --pkcs11_module file_path      Path to the secure element middleware for long-term key storage\r\n");
         printf("  --pkcs11_pin pin               PIN for the secure element (default empty)\r\n");
+        printf("  --pkcs11_crypto_all            Use the PKCS#11 module for all supported crypto operations (default disabled)\r\n");
 
         printf("\nNetwork tester configuration:\r\n");
         printf("  --test_num_handshakes num      Number of handshakes to perform in the test (default 1)\r\n");

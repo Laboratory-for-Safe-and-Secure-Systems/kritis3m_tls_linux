@@ -1,36 +1,14 @@
-#include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "cli_parsing.h"
+#include "io.h"
 #include "logging.h"
 #include "networking.h"
 
-#include "cli_parsing.h"
-
 LOG_MODULE_CREATE(cli_parsing);
-
-typedef struct certificates
-{
-        char const* certificate_path;
-        char const* private_key_path;
-        char const* additional_key_path;
-        char const* intermediate_path;
-        char const* root_path;
-
-        uint8_t* chain_buffer; /* Entity and intermediate certificates */
-        size_t chain_buffer_size;
-
-        uint8_t* key_buffer;
-        size_t key_buffer_size;
-
-        uint8_t* additional_key_buffer;
-        size_t additional_key_buffer_size;
-
-        uint8_t* root_buffer;
-        size_t root_buffer_size;
-} certificates;
 
 static const struct option cli_options[] = {
         {"incoming", required_argument, 0, 0x01},
@@ -72,10 +50,7 @@ static const struct option cli_options[] = {
 };
 
 static void set_defaults(application_config* app_config, certificates* certs);
-static int read_certificates(certificates* certs, enum application_role role);
 static void print_help(char const* name);
-static int parse_ip_address(char* input, char** ip, uint16_t* port);
-static int readFile(const char* filePath, uint8_t** buffer, size_t bufferSize);
 
 /* Parse the provided argv array and store the information in the provided config variables.
  *
@@ -357,8 +332,21 @@ int parse_cli_arguments(application_config* app_config,
         if ((app_config->role == ROLE_MANAGEMENT_CLIENT) && (*mgmt_config_path != NULL))
                 return 0;
 
-        /* Read certificates */
-        if (read_certificates(&certs, app_config->role) != 0)
+        if (app_config->role == ROLE_REVERSE_PROXY || app_config->role == ROLE_ECHO_SERVER)
+        {
+                if (!certs.certificate_path)
+                {
+                        LOG_ERROR("certificate file missing");
+                        return -1;
+                }
+                else if (!certs.private_key_path)
+                {
+                        LOG_ERROR("private key file missing");
+                        return -1;
+                }
+        }
+
+        if (read_certificates(&certs) != 0)
         {
                 return -1;
         }
@@ -573,23 +561,6 @@ void arguments_cleanup(application_config* app_config,
         }
 }
 
-/* Helper method to dynamically duplicate a string */
-char* duplicate_string(char const* source)
-{
-        if (source == NULL)
-                return NULL;
-
-        char* dest = (char*) malloc(strlen(source) + 1);
-        if (dest == NULL)
-        {
-                LOG_ERROR("unable to allocate memory for string duplication");
-                return NULL;
-        }
-        strcpy(dest, source);
-
-        return dest;
-}
-
 static void set_defaults(application_config* app_config, certificates* certs)
 {
         /* Certificates */
@@ -676,356 +647,4 @@ static void print_help(char const* name)
         printf("  --debug                        Enable debug output\r\n");
         printf("  --help                         Display this help and exit\r\n");
         /* clang-format on */
-}
-
-static int is_numeric(char const* str)
-{
-        while (*str)
-        {
-                if (!isdigit(*str))
-                        return 0;
-                str++;
-        }
-
-        return 1;
-}
-
-static int parse_ip_address(char* input, char** ip, uint16_t* port)
-{
-        /* Search for the first colon.
-         *
-         * 1) If non is found, we have either only an IPv4 address, or only an URI, or
-         *    only a port number, e.g. "127.0.0.1", "localhost" or "4433".
-         *
-         * 2) If we only find a single colon, we have either an IPv4 address or an URI
-         *    with a port number, e.g. "127.0.0.1:4433" or "localhost:4433".
-         *
-         * 3) If we find multiple colons, we have an IPv6 address. In this case, we have
-         *    to check whether a port is also provided. If so, the IPv6 address must be
-         *    wrapped in square brackets, e.g. "[::1]:4433".
-         *    Otherwise, only an address is given, e.g. "::1".
-         *
-         * Rough code at the momemt, but it works for now...
-         * ToDo: Refactor this code to make it more readable and maintainable.
-         */
-        char* first_colon = strchr(input, ':');
-
-        if (first_colon == NULL)
-        {
-                /* First case */
-
-                struct in_addr addr;
-                if (net_addr_pton(AF_INET, input, &addr) == 1)
-                {
-                        /* We have an IPv4 address */
-                        *ip = duplicate_string(input);
-                        if (*ip == NULL)
-                        {
-                                LOG_ERROR("unable to allocate memory for IP address");
-                                return -1;
-                        }
-                        *port = 0;
-                }
-                else if (is_numeric(input))
-                {
-                        /* We have a port number */
-                        *ip = NULL;
-                        unsigned long new_port = strtoul(input, NULL, 10);
-                        if ((new_port == 0) || (new_port > 65535))
-                        {
-                                LOG_ERROR("invalid port number %lu", new_port);
-                                return -1;
-                        }
-                        *port = (uint16_t) new_port;
-                }
-                else
-                {
-                        /* We have an URI */
-                        *ip = duplicate_string(input);
-                        if (*ip == NULL)
-                        {
-                                LOG_ERROR("unable to allocate memory for IP address");
-                                return -1;
-                        }
-                        *port = 0;
-                }
-        }
-        else
-        {
-                char* last_colon = strchr(first_colon + 1, ':');
-
-                if (last_colon == NULL)
-                {
-                        /* Second case */
-
-                        *first_colon = '\0';
-                        *ip = duplicate_string(input);
-                        if (*ip == NULL)
-                        {
-                                LOG_ERROR("unable to allocate memory for IP address");
-                                return -1;
-                        }
-                        unsigned long new_port = strtoul(first_colon + 1, NULL, 10);
-                        if ((new_port == 0) || (new_port > 65535))
-                        {
-                                LOG_ERROR("invalid port number %lu", new_port);
-                                return -1;
-                        }
-                        *port = (uint16_t) new_port;
-                }
-                else
-                {
-                        /* Third case */
-
-                        /* Move to the last colon*/
-                        char* tmp = last_colon;
-                        while ((tmp = strchr(tmp + 1, ':')) != NULL)
-                        {
-                                last_colon = tmp;
-                        }
-
-                        if (*(last_colon - 1) == ']')
-                        {
-                                if (*input != '[')
-                                {
-                                        LOG_ERROR("invalid IPv6 address: %s", input);
-                                        return -1;
-                                }
-
-                                /* Port is given */
-                                *(last_colon - 1) = '\0';
-
-                                *ip = duplicate_string(input + 1);
-                                if (*ip == NULL)
-                                {
-                                        LOG_ERROR("unable to allocate memory for IP address");
-                                        return -1;
-                                }
-                                unsigned long new_port = strtoul(last_colon + 1, NULL, 10);
-                                if ((new_port == 0) || (new_port > 65535))
-                                {
-                                        LOG_ERROR("invalid port number %lu", new_port);
-                                        return -1;
-                                }
-                                *port = (uint16_t) new_port;
-                        }
-                        else
-                        {
-                                /* Check if the user wrongly provided a port without square brackets */
-                                *last_colon = '\0';
-                                struct in6_addr addr;
-                                if (net_addr_pton(AF_INET6, input, &addr) == 1)
-                                {
-                                        *last_colon = ':';
-                                        LOG_ERROR("missing square brackets around IPv6 address "
-                                                  "before port: %s",
-                                                  input);
-                                        return -1;
-                                }
-                                *last_colon = ':';
-
-                                /* No port given */
-                                *ip = duplicate_string(input);
-                                if (*ip == NULL)
-                                {
-                                        LOG_ERROR("unable to allocate memory for IP address");
-                                        return -1;
-                                }
-                                *port = 0;
-                        }
-                }
-        }
-
-        return 0;
-}
-
-static int readFile(const char* filePath, uint8_t** buffer, size_t bufferSize)
-{
-        uint8_t* destination = NULL;
-
-        /* Open the file */
-        FILE* file = fopen(filePath, "rb");
-
-        if (file == NULL)
-        {
-                LOG_ERROR("file (%s) cannot be opened", filePath);
-                return -1;
-        }
-
-        /* Get length of file */
-        fseek(file, 0, SEEK_END);
-        long fileSize = ftell(file);
-        rewind(file);
-
-        /* Allocate buffer for file content */
-        if (*buffer == NULL && bufferSize == 0)
-        {
-                *buffer = (uint8_t*) malloc(fileSize);
-                destination = *buffer;
-        }
-        else if (*buffer != NULL && bufferSize > 0)
-        {
-                *buffer = (uint8_t*) realloc(*buffer, bufferSize + fileSize);
-                destination = *buffer + bufferSize;
-        }
-
-        if (*buffer == NULL)
-        {
-                LOG_ERROR("unable to allocate memory for file contents of %s", filePath);
-                fclose(file);
-                return -1;
-        }
-
-        /* Read file to buffer */
-        int bytesRead = 0;
-        while (bytesRead < fileSize)
-        {
-                int read = fread(destination + bytesRead, sizeof(uint8_t), fileSize - bytesRead, file);
-                if (read < 0)
-                {
-                        LOG_ERROR("unable to read file (%s)", filePath);
-                        fclose(file);
-                        return -1;
-                }
-                bytesRead += read;
-        }
-
-        fclose(file);
-
-        return bytesRead;
-}
-
-/* Read all certificate and key files from the paths provided in the `certs`
- * structure and store the data in the buffers. Memory is allocated internally
- * and must be freed by the user.
- *
- * Returns 0 on success, -1 on failure (error is printed on console). */
-static int read_certificates(struct certificates* certs, enum application_role role)
-{
-        /* Read certificate chain */
-        if (certs->certificate_path != NULL)
-        {
-                int cert_size = readFile(certs->certificate_path, &certs->chain_buffer, 0);
-                if (cert_size < 0)
-                {
-                        LOG_ERROR("unable to read certificate from file %s", certs->certificate_path);
-                        goto error;
-                }
-
-                certs->chain_buffer_size = cert_size;
-
-                if (certs->intermediate_path != NULL)
-                {
-                        int inter_size = readFile(certs->intermediate_path,
-                                                  &certs->chain_buffer,
-                                                  cert_size);
-                        if (inter_size < 0)
-                        {
-                                LOG_ERROR("unable to read intermediate certificate from file %s",
-                                          certs->intermediate_path);
-                                goto error;
-                        }
-
-                        certs->chain_buffer_size += inter_size;
-                }
-        }
-        else if ((role == ROLE_REVERSE_PROXY) || (role == ROLE_ECHO_SERVER))
-        {
-                LOG_ERROR("no certificate file specified");
-                goto error;
-        }
-
-        /* Read private key */
-        if (certs->private_key_path != 0)
-        {
-                if (strncmp(certs->private_key_path,
-                            PKCS11_LABEL_IDENTIFIER,
-                            PKCS11_LABEL_IDENTIFIER_LEN) == 0)
-                {
-                        certs->key_buffer = (uint8_t*) duplicate_string(certs->private_key_path);
-                        if (certs->key_buffer == NULL)
-                        {
-                                LOG_ERROR("unable to allocate memory for key label");
-                                goto error;
-                        }
-                        certs->key_buffer_size = strlen(certs->private_key_path) + 1;
-                }
-                else
-                {
-                        int key_size = readFile(certs->private_key_path, &certs->key_buffer, 0);
-                        if (key_size < 0)
-                        {
-                                LOG_ERROR("unable to read private key from file %s",
-                                          certs->private_key_path);
-                                goto error;
-                        }
-
-                        certs->key_buffer_size = key_size;
-                }
-        }
-        else if ((role == ROLE_REVERSE_PROXY) || (role == ROLE_ECHO_SERVER))
-        {
-                LOG_ERROR("no private key file specified");
-                goto error;
-        }
-
-        /* Read addtional private key */
-        if (certs->additional_key_path != 0)
-        {
-                if (strncmp(certs->additional_key_path,
-                            PKCS11_LABEL_IDENTIFIER,
-                            PKCS11_LABEL_IDENTIFIER_LEN) == 0)
-                {
-                        certs->additional_key_buffer = (uint8_t*) duplicate_string(
-                                certs->additional_key_path);
-                        if (certs->additional_key_buffer == NULL)
-                        {
-                                LOG_ERROR("unable to allocate memory for key label");
-                                goto error;
-                        }
-                        certs->additional_key_buffer_size = strlen(certs->additional_key_path) + 1;
-                }
-                else
-                {
-                        int key_size = readFile(certs->additional_key_path,
-                                                &certs->additional_key_buffer,
-                                                0);
-                        if (key_size < 0)
-                        {
-                                LOG_ERROR("unable to read private key from file %s",
-                                          certs->additional_key_path);
-                                goto error;
-                        }
-
-                        certs->additional_key_buffer_size = key_size;
-                }
-        }
-
-        /* Read root certificate */
-        if (certs->root_path != 0)
-        {
-                int root_size = readFile(certs->root_path, &certs->root_buffer, 0);
-                if (root_size < 0)
-                {
-                        LOG_ERROR("unable to read root certificate from file %s", certs->root_path);
-                        goto error;
-                }
-
-                certs->root_buffer_size = root_size;
-        }
-        else
-        {
-                LOG_ERROR("no root certificate file specified");
-                goto error;
-        }
-
-        return 0;
-
-error:
-        free(certs->chain_buffer);
-        free(certs->key_buffer);
-        free(certs->additional_key_buffer);
-        free(certs->root_buffer);
-
-        return -1;
 }

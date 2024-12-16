@@ -10,6 +10,7 @@
 
 #include "logging.h"
 #include "networking.h"
+#include "io.h"
 
 #include "echo_server.h"
 #include "http_service.h"

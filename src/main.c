@@ -8,9 +8,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "file_io.h"
 #include "logging.h"
 #include "networking.h"
-#include "io.h"
 
 #include "echo_server.h"
 #include "http_service.h"

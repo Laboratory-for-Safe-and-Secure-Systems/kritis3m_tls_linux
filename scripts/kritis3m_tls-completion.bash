@@ -27,7 +27,6 @@
 # Security configuration:
 #   --no_mutual_auth               Disable mutual authentication (default enabled)
 #   --use_null_cipher              Use a cleartext cipher without encryption (default disabled)
-#   --hybrid_signature mode        Mode for hybrid signatures: "both", "native", "alternative" (default: "both")
 #   --key_exchange_alg algorithm   Key exchange algorithm: (default: "secp384_mlkem768")
 #                                     Classic: "secp256", "secp384", "secp521", "x25519", "x448"
 #                                     PQC: "mlkem512", "mlkem768", "mlkem1024"
@@ -74,13 +73,12 @@ _kritis3m_tls_completions() {
         roles="reverse_proxy forward_proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy management_client"
         opts_connection="--incoming --outgoing"
         opts_files="--cert --key --intermediate --root --additional_key --pkcs11_module --keylog_file"
-        opts_security="--no_mutual_auth --use_null_cipher --hybrid_signature --key_exchange_alg --pkcs11_pin --pkcs11_crypto_all"
+        opts_security="--no_mutual_auth --use_null_cipher --key_exchange_alg --pkcs11_pin --pkcs11_crypto_all"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
                         --test_output_path --test_no_tls --test_silent"
         opts_mgmt="--mgmt_path"
         opts_general="--verbose --debug --help"
 
-        hybrid_modes="both native alternative"
         kex_algos="secp256 secp384 secp521 x25519 x448 mlkem512 mlkem768 mlkem1024
                    secp256_mlkem512 secp384_mlkem768 secp256_mlkem768 secp521_mlkem1024
                    secp384_mlkem1024 x25519_mlkem512 x448_mlkem768 x25519_mlkem768"
@@ -106,10 +104,6 @@ _kritis3m_tls_completions() {
                 ;;
         --cert | --key | --intermediate | --root | --additional_key | --pkcs11_module | --keylog_file | --test_output_path | --mgmt_path)
                 _filedir
-                return 0
-                ;;
-        --hybrid_signature)
-                COMPREPLY=($(compgen -W "${hybrid_modes}" -- ${cur}))
                 return 0
                 ;;
         --key_exchange_alg)

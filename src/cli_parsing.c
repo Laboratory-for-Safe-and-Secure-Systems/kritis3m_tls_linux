@@ -22,7 +22,6 @@ static const struct option cli_options[] = {
 
         {"no_mutual_auth", no_argument, 0, 0x08},
         {"use_null_cipher", no_argument, 0, 0x09},
-        {"hybrid_signature", required_argument, 0, 0x0A},
         {"key_exchange_alg", required_argument, 0, 0x0B},
 
         {"pkcs11_module", required_argument, 0, 0x0C},
@@ -184,24 +183,6 @@ int parse_cli_arguments(application_config* app_config,
                 case 0x09: /* use_null_cipher */
                         tls_config.no_encryption = true;
                         break;
-                case 0x0A: /* hybrid_signature */
-                        {
-                                enum asl_hybrid_signature_mode mode;
-                                if (strcmp(optarg, "both") == 0)
-                                        mode = ASL_HYBRID_SIGNATURE_MODE_BOTH;
-                                else if (strcmp(optarg, "native") == 0)
-                                        mode = ASL_HYBRID_SIGNATURE_MODE_NATIVE;
-                                else if (strcmp(optarg, "alternative") == 0)
-                                        mode = ASL_HYBRID_SIGNATURE_MODE_ALTERNATIVE;
-                                else
-                                {
-                                        printf("invalid hybrid signature mode: %s\r\n", optarg);
-                                        print_help(argv[0]);
-                                        return 1;
-                                }
-                                tls_config.hybrid_signature_mode = mode;
-                                break;
-                        }
                 case 0x0B: /* key_exchange_alg */
                         {
                                 enum asl_key_exchange_method kex_algo;
@@ -611,7 +592,6 @@ static void print_help(char const* name)
         printf("\nSecurity configuration:\r\n");
         printf("  --no_mutual_auth               Disable mutual authentication (default enabled)\r\n");
         printf("  --use_null_cipher              Use a cleartext cipher without encryption (default disabled)\r\n");
-        printf("  --hybrid_signature mode        Mode for hybrid signatures: \"both\", \"native\", \"alternative\" (default: \"both\")\r\n");
         printf("  --key_exchange_alg algorithm   Key exchange algorithm: (default: \"secp384_mlkem768\")\r\n");
         printf("                                    Classic: \"secp256\", \"secp384\", \"secp521\", \"x25519\", \"x448\"\r\n");
         printf("                                    PQC: \"mlkem512\", \"mlkem768\", \"mlkem1024\"\r\n");

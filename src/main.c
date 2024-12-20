@@ -252,6 +252,7 @@ int main(int argc, char** argv)
                         network_tester_status tester_status;
                         if ((network_tester_get_status(&tester_status) < 0) || !tester_status.is_running)
                         {
+                                ret = tester_status.return_code;
                                 break;
                         }
                 }

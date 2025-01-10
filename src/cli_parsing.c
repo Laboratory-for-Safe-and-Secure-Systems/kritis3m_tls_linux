@@ -21,7 +21,7 @@ static const struct option cli_options[] = {
         {"additional_key", required_argument, 0, 0x07},
 
         {"no_mutual_auth", no_argument, 0, 0x08},
-        {"use_null_cipher", no_argument, 0, 0x09},
+        {"integrity_only_cipher", no_argument, 0, 0x09},
         {"key_exchange_alg", required_argument, 0, 0x0B},
 
         {"pkcs11_module", required_argument, 0, 0x0C},
@@ -48,7 +48,6 @@ static const struct option cli_options[] = {
         {NULL, 0, NULL, 0},
 };
 
-static void set_defaults(application_config* app_config, certificates* certs);
 static void print_help(char const* name);
 
 /* Parse the provided argv array and store the information in the provided config variables.
@@ -81,11 +80,12 @@ int parse_cli_arguments(application_config* app_config,
         char* outgoing_ip = NULL;
         uint16_t outgoing_port = 0;
 
-        certificates certs = {0};
+        certificates certs = get_empty_certificates();
         asl_endpoint_configuration tls_config = asl_default_endpoint_config();
 
-        /* Set default values */
-        set_defaults(app_config, &certs);
+        /* Application config */
+        app_config->role = NOT_SET;
+        app_config->log_level = LOG_LVL_WARN;
 
         /* Parse role */
         if (strcmp(argv[1], "reverse_proxy") == 0)
@@ -163,24 +163,49 @@ int parse_cli_arguments(application_config* app_config,
                         }
                         break;
                 case 0x03: /* cert */
-                        certs.certificate_path = optarg;
+                        certs.certificate_path = duplicate_string(optarg);
+                        if (certs.certificate_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for certificate file path");
+                                return -1;
+                        };
                         break;
                 case 0x04: /* key */
-                        certs.private_key_path = optarg;
+                        certs.private_key_path = duplicate_string(optarg);
+                        if (certs.private_key_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for private_key file path");
+                                return -1;
+                        };
                         break;
                 case 0x05: /* intermediate */
-                        certs.intermediate_path = optarg;
+                        certs.intermediate_path = duplicate_string(optarg);
+                        if (certs.intermediate_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for intermediate file path");
+                                return -1;
+                        };
                         break;
                 case 0x06: /* root */
-                        certs.root_path = optarg;
+                        certs.root_path = duplicate_string(optarg);
+                        if (certs.root_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for root file path");
+                                return -1;
+                        };
                         break;
                 case 0x07: /* additional_key */
-                        certs.additional_key_path = optarg;
+                        certs.additional_key_path = duplicate_string(optarg);
+                        if (certs.additional_key_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for additional key file path");
+                                return -1;
+                        };
                         break;
                 case 0x08: /* no_mutual_auth */
                         tls_config.mutual_authentication = false;
                         break;
-                case 0x09: /* use_null_cipher */
+                case 0x09: /* integrity_only_cipher */
                         tls_config.no_encryption = true;
                         break;
                 case 0x0B: /* key_exchange_alg */
@@ -542,28 +567,6 @@ void arguments_cleanup(application_config* app_config,
         }
 }
 
-static void set_defaults(application_config* app_config, certificates* certs)
-{
-        /* Certificates */
-        certs->certificate_path = NULL;
-        certs->private_key_path = NULL;
-        certs->additional_key_path = NULL;
-        certs->intermediate_path = NULL;
-        certs->root_path = NULL;
-        certs->chain_buffer = NULL;
-        certs->chain_buffer_size = 0;
-        certs->key_buffer = NULL;
-        certs->key_buffer_size = 0;
-        certs->additional_key_buffer = NULL;
-        certs->additional_key_buffer_size = 0;
-        certs->root_buffer = NULL;
-        certs->root_buffer_size = 0;
-
-        /* Application config */
-        app_config->role = NOT_SET;
-        app_config->log_level = LOG_LVL_WARN;
-}
-
 static void print_help(char const* name)
 {
         /* clang-format off */
@@ -591,7 +594,7 @@ static void print_help(char const* name)
 
         printf("\nSecurity configuration:\r\n");
         printf("  --no_mutual_auth               Disable mutual authentication (default enabled)\r\n");
-        printf("  --use_null_cipher              Use a cleartext cipher without encryption (default disabled)\r\n");
+        printf("  --integrity_only_cipher        Use an integrity-only cipher without encryption (default disabled)\r\n");
         printf("  --key_exchange_alg algorithm   Key exchange algorithm: (default: \"secp384_mlkem768\")\r\n");
         printf("                                    Classic: \"secp256\", \"secp384\", \"secp521\", \"x25519\", \"x448\"\r\n");
         printf("                                    PQC: \"mlkem512\", \"mlkem768\", \"mlkem1024\"\r\n");

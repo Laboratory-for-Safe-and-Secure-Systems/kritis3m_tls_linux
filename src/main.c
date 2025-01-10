@@ -46,7 +46,7 @@ int main(int argc, char** argv)
         proxy_config tls_proxy_config = tls_proxy_default_config();
         echo_server_config echo_server_config = echo_server_default_config();
         network_tester_config network_tester_config = network_tester_default_config();
-        char* management_file_path;
+        char* management_file_path = NULL;
 
         /* Install the signal handler and ignore SIGPIPE */
         if (signal(SIGINT, signal_handler) == SIG_ERR)

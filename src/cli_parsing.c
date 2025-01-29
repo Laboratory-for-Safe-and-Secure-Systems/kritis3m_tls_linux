@@ -603,13 +603,13 @@ static void print_help(char const* name)
         printf("                                            \"x448_mlkem768\", \"x25519_mlkem768\"\r\n");
 
         printf("\nPKCS#11:\r\n");
-        printf("  When using a secure element for long-term key storage, you have to supply the PKCS#11 key labels using the\n");
-        printf("  arguments \"--key\" and \"--additionalKey\", prepending the string \"%s\" followed by the key label.\r\n", PKCS11_LABEL_IDENTIFIER);
-        printf("  As an alternative, the file provided by \"--key\" and \"--additionalKey\" may also contain the key label with\r\n");
+        printf("  When using a PKCS#11 token for key/cert storage, you have to supply the PKCS#11 labels using the arguments\n");
+        printf("  \"--key\",\"--additionalKey\", and \"--cert\", prepending the string \"%s\" followed by the label.\r\n", PKCS11_LABEL_IDENTIFIER);
+        printf("  As an alternative, the file provided by \"--key\", \"--additionalKey\" or \"--cert\" may also contain the key label with\r\n");
         printf("  the same identifier before it. In this case, the label must be the first line of the file.\r\n");
-        printf("  --pkcs11_module file_path      Path to the secure element middleware for long-term key storage\r\n");
-        printf("  --pkcs11_pin pin               PIN for the secure element (default empty)\r\n");
-        printf("  --pkcs11_crypto_all            Use the PKCS#11 module for all supported crypto operations (default disabled)\r\n");
+        printf("  --pkcs11_module file_path      Path to the PKCS#11 token middleware\r\n");
+        printf("  --pkcs11_pin pin               PIN for the token (default empty)\r\n");
+        printf("  --pkcs11_crypto_all            Use the PKCS#11 token for all supported crypto operations (default disabled)\r\n");
 
         printf("\nNetwork tester configuration:\r\n");
         printf("  --test_num_handshakes num      Number of handshakes to perform in the test (default 1)\r\n");

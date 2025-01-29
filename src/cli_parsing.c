@@ -23,6 +23,7 @@ static const struct option cli_options[] = {
         {"no_mutual_auth", no_argument, 0, 0x08},
         {"integrity_only_cipher", no_argument, 0, 0x09},
         {"key_exchange_alg", required_argument, 0, 0x0B},
+        {"pre_shared_key", required_argument, 0, 0x0A},
 
         {"pkcs11_module", required_argument, 0, 0x0C},
         {"pkcs11_pin", required_argument, 0, 0x0D},
@@ -207,6 +208,15 @@ int parse_cli_arguments(application_config* app_config,
                         break;
                 case 0x09: /* integrity_only_cipher */
                         tls_config.no_encryption = true;
+                        break;
+                case 0x0A: /* pre_shared_key */
+                        tls_config.psk.enable_psk = true;
+                        tls_config.psk.master_key = duplicate_string(optarg);
+                        if (tls_config.psk.master_key == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for PSK master key");
+                                return -1;
+                        }
                         break;
                 case 0x0B: /* key_exchange_alg */
                         {
@@ -561,6 +571,11 @@ void arguments_cleanup(application_config* app_config,
                 free((void*) tls_config->pkcs11.module_path);
         }
 
+        if (tls_config->psk.master_key != NULL)
+        {
+                free((void*) tls_config->psk.master_key);
+        }
+
         if (tls_config->keylog_file != NULL)
         {
                 free((void*) tls_config->keylog_file);
@@ -601,12 +616,15 @@ static void print_help(char const* name)
         printf("                                    Hybrid: \"secp256_mlkem512\", \"secp384_mlkem768\", \"secp256_mlkem768\"\r\n");
         printf("                                            \"secp521_mlkem1024\", \"secp384_mlkem1024\", \"x25519_mlkem512\"\r\n");
         printf("                                            \"x448_mlkem768\", \"x25519_mlkem768\"\r\n");
+        printf("  --pre_shared_key key           Pre-shared key to use (Base64 encoded)\r\n");
 
         printf("\nPKCS#11:\r\n");
         printf("  When using a PKCS#11 token for key/cert storage, you have to supply the PKCS#11 labels using the arguments\n");
         printf("  \"--key\",\"--additionalKey\", and \"--cert\", prepending the string \"%s\" followed by the label.\r\n", PKCS11_LABEL_IDENTIFIER);
         printf("  As an alternative, the file provided by \"--key\", \"--additionalKey\" or \"--cert\" may also contain the key label with\r\n");
         printf("  the same identifier before it. In this case, the label must be the first line of the file.\r\n");
+        printf("  To use a pre-shared master key on a PKCS#11 token, you have to provide the label of the key via the \"--pre_shared_key\"\r\n");
+        printf("  argument, prepending the string \"%s\".\r\n", PKCS11_LABEL_IDENTIFIER);
         printf("  --pkcs11_module file_path      Path to the PKCS#11 token middleware\r\n");
         printf("  --pkcs11_pin pin               PIN for the token (default empty)\r\n");
         printf("  --pkcs11_crypto_all            Use the PKCS#11 token for all supported crypto operations (default disabled)\r\n");

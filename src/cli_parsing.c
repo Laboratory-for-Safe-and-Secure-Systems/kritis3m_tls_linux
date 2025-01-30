@@ -10,6 +10,9 @@
 
 LOG_MODULE_CREATE(cli_parsing);
 
+extern unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx);
+extern unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx);
+
 static const struct option cli_options[] = {
         {"incoming", required_argument, 0, 0x01},
         {"outgoing", required_argument, 0, 0x02},
@@ -49,6 +52,7 @@ static const struct option cli_options[] = {
         {NULL, 0, NULL, 0},
 };
 
+static int check_pre_shared_key(asl_endpoint_configuration* tls_config);
 static void print_help(char const* name);
 
 /* Parse the provided argv array and store the information in the provided config variables.
@@ -367,6 +371,11 @@ int parse_cli_arguments(application_config* app_config,
                 return -1;
         }
 
+        if (check_pre_shared_key(&tls_config) != 0)
+        {
+                return -1;
+        }
+
         /* Set TLS config */
         tls_config.device_certificate_chain.buffer = certs.chain_buffer;
         tls_config.device_certificate_chain.size = certs.chain_buffer_size;
@@ -472,6 +481,31 @@ int parse_cli_arguments(application_config* app_config,
                 proxy_config->log_level = app_config->log_level;
                 proxy_config->tls_config = tls_config;
         }
+
+        return 0;
+}
+
+static int check_pre_shared_key(asl_endpoint_configuration* tls_config)
+{
+        if (tls_config->psk.master_key == NULL)
+                return 0;
+
+        /* Check if we want to use the external callback feature of the ASL */
+        if (strncmp(tls_config->psk.master_key, EXTERNAL_PSK_IDENTIFIER, EXTERNAL_PSK_IDENTIFIER_LEN) ==
+            0)
+        {
+                tls_config->psk.use_external_callbacks = true;
+
+                /* This is temporary, only for testing now... */
+                tls_config->psk.callback_ctx = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=";
+
+                tls_config->psk.psk_client_cb = asl_psk_client_callback;
+                tls_config->psk.psk_server_cb = asl_psk_server_callback;
+
+                free((void*) tls_config->psk.master_key);
+                tls_config->psk.master_key = NULL;
+        }
+        /* ToDo: Add ability to read PSK from a file here... */
 
         return 0;
 }

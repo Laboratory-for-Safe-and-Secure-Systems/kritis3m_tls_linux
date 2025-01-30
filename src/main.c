@@ -39,6 +39,31 @@ static void signal_handler(int signum)
         running = false;
 }
 
+unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx)
+{
+        /* This is a dummy PSK client callback that always returns the same PSK key and identity */
+        const char* psk_key = (char const*) ctx;
+        const char* psk_identity = "builtin_identity";
+
+        strcpy(key, psk_key);
+        strcpy(identity, psk_identity);
+
+        return strlen(psk_key);
+}
+
+unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx)
+{
+        (void) identity;
+
+        /* This is a dummy PSK server callback that always returns the same PSK key for all
+        identities */
+        const char* psk_key = (char const*) ctx;
+
+        strcpy(key, psk_key);
+
+        return strlen(psk_key);
+}
+
 int main(int argc, char** argv)
 {
         application_config app_config = {0};
@@ -109,6 +134,9 @@ int main(int argc, char** argv)
         }
         else if (app_config.role == ROLE_ECHO_SERVER)
         {
+                // echo_server_config.tls_config.psk.enable_psk = true;
+                // echo_server_config.tls_config.psk.psk_server_cb = asl_psk_server_callback;
+
                 /* Run the TCP echo server */
                 ret = echo_server_run(&echo_server_config);
                 if (ret != 0)
@@ -150,6 +178,9 @@ int main(int argc, char** argv)
                         .target_port = 0, /* Updated to the random port of the forward proxy */
                         .log_level = app_config.log_level,
                 };
+
+                // tls_proxy_config.tls_config.psk.enable_psk = true;
+                // tls_proxy_config.tls_config.psk.psk_client_cb = asl_psk_client_callback;
 
                 /* Run the proxy backend */
                 ret = tls_proxy_backend_run(&tls_proxy_backend_config);

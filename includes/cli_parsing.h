@@ -12,6 +12,9 @@
 
 #define LOCALHOST_IP "127.0.0.1"
 
+#define EXTERNAL_PSK_IDENTIFIER "external:"
+#define EXTERNAL_PSK_IDENTIFIER_LEN 9
+
 enum application_role
 {
         NOT_SET,

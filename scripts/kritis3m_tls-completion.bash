@@ -33,12 +33,15 @@
 #                                     Hybrid: "secp256_mlkem512", "secp384_mlkem768", "secp256_mlkem768"
 #                                             "secp521_mlkem1024", "secp384_mlkem1024", "x25519_mlkem512"
 #                                             "x448_mlkem768", "x25519_mlkem768"
+#   --pre_shared_key key           Pre-shared key to use (Base64 encoded)
 #
 # PKCS#11:
-#   When using a secure element for long-term key storage, you have to supply the PKCS#11 key labels using the
-#   arguments "--key" and "--additionalKey", prepending the string "pkcs11:" followed by the key label.
-#   As an alternative, the file provided by "--key" and "--additionalKey" may also contain the key label with
+#   When using a PKCS#11 token for key/cert storage, you have to supply the PKCS#11 labels using the arguments
+#   "--key","--additionalKey", and "--cert", prepending the string "pkcs11:" followed by the label.
+#   As an alternative, the file provided by "--key", "--additionalKey" or "--cert" may also contain the key label with
 #   the same identifier before it. In this case, the label must be the first line of the file.
+#   To use a pre-shared master key on a PKCS#11 token, you have to provide the label of the key via the "--pre_shared_key"
+#   argument, prepending the string "pkcs11:".
 #   --pkcs11_module file_path      Path to the secure element middleware for long-term key storage
 #   --pkcs11_pin pin               PIN for the secure element (default empty)
 #   --pkcs11_crypto_all            Use the PKCS#11 module for all supported crypto operations (default disabled)
@@ -73,7 +76,7 @@ _kritis3m_tls_completions() {
         roles="reverse_proxy forward_proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy management_client"
         opts_connection="--incoming --outgoing"
         opts_files="--cert --key --intermediate --root --additional_key --pkcs11_module --keylog_file"
-        opts_security="--no_mutual_auth --integrity_only_cipher --key_exchange_alg --pkcs11_pin --pkcs11_crypto_all"
+        opts_security="--no_mutual_auth --integrity_only_cipher --key_exchange_alg --pre_shared_key --pkcs11_pin --pkcs11_crypto_all"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
                         --test_output_path --test_no_tls --test_silent"
         opts_mgmt="--mgmt_path"
@@ -110,8 +113,8 @@ _kritis3m_tls_completions() {
                 COMPREPLY=($(compgen -W "${kex_algos}" -- ${cur}))
                 return 0
                 ;;
-        --no_mutual_auth | --integrity_only_cipher | --test_num_handshakes | --test_handshake_delay | --test_num_messages | --test_message_delay | --test_message_size | \
-                --test_no_tls | --test_silent | --pkcs11_pin | pkcs11_crypto_all)
+        --no_mutual_auth | --integrity_only_cipher | --pre_shared_key | --test_num_handshakes | --test_handshake_delay | --test_num_messages | \
+                --test_message_delay | --test_message_size | --test_no_tls | --test_silent | --pkcs11_pin | pkcs11_crypto_all)
                 # No specific completion
                 COMPREPLY=()
                 return 0

@@ -168,44 +168,19 @@ int parse_cli_arguments(application_config* app_config,
                         }
                         break;
                 case 0x03: /* cert */
-                        certs.certificate_path = duplicate_string(optarg);
-                        if (certs.certificate_path == NULL)
-                        {
-                                LOG_ERROR("unable to allocate memory for certificate file path");
-                                return -1;
-                        };
+                        certs.certificate_path = optarg;
                         break;
                 case 0x04: /* key */
-                        certs.private_key_path = duplicate_string(optarg);
-                        if (certs.private_key_path == NULL)
-                        {
-                                LOG_ERROR("unable to allocate memory for private_key file path");
-                                return -1;
-                        };
+                        certs.private_key_path = optarg;
                         break;
                 case 0x05: /* intermediate */
-                        certs.intermediate_path = duplicate_string(optarg);
-                        if (certs.intermediate_path == NULL)
-                        {
-                                LOG_ERROR("unable to allocate memory for intermediate file path");
-                                return -1;
-                        };
+                        certs.intermediate_path = optarg;
                         break;
                 case 0x06: /* root */
-                        certs.root_path = duplicate_string(optarg);
-                        if (certs.root_path == NULL)
-                        {
-                                LOG_ERROR("unable to allocate memory for root file path");
-                                return -1;
-                        };
+                        certs.root_path = optarg;
                         break;
                 case 0x07: /* additional_key */
-                        certs.additional_key_path = duplicate_string(optarg);
-                        if (certs.additional_key_path == NULL)
-                        {
-                                LOG_ERROR("unable to allocate memory for additional key file path");
-                                return -1;
-                        };
+                        certs.additional_key_path = optarg;
                         break;
                 case 0x08: /* no_mutual_auth */
                         tls_config.mutual_authentication = false;

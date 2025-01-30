@@ -10,9 +10,6 @@
 
 LOG_MODULE_CREATE(cli_parsing);
 
-extern unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx);
-extern unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx);
-
 static const struct option cli_options[] = {
         {"incoming", required_argument, 0, 0x01},
         {"outgoing", required_argument, 0, 0x02},
@@ -51,6 +48,9 @@ static const struct option cli_options[] = {
 
         {NULL, 0, NULL, 0},
 };
+
+extern unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx);
+extern unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx);
 
 static int check_pre_shared_key(asl_endpoint_configuration* tls_config);
 static void print_help(char const* name);

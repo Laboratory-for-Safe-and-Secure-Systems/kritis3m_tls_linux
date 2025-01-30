@@ -134,9 +134,6 @@ int main(int argc, char** argv)
         }
         else if (app_config.role == ROLE_ECHO_SERVER)
         {
-                // echo_server_config.tls_config.psk.enable_psk = true;
-                // echo_server_config.tls_config.psk.psk_server_cb = asl_psk_server_callback;
-
                 /* Run the TCP echo server */
                 ret = echo_server_run(&echo_server_config);
                 if (ret != 0)
@@ -178,9 +175,6 @@ int main(int argc, char** argv)
                         .target_port = 0, /* Updated to the random port of the forward proxy */
                         .log_level = app_config.log_level,
                 };
-
-                // tls_proxy_config.tls_config.psk.enable_psk = true;
-                // tls_proxy_config.tls_config.psk.psk_client_cb = asl_psk_client_callback;
 
                 /* Run the proxy backend */
                 ret = tls_proxy_backend_run(&tls_proxy_backend_config);

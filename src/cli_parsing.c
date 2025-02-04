@@ -340,6 +340,20 @@ int parse_cli_arguments(application_config* app_config,
                         return -1;
                 }
         }
+        else if (app_config->role == ROLE_FORWARD_PROXY || app_config->role == ROLE_TLS_CLIENT)
+        {
+                if (!certs.root_path)
+                {
+                        LOG_ERROR("root certificate file missing");
+                        return -1;
+                }
+
+                if (!outgoing_ip)
+                {
+                        LOG_ERROR("outgoing IP address missing");
+                        return -1;
+                }
+        }
 
         if (read_certificates(&certs) != 0)
         {

@@ -41,7 +41,7 @@ static void signal_handler(int signum)
 }
 
 /// @brief  allocates the qkd_key_info struct in the PSK Server Config (PSK_SRV_CONF).
-/// @return returns pointer to the qkd_key_info object if allocation was successfull, 
+/// @return returns pointer to the qkd_key_info object if allocation was successfull,
 ///         otherwise returns NULL.
 struct qkd_key_info* kritis3m_allocate_key_info()
 {
@@ -55,13 +55,13 @@ struct qkd_key_info* kritis3m_allocate_key_info()
         return key_info;
 }
 
-/// @brief requests a new QKD key from the QKD line ether without or without a specific key_ID 
+/// @brief requests a new QKD key from the QKD line ether without or without a specific key_ID
 ///        parameter and copies the key and the identity to the key_info parameter.
-/// @param key_info struct object, which contains the reserved buffer for key and key_ID as 
+/// @param key_info struct object, which contains the reserved buffer for key and key_ID as
 ///        well as the associated sizes.
-/// @param identity (OPTIONAL) string of the key_ID sent by the client to the server to request 
-///        the corresponding QKD key. In case the tls client is calling this function, identity is 
-///        set to NULL.   
+/// @param identity (OPTIONAL) string of the key_ID sent by the client to the server to request
+///        the corresponding QKD key. In case the tls client is calling this function, identity is
+///        set to NULL.
 /// @return returns the E_OK or a specific status return in case of an error.
 enum kritis3m_status_info kritis3m_get_qkd_key(struct qkd_key_info* key_info, const char* identity)
 {
@@ -71,7 +71,7 @@ enum kritis3m_status_info kritis3m_get_qkd_key(struct qkd_key_info* key_info, co
         quest_config = quest_default_config();
 
         /* if identity is NULL, we are on the client side requesting a new key without an ID */
-        if(identity == NULL)
+        if (identity == NULL)
         {
                 /* modify the request type to key request WITHOUT an ID */
                 quest_config->request_type = HTTP_KEY_NO_ID;
@@ -80,7 +80,7 @@ enum kritis3m_status_info kritis3m_get_qkd_key(struct qkd_key_info* key_info, co
         {
                 quest_config->request_type = HTTP_KEY_WITH_ID;
                 quest_config->connection_info.hostname = "im-lfd-qkd-alice.othr.de";
-                memcpy(quest_config->key_ID, identity, strlen(identity));     
+                memcpy(quest_config->key_ID, identity, strlen(identity));
         }
 
         status = quest_init(quest_config);
@@ -92,7 +92,7 @@ enum kritis3m_status_info kritis3m_get_qkd_key(struct qkd_key_info* key_info, co
                 goto LIB_ERR;
 
         /* if identity is NULL, we can copy the key_ID and key to the key_info object */
-        if(identity != NULL)
+        if (identity != NULL)
         {
                 if (strcmp(quest_config->response->key_info->key_ID, identity) != 0)
                 {
@@ -123,16 +123,17 @@ unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx)
         struct qkd_key_info* key_info;
 
         key_info = kritis3m_allocate_key_info();
-        if(key_info == NULL) return 0;
+        if (key_info == NULL)
+                return 0;
 
         status = kritis3m_get_qkd_key(key_info, NULL);
-        if(status == E_OK)
+        if (status == E_OK)
         {
                 memcpy(key, key_info->key, (key_info->key_len + 1));
                 memcpy(identity, key_info->key_ID, (key_info->key_ID_len + 1));
         }
-        
-        free(key_info);        
+
+        free(key_info);
         return strlen(key);
 }
 
@@ -143,14 +144,15 @@ unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx)
         struct qkd_key_info* key_info;
 
         key_info = kritis3m_allocate_key_info();
-        if(key_info == NULL) return 0;
+        if (key_info == NULL)
+                return 0;
 
         status = kritis3m_get_qkd_key(key_info, identity);
-        if(status == E_OK)
+        if (status == E_OK)
         {
                 memcpy(key, key_info->key, (key_info->key_len + 1));
         }
-        
+
         free(key_info);
         return strlen(key);
 }

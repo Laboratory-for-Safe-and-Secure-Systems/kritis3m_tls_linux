@@ -141,7 +141,7 @@ else(KRITIS3M_TLS_EXTERNAL_QUEST)
         )
 
         set(BUILD_SHARED_LIBS ON)
-        set(VERBOSE_PRINT ON)
+        set(VERBOSE_PRINT OFF)
 
         FetchContent_GetProperties(kritis3m-quest)
         if(NOT kritis3m-quest_POPULATED)

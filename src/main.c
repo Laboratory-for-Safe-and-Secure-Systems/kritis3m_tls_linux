@@ -14,11 +14,11 @@
 
 #include "echo_server.h"
 #include "http_service.h"
-#include "kritis3m-quest/quest.h"
 #include "kritis3m_scale_service.h"
 #include "network_tester.h"
 #include "tcp_client_stdin_bridge.h"
 #include "tls_proxy.h"
+#include "quest.h"
 
 #include "cli_parsing.h"
 

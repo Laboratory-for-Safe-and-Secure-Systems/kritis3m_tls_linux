@@ -25,10 +25,6 @@ option(KRITIS3M_TLS_SELF_CONTAINED "Build a self-contained executable" OFF)
 # Use an externally installed ASL library. If disabled, ASL will be built.
 option(KRITIS3M_TLS_EXTERNAL_ASL "Use external ASL library" OFF)
 
-# Use an externally installed QUEST library. If disabled, QUEST will be built.
-option(KRITIS3M_TLS_EXTERNAL_QUEST "Use external ASL library" OFF)
-
-
 # Set the C standard to C17
 set(C_STANDARD 17)
 
@@ -122,35 +118,11 @@ else(KRITIS3M_TLS_EXTERNAL_ASL)
         endif()
 endif(KRITIS3M_TLS_EXTERNAL_ASL)
 
+# Link kritis3m_asl against the http(s) library
+target_link_libraries(kritis3m-http-libs PUBLIC kritis3m_asl)
 
-# Add the KRITIS3M-QUEST dependency
-if(KRITIS3M_TLS_EXTERNAL_QUEST)
-        # Search for system-wide installed libraries in both lib and lib64 paths
-        set(FIND_LIBRARY_USE_LIB32_PATHS TRUE)
-        set(FIND_LIBRARY_USE_LIB64_PATHS TRUE)
-
-        # Search for system-wide installed KRITIS3M_ASL
-        find_package(kritis3m-quest REQUIRED)
-
-else(KRITIS3M_TLS_EXTERNAL_QUEST)
-        # Add KRITIS3M_ASL as a dependency and build it
-        FetchContent_Declare(kritis3m-quest
-                GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_quest.git
-                GIT_TAG                 origin/main
-                GIT_PROGRESS            TRUE
-        )
-
-        set(BUILD_SHARED_LIBS ON)
-        set(VERBOSE_PRINT OFF)
-
-        FetchContent_GetProperties(kritis3m-quest)
-        if(NOT kritis3m-quest_POPULATED)
-                FetchContent_Populate(kritis3m-quest)
-                add_subdirectory(${kritis3m-quest_SOURCE_DIR} ${kritis3m-quest_BINARY_DIR})
-        endif()
-endif(KRITIS3M_TLS_EXTERNAL_QUEST)
-
-
+# Link kritis3m-http-libs against the kritis3m-quest library
+target_link_libraries(kritis3m-quest PUBLIC kritis3m-http-libs)
 
 # Link the KRITIS3M_APPLICATIONS targets
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_common)
@@ -163,9 +135,9 @@ target_link_libraries(kritis3m_tls PUBLIC kritis3m_service)
 # Link KRITIS3M_ASL to the required KRITIS3M_APPLICATIONS targets
 target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_network_tester PUBLIC kritis3m_asl)
+target_link_libraries(kritis3m_applications_common PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_echo_server PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_service PUBLIC kritis3m_asl)
-target_link_libraries(kritis3m_http_libs PUBLIC kritis3m_asl)
 
 target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_service)
 

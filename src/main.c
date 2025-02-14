@@ -48,7 +48,7 @@ struct qkd_key_info* kritis3m_allocate_key_info()
         struct qkd_key_info* key_info = malloc(sizeof(struct qkd_key_info));
         if (key_info == NULL)
         {
-                printf("[ QUEST ][ ERROR ] failed to allocate key_info struct in the\n");
+                LOG_ERROR("failed to allocate key_info struct.\n");
                 return NULL;
         }
 
@@ -96,7 +96,7 @@ enum kritis3m_status_info kritis3m_get_qkd_key(struct qkd_key_info* key_info, co
         {
                 if (strcmp(quest_config->response->key_info->key_ID, identity) != 0)
                 {
-                        printf("[ QUEST ][ ERROR ] identities do not match!\n");
+                        LOG_ERROR("identities do not match!\n");
                         status = E_NOT_OK;
                         goto LIB_ERR;
                 }

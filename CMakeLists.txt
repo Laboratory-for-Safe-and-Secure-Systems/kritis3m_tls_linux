@@ -119,10 +119,7 @@ else(KRITIS3M_TLS_EXTERNAL_ASL)
 endif(KRITIS3M_TLS_EXTERNAL_ASL)
 
 # Link kritis3m_asl against the http(s) library
-target_link_libraries(kritis3m-http-libs PUBLIC kritis3m_asl)
 
-# Link kritis3m-http-libs against the kritis3m-quest library
-target_link_libraries(kritis3m-quest PUBLIC kritis3m-http-libs)
 
 # Link the KRITIS3M_APPLICATIONS targets
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_common)
@@ -133,9 +130,9 @@ target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_network_tester)
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_service)
 
 # Link KRITIS3M_ASL to the required KRITIS3M_APPLICATIONS targets
+target_link_libraries(kritis3m-http-libs PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_network_tester PUBLIC kritis3m_asl)
-target_link_libraries(kritis3m_applications_common PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_echo_server PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_service PUBLIC kritis3m_asl)
 

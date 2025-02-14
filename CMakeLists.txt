@@ -25,7 +25,6 @@ option(KRITIS3M_TLS_SELF_CONTAINED "Build a self-contained executable" OFF)
 # Use an externally installed ASL library. If disabled, ASL will be built.
 option(KRITIS3M_TLS_EXTERNAL_ASL "Use external ASL library" OFF)
 
-
 # Set the C standard to C17
 set(C_STANDARD 17)
 
@@ -119,6 +118,8 @@ else(KRITIS3M_TLS_EXTERNAL_ASL)
         endif()
 endif(KRITIS3M_TLS_EXTERNAL_ASL)
 
+# Link kritis3m_asl against the http(s) library
+
 
 # Link the KRITIS3M_APPLICATIONS targets
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_common)
@@ -129,17 +130,19 @@ target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_network_tester)
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_service)
 
 # Link KRITIS3M_ASL to the required KRITIS3M_APPLICATIONS targets
+target_link_libraries(kritis3m-http-libs PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_network_tester PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_echo_server PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_service PUBLIC kritis3m_asl)
-target_link_libraries(kritis3m_http_libs PUBLIC kritis3m_asl)
 
 target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_service)
 
 # Link KRITIS3M_ASL to the main target
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_asl)
 
+# Link KRITIS3M_QUEST to the main target
+target_link_libraries(kritis3m_tls PUBLIC kritis3m-quest)
 
 # Statically link the pthread library on Windows
 if(WIN32)

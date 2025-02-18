@@ -24,6 +24,7 @@ static const struct option cli_options[] = {
         {"integrity_only_cipher", no_argument, 0, 0x09},
         {"key_exchange_alg", required_argument, 0, 0x0B},
         {"pre_shared_key", required_argument, 0, 0x0A},
+        {"psk_enable_certs", no_argument, 0, 0x19},
 
         {"pkcs11_module", required_argument, 0, 0x0C},
         {"pkcs11_pin", required_argument, 0, 0x0D},
@@ -309,6 +310,11 @@ int parse_cli_arguments(application_config* app_config,
                                 }
                                 break;
                         }
+                case 0x19: /* psk_enable_certs */
+                        {
+                                tls_config.psk.enable_certWithExternPsk = true;
+                                break;
+                        }
                 case 'v': /* verbose */
                         app_config->log_level = LOG_LVL_INFO;
                         break;
@@ -494,6 +500,14 @@ static int check_pre_shared_key(asl_endpoint_configuration* tls_config)
                 free((void*) tls_config->psk.master_key);
                 tls_config->psk.master_key = NULL;
         }
+
+        /* Sanity check: if we want to send certs alongside, PSKs need to be used */
+        if(tls_config->psk.enable_certWithExternPsk && !tls_config->psk.enable_psk)
+        {
+                LOG_ERROR("--psk_enable_certs requires PSK usage");
+                return -1;
+        }
+        
         /* ToDo: Add ability to read PSK from a file here... */
 
         return 0;
@@ -640,6 +654,7 @@ static void print_help(char const* name)
         printf("                                            \"secp521_mlkem1024\", \"secp384_mlkem1024\", \"x25519_mlkem512\"\r\n");
         printf("                                            \"x448_mlkem768\", \"x25519_mlkem768\"\r\n");
         printf("  --pre_shared_key key           Pre-shared key to use (Base64 encoded)\r\n");
+        printf("  --psk_enable_certs             Send Certificates in addition to PSK usage\r\n");
 
         printf("\nPKCS#11:\r\n");
         printf("  When using a PKCS#11 token for key/cert storage, you have to supply the PKCS#11 labels using the arguments\n");

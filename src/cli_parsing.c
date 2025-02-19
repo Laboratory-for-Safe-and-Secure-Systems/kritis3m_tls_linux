@@ -21,7 +21,7 @@ static const struct option cli_options[] = {
         {"additional_key", required_argument, 0, 0x07},
 
         {"no_mutual_auth", no_argument, 0, 0x08},
-        {"integrity_only_cipher", no_argument, 0, 0x09},
+        {"ciphersuites", required_argument, 0, 0x09},
         {"key_exchange_alg", required_argument, 0, 0x0B},
         {"pre_shared_key", required_argument, 0, 0x0A},
         {"psk_enable_certs", no_argument, 0, 0x19},
@@ -186,8 +186,13 @@ int parse_cli_arguments(application_config* app_config,
                 case 0x08: /* no_mutual_auth */
                         tls_config.mutual_authentication = false;
                         break;
-                case 0x09: /* integrity_only_cipher */
-                        tls_config.no_encryption = true;
+                case 0x09: /* ciphersuites */
+                        tls_config.ciphersuites = duplicate_string(optarg);
+                        if (tls_config.ciphersuites == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for ciphersuites");
+                                return -1;
+                        }
                         break;
                 case 0x0A: /* pre_shared_key */
                         tls_config.psk.enable_psk = true;
@@ -502,12 +507,12 @@ static int check_pre_shared_key(asl_endpoint_configuration* tls_config)
         }
 
         /* Sanity check: if we want to send certs alongside, PSKs need to be used */
-        if(tls_config->psk.enable_certWithExternPsk && !tls_config->psk.enable_psk)
+        if (tls_config->psk.enable_certWithExternPsk && !tls_config->psk.enable_psk)
         {
                 LOG_ERROR("--psk_enable_certs requires PSK usage");
                 return -1;
         }
-        
+
         /* ToDo: Add ability to read PSK from a file here... */
 
         return 0;
@@ -603,6 +608,11 @@ void arguments_cleanup(application_config* app_config,
                 free((void*) tls_config->root_certificate.buffer);
         }
 
+        if (tls_config->ciphersuites != NULL)
+        {
+                free((void*) tls_config->ciphersuites);
+        }
+
         if (tls_config->pkcs11.module_path != NULL)
         {
                 free((void*) tls_config->pkcs11.module_path);
@@ -646,7 +656,8 @@ static void print_help(char const* name)
 
         printf("\nSecurity configuration:\r\n");
         printf("  --no_mutual_auth               Disable mutual authentication (default enabled)\r\n");
-        printf("  --integrity_only_cipher        Use an integrity-only cipher without encryption (default disabled)\r\n");
+        printf("  --ciphersuites suites          Use given TLS1.3 ciphersuites, separated by \":\". For clients, the first one is selected\r\n");
+        printf("                                    for the connection. Default is: \"TLS13-AES256-GCM-SHA384:TLS13-SHA384-SHA384\"\r\n");
         printf("  --key_exchange_alg algorithm   Key exchange algorithm: (default: \"secp384_mlkem768\")\r\n");
         printf("                                    Classic: \"secp256\", \"secp384\", \"secp521\", \"x25519\", \"x448\"\r\n");
         printf("                                    PQC: \"mlkem512\", \"mlkem768\", \"mlkem1024\"\r\n");

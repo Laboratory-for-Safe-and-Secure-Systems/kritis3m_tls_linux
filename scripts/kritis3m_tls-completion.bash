@@ -26,7 +26,8 @@
 #
 # Security configuration:
 #   --no_mutual_auth               Disable mutual authentication (default enabled)
-#   --integrity_only_cipher        Use an integrity-only cipher without encryption (default disabled)
+#   --ciphersuites suites          Use given TLS1.3 ciphersuites, separated by ":". For clients, the first one is selected
+#                                     for the connection. Default is: "TLS13-AES256-GCM-SHA384:TLS13-SHA384-SHA384"
 #   --key_exchange_alg algorithm   Key exchange algorithm: (default: "secp384_mlkem768")
 #                                     Classic: "secp256", "secp384", "secp521", "x25519", "x448"
 #                                     PQC: "mlkem512", "mlkem768", "mlkem1024"
@@ -34,6 +35,7 @@
 #                                             "secp521_mlkem1024", "secp384_mlkem1024", "x25519_mlkem512"
 #                                             "x448_mlkem768", "x25519_mlkem768"
 #   --pre_shared_key key           Pre-shared key to use (Base64 encoded)
+#   --psk_enable_certs             Send Certificates in addition to PSK usage
 #
 # PKCS#11:
 #   When using a PKCS#11 token for key/cert storage, you have to supply the PKCS#11 labels using the arguments
@@ -42,9 +44,9 @@
 #   the same identifier before it. In this case, the label must be the first line of the file.
 #   To use a pre-shared master key on a PKCS#11 token, you have to provide the label of the key via the "--pre_shared_key"
 #   argument, prepending the string "pkcs11:".
-#   --pkcs11_module file_path      Path to the secure element middleware for long-term key storage
-#   --pkcs11_pin pin               PIN for the secure element (default empty)
-#   --pkcs11_crypto_all            Use the PKCS#11 module for all supported crypto operations (default disabled)
+#   --pkcs11_module file_path      Path to the PKCS#11 token middleware
+#   --pkcs11_pin pin               PIN for the token (default empty)
+#   --pkcs11_crypto_all            Use the PKCS#11 token for all supported crypto operations (default disabled)
 #
 # Network tester configuration:
 #   --test_num_handshakes num      Number of handshakes to perform in the test (default 1)
@@ -66,7 +68,7 @@
 #   --help                         Display this help and exit
 
 _kritis3m_tls_completions() {
-        local cur prev roles opts_connection opts_files opts_security opts_tester opts_general hybrid_modes kex_algos
+        local cur prev roles opts_connection opts_files opts_security opts_tester opts_general kex_algos
 
         COMPREPLY=()
 
@@ -76,7 +78,7 @@ _kritis3m_tls_completions() {
         roles="reverse_proxy forward_proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy management_client"
         opts_connection="--incoming --outgoing"
         opts_files="--cert --key --intermediate --root --additional_key --pkcs11_module --keylog_file"
-        opts_security="--no_mutual_auth --integrity_only_cipher --key_exchange_alg --pre_shared_key --pkcs11_pin --pkcs11_crypto_all"
+        opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --pre_shared_key --psk_enable_certs --pkcs11_pin --pkcs11_crypto_all"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
                         --test_output_path --test_no_tls --test_silent"
         opts_mgmt="--mgmt_path"
@@ -113,7 +115,7 @@ _kritis3m_tls_completions() {
                 COMPREPLY=($(compgen -W "${kex_algos}" -- ${cur}))
                 return 0
                 ;;
-        --no_mutual_auth | --integrity_only_cipher | --pre_shared_key | --test_num_handshakes | --test_handshake_delay | --test_num_messages | \
+        --no_mutual_auth | --ciphersuites | --pre_shared_key | --psk_enable_certs | --test_num_handshakes | --test_handshake_delay | --test_num_messages | \
                 --test_message_delay | --test_message_size | --test_no_tls | --test_silent | --pkcs11_pin | pkcs11_crypto_all)
                 # No specific completion
                 COMPREPLY=()

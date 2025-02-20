@@ -169,19 +169,44 @@ int parse_cli_arguments(application_config* app_config,
                         }
                         break;
                 case 0x03: /* cert */
-                        certs.certificate_path = optarg;
+                        certs.certificate_path = duplicate_string(optarg);
+                        if (certs.certificate_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for certificate");
+                                return -1;
+                        }
                         break;
                 case 0x04: /* key */
-                        certs.private_key_path = optarg;
+                        certs.private_key_path = duplicate_string(optarg);
+                        if (certs.private_key_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for certificate");
+                                return -1;
+                        }
                         break;
                 case 0x05: /* intermediate */
-                        certs.intermediate_path = optarg;
+                        certs.intermediate_path = duplicate_string(optarg);
+                        if (certs.intermediate_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for certificate");
+                                return -1;
+                        }
                         break;
                 case 0x06: /* root */
-                        certs.root_path = optarg;
+                        certs.root_path = duplicate_string(optarg);
+                        if (certs.root_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for certificate");
+                                return -1;
+                        }
                         break;
                 case 0x07: /* additional_key */
-                        certs.additional_key_path = optarg;
+                        certs.additional_key_path = duplicate_string(optarg);
+                        if (certs.additional_key_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for certificate");
+                                return -1;
+                        }
                         break;
                 case 0x08: /* no_mutual_auth */
                         tls_config.mutual_authentication = false;
@@ -369,6 +394,32 @@ int parse_cli_arguments(application_config* app_config,
         if (read_certificates(&certs) != 0)
         {
                 return -1;
+        }
+
+        if (certs.certificate_path != NULL)
+        {
+                free((void*) certs.certificate_path);
+                certs.certificate_path = NULL;
+        }
+        if (certs.private_key_path != NULL)
+        {
+                free((void*) certs.private_key_path);
+                certs.private_key_path = NULL;
+        }
+        if (certs.additional_key_path != NULL)
+        {
+                free((void*) certs.additional_key_path);
+                certs.additional_key_path = NULL;
+        }
+        if (certs.intermediate_path != NULL)
+        {
+                free((void*) certs.intermediate_path);
+                certs.intermediate_path = NULL;
+        }
+        if (certs.root_path != NULL)
+        {
+                free((void*) certs.root_path);
+                certs.root_path = NULL;
         }
 
         if (check_pre_shared_key(&tls_config) != 0)

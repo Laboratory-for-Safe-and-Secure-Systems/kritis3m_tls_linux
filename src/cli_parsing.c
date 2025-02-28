@@ -433,17 +433,17 @@ int parse_cli_arguments(application_config* app_config,
         if (qkd_certs.certificate_path != NULL)
         {
                 free((void*) qkd_certs.certificate_path);
-                certs.certificate_path = NULL;
+                qkd_certs.certificate_path = NULL;
         }
         if (qkd_certs.root_path != NULL)
         {
                 free((void*) qkd_certs.root_path);
-                certs.root_path = NULL;
+                qkd_certs.root_path = NULL;
         }
         if (qkd_certs.private_key_path != NULL)
         {
                 free((void*) qkd_certs.private_key_path);
-                certs.private_key_path = NULL;
+                qkd_certs.private_key_path = NULL;
         }
 
         qkd_config.device_certificate_chain.buffer = qkd_certs.chain_buffer;

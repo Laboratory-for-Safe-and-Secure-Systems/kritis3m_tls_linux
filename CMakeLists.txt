@@ -131,6 +131,7 @@ target_link_libraries(kritis3m_tls PUBLIC kritis3m_service)
 
 # Link KRITIS3M_ASL to the required KRITIS3M_APPLICATIONS targets
 target_link_libraries(kritis3m-http-libs PUBLIC kritis3m_asl)
+target_link_libraries(kritis3m-quest PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_network_tester PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_echo_server PUBLIC kritis3m_asl)

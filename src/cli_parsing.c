@@ -26,6 +26,10 @@ static const struct option cli_options[] = {
         {"pre_shared_key", required_argument, 0, 0x0A},
         {"psk_enable_certs", no_argument, 0, 0x19},
 
+        {"https_cert", required_argument, 0, 0x20},
+        {"https_key", required_argument, 0, 0x21},
+        {"https_root", required_argument, 0, 0x22},
+
         {"pkcs11_module", required_argument, 0, 0x0C},
         {"pkcs11_pin", required_argument, 0, 0x0D},
         {"pkcs11_crypto_all", no_argument, 0, 0x0E},
@@ -54,6 +58,8 @@ extern unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx
 extern unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx);
 
 static int check_pre_shared_key(asl_endpoint_configuration* tls_config);
+static int check_qkd_config(asl_endpoint_configuration* qkd_config,
+                            asl_endpoint_configuration* tls_config);
 static void print_help(char const* name);
 
 /* Parse the provided argv array and store the information in the provided config variables.
@@ -88,6 +94,10 @@ int parse_cli_arguments(application_config* app_config,
 
         certificates certs = get_empty_certificates();
         asl_endpoint_configuration tls_config = asl_default_endpoint_config();
+
+        /* TLS config for HTTPS connection to the QKD line */
+        certificates qkd_certs = get_empty_certificates();
+        asl_endpoint_configuration qkd_config = asl_default_endpoint_config();
 
         /* Application config */
         app_config->role = NOT_SET;
@@ -345,6 +355,30 @@ int parse_cli_arguments(application_config* app_config,
                                 tls_config.psk.enable_certWithExternPsk = true;
                                 break;
                         }
+                case 0x20: /* qkd certificate path */
+                        qkd_certs.certificate_path = duplicate_string(optarg);
+                        if (qkd_certs.certificate_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for qkd certificate");
+                                return -1;
+                        }
+                        break;
+                case 0x21: /* qkd private key path */
+                        qkd_certs.private_key_path = duplicate_string(optarg);
+                        if (qkd_certs.private_key_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for qkd certificate");
+                                return -1;
+                        }
+                        break;
+                case 0x22: /* qkd root certificate path */
+                        qkd_certs.root_path = duplicate_string(optarg);
+                        if (qkd_certs.root_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for qkd certificate");
+                                return -1;
+                        }
+                        break;
                 case 'v': /* verbose */
                         app_config->log_level = LOG_LVL_INFO;
                         break;
@@ -391,11 +425,43 @@ int parse_cli_arguments(application_config* app_config,
                 }
         }
 
-        if (read_certificates(&certs) != 0)
+        /* Set QKD configuration*/
+        if (read_certificates(&qkd_certs) != 0)
+        {
+                return -1;
+        }
+        if (qkd_certs.certificate_path != NULL)
+        {
+                free((void*) qkd_certs.certificate_path);
+                certs.certificate_path = NULL;
+        }
+        if (qkd_certs.root_path != NULL)
+        {
+                free((void*) qkd_certs.root_path);
+                certs.root_path = NULL;
+        }
+        if (qkd_certs.private_key_path != NULL)
+        {
+                free((void*) qkd_certs.private_key_path);
+                certs.private_key_path = NULL;
+        }
+
+        qkd_config.device_certificate_chain.buffer = qkd_certs.chain_buffer;
+        qkd_config.device_certificate_chain.size = qkd_certs.chain_buffer_size;
+        qkd_config.root_certificate.buffer = qkd_certs.root_buffer;
+        qkd_config.root_certificate.size = qkd_certs.root_buffer_size;
+        qkd_config.private_key.buffer = qkd_certs.key_buffer;
+        qkd_config.private_key.size = qkd_certs.key_buffer_size;
+
+        if (check_qkd_config(&qkd_config, &tls_config) != 0)
         {
                 return -1;
         }
 
+        if (read_certificates(&certs) != 0)
+        {
+                return -1;
+        }
         if (certs.certificate_path != NULL)
         {
                 free((void*) certs.certificate_path);
@@ -536,19 +602,66 @@ int parse_cli_arguments(application_config* app_config,
         return 0;
 }
 
+static int check_qkd_config(asl_endpoint_configuration* qkd_config,
+                            asl_endpoint_configuration* tls_config)
+{
+        /* Check if qkd:secure was selected as qkd usage */
+        if (strncmp(tls_config->psk.master_key,
+                    SECURE_EXTERNAL_PSK_IDENTIFIER,
+                    SECURE_EXTERNAL_PSK_IDENTIFIER_LEN) == 0)
+        {
+                /* In this case the https_cert, https_key and https_root options must be set */
+                if ((qkd_config->root_certificate.buffer == NULL) ||
+                    (qkd_config->private_key.buffer == NULL) ||
+                    (qkd_config->device_certificate_chain.buffer == NULL))
+                {
+                        return -1;
+                }
+
+                /* We pass the resulting asl_endpoint to the callback_ctx */
+                asl_endpoint* https_endpoint = asl_setup_client_endpoint(qkd_config);
+                tls_config->psk.callback_ctx = https_endpoint;
+
+        } /* Otherwise we can clear the qkd_config (not required for unsecure qkd) */
+        else
+        {
+                /* In this case we do not need any additional fields. Clear all unused parameters */
+                if (qkd_config->root_certificate.buffer != NULL)
+                {
+                        free((void*) qkd_config->root_certificate.buffer);
+                        qkd_config->root_certificate.size = 0;
+                }
+                if (qkd_config->private_key.buffer != NULL)
+                {
+                        free((void*) qkd_config->private_key.buffer);
+                        qkd_config->private_key.size = 0;
+                }
+                if (qkd_config->device_certificate_chain.buffer != NULL)
+                {
+                        free((void*) qkd_config->device_certificate_chain.buffer);
+                        qkd_config->device_certificate_chain.size = 0;
+                }
+
+                /* We pass NULL to the callback_ctx */
+                tls_config->psk.callback_ctx = NULL;
+        }
+
+        return 0;
+}
+
 static int check_pre_shared_key(asl_endpoint_configuration* tls_config)
 {
         if (tls_config->psk.master_key == NULL)
                 return 0;
 
         /* Check if we want to use the external callback feature of the ASL */
-        if (strncmp(tls_config->psk.master_key, EXTERNAL_PSK_IDENTIFIER, EXTERNAL_PSK_IDENTIFIER_LEN) ==
-            0)
+        if ((strncmp(tls_config->psk.master_key, EXTERNAL_PSK_IDENTIFIER, EXTERNAL_PSK_IDENTIFIER_LEN) ==
+             0) ||
+            (strncmp(tls_config->psk.master_key,
+                     SECURE_EXTERNAL_PSK_IDENTIFIER,
+                     SECURE_EXTERNAL_PSK_IDENTIFIER_LEN) == 0))
         {
                 tls_config->psk.use_external_callbacks = true;
-
-                /* This is temporary, only for testing now... */
-                tls_config->psk.callback_ctx = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=";
 
                 tls_config->psk.psk_client_cb = asl_psk_client_callback;
                 tls_config->psk.psk_server_cb = asl_psk_server_callback;
@@ -717,6 +830,16 @@ static void print_help(char const* name)
         printf("                                            \"x448_mlkem768\", \"x25519_mlkem768\"\r\n");
         printf("  --pre_shared_key key           Pre-shared key to use (Base64 encoded)\r\n");
         printf("  --psk_enable_certs             Send Certificates in addition to PSK usage\r\n");
+
+        printf("\nQKD:\r\n");
+        printf("  When using QKD in the TLS applications, you have to specify this in the --pre_shared_key parameter.\r\n");
+        printf("  Here are two modes possible:\r\n");
+        printf("  --pre_shared_key \"%s\"         Results in a HTTP request to the QKD key magament system and subsequent a QKD PSK.\r\n", EXTERNAL_PSK_IDENTIFIER);
+        printf("  --pre_shared_key \"%s\"  Results in a (secured) HTPPS request to the QKD key management system and subsequent a QKD PSK.\r\n", SECURE_EXTERNAL_PSK_IDENTIFIER);
+        printf("                                    In this mode, the https parameter must be set.\r\n");
+        printf("  --https_cert file_path         Path to the certificate file used for the HTTPS connection to the QKD line\r\n");
+        printf("  --https_root file_path         Path to the root certificate file used for the HTTPS connection to the QKD line\r\n");
+        printf("  --https_key file_path          Path to the private key file used for the HTTPS connection to the QKD line\r\n");
 
         printf("\nPKCS#11:\r\n");
         printf("  When using a PKCS#11 token for key/cert storage, you have to supply the PKCS#11 labels using the arguments\n");

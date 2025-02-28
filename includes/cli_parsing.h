@@ -14,6 +14,8 @@
 
 #define EXTERNAL_PSK_IDENTIFIER "qkd"
 #define EXTERNAL_PSK_IDENTIFIER_LEN 3
+#define SECURE_EXTERNAL_PSK_IDENTIFIER "qkd:secure"
+#define SECURE_EXTERNAL_PSK_IDENTIFIER_LEN 10
 
 enum application_role
 {

@@ -618,6 +618,12 @@ static int check_qkd_config(asl_endpoint_configuration* qkd_config,
                         return -1;
                 }
 
+                if(tls_config->keylog_file != NULL)
+                {
+                        /* For debug reasons, we copy the keylog_file from the tls_config */
+                        qkd_config->keylog_file = duplicate_string(tls_config->keylog_file);
+                }
+
                 /* We pass the resulting asl_endpoint to the callback_ctx */
                 asl_endpoint* https_endpoint = asl_setup_client_endpoint(qkd_config);
                 tls_config->psk.callback_ctx = https_endpoint;

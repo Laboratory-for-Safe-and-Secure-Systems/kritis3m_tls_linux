@@ -631,25 +631,30 @@ static int check_qkd_config(asl_endpoint_configuration* qkd_config,
         } /* Otherwise we can clear the qkd_config (not required for unsecure qkd) */
         else
         {
-                /* In this case we do not need any additional fields. Clear all unused parameters */
-                if (qkd_config->root_certificate.buffer != NULL)
-                {
-                        free((void*) qkd_config->root_certificate.buffer);
-                        qkd_config->root_certificate.size = 0;
-                }
-                if (qkd_config->private_key.buffer != NULL)
-                {
-                        free((void*) qkd_config->private_key.buffer);
-                        qkd_config->private_key.size = 0;
-                }
-                if (qkd_config->device_certificate_chain.buffer != NULL)
-                {
-                        free((void*) qkd_config->device_certificate_chain.buffer);
-                        qkd_config->device_certificate_chain.size = 0;
-                }
-
-                /* We pass NULL to the callback_ctx */
+                /* In this case we do not need any additional fields and pass NULL to the callback_ctx */
                 tls_config->psk.callback_ctx = NULL;
+        }
+
+        /* As last step, we clean-up the qkd_config */
+        if (qkd_config->root_certificate.buffer != NULL)
+        {
+                free((void*) qkd_config->root_certificate.buffer);
+                qkd_config->root_certificate.size = 0;
+        }
+        if (qkd_config->private_key.buffer != NULL)
+        {
+                free((void*) qkd_config->private_key.buffer);
+                qkd_config->private_key.size = 0;
+        }
+        if (qkd_config->device_certificate_chain.buffer != NULL)
+        {
+                free((void*) qkd_config->device_certificate_chain.buffer);
+                qkd_config->device_certificate_chain.size = 0;
+        }
+        if (qkd_config->keylog_file != NULL)
+        {
+                free((void*) qkd_config->keylog_file);
+                qkd_config->keylog_file = NULL;
         }
 
         return 0;

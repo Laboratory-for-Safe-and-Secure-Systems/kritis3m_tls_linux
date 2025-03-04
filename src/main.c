@@ -57,18 +57,33 @@ struct qkd_key_info* kritis3m_allocate_key_info()
 
 /// @brief requests a new QKD key from the QKD line ether without or without a specific key_ID
 ///        parameter and copies the key and the identity to the key_info parameter.
+/// @param ctx callback_context containing the asl_endoint, if a secure connection to the QKD
+///            line is desired. Otherwise this parameter is NULL.
 /// @param key_info struct object, which contains the reserved buffer for key and key_ID as
-///        well as the associated sizes.
+///                 well as the associated sizes.
 /// @param identity (OPTIONAL) string of the key_ID sent by the client to the server to request
-///        the corresponding QKD key. In case the tls client is calling this function, identity is
-///        set to NULL.
+///                 the corresponding QKD key. In case the tls client is calling this function,
+///                 identity is set to NULL.
 /// @return returns the E_OK or a specific status return in case of an error.
-enum kritis3m_status_info kritis3m_get_qkd_key(struct qkd_key_info* key_info, const char* identity)
+enum kritis3m_status_info kritis3m_get_qkd_key(void* ctx, struct qkd_key_info* key_info, const char* identity)
 {
         enum kritis3m_status_info status;
         struct quest_configuration* quest_config;
+        asl_endpoint* https_endpoint = (asl_endpoint*) ctx;
 
+        /* initialize with the default config */
         quest_config = quest_default_config();
+
+        if (https_endpoint != NULL)
+        {
+                /* if we want a secure connection we pass the asl_endpoint to the quest_config */
+                quest_config->security_param.enable_secure_con = true;
+                quest_config->security_param.client_endpoint = https_endpoint;
+        }
+        else
+        { /* otherwise we disable the secure connection */
+                quest_config->security_param.enable_secure_con = false;
+        }
 
         /* if identity is NULL, we are on the client side requesting a new key without an ID */
         if (identity == NULL)
@@ -118,7 +133,6 @@ LIB_ERR:
 
 unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx)
 {
-        (void) ctx;
         enum kritis3m_status_info status;
         struct qkd_key_info* key_info;
 
@@ -126,7 +140,7 @@ unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx)
         if (key_info == NULL)
                 return 0;
 
-        status = kritis3m_get_qkd_key(key_info, NULL);
+        status = kritis3m_get_qkd_key(ctx, key_info, NULL);
         if (status == E_OK)
         {
                 memcpy(key, key_info->key, (key_info->key_len + 1));
@@ -139,7 +153,6 @@ unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx)
 
 unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx)
 {
-        (void) ctx;
         enum kritis3m_status_info status;
         struct qkd_key_info* key_info;
 
@@ -147,7 +160,7 @@ unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx)
         if (key_info == NULL)
                 return 0;
 
-        status = kritis3m_get_qkd_key(key_info, identity);
+        status = kritis3m_get_qkd_key(ctx, key_info, identity);
         if (status == E_OK)
         {
                 memcpy(key, key_info->key, (key_info->key_len + 1));

@@ -26,9 +26,9 @@ static const struct option cli_options[] = {
         {"pre_shared_key", required_argument, 0, 0x0A},
         {"psk_enable_certs", no_argument, 0, 0x19},
 
-        {"https_cert", required_argument, 0, 0x20},
-        {"https_key", required_argument, 0, 0x21},
-        {"https_root", required_argument, 0, 0x22},
+        {"qkd_cert", required_argument, 0, 0x20},
+        {"qkd_key", required_argument, 0, 0x21},
+        {"qkd_root", required_argument, 0, 0x22},
 
         {"pkcs11_module", required_argument, 0, 0x0C},
         {"pkcs11_pin", required_argument, 0, 0x0D},
@@ -618,6 +618,12 @@ static int check_qkd_config(asl_endpoint_configuration* qkd_config,
                         return -1;
                 }
 
+                if(tls_config->keylog_file != NULL)
+                {
+                        /* For debug reasons, we copy the keylog_file from the tls_config */
+                        qkd_config->keylog_file = duplicate_string(tls_config->keylog_file);
+                }
+
                 /* We pass the resulting asl_endpoint to the callback_ctx */
                 asl_endpoint* https_endpoint = asl_setup_client_endpoint(qkd_config);
                 tls_config->psk.callback_ctx = https_endpoint;
@@ -644,6 +650,11 @@ static int check_qkd_config(asl_endpoint_configuration* qkd_config,
         {
                 free((void*) qkd_config->device_certificate_chain.buffer);
                 qkd_config->device_certificate_chain.size = 0;
+        }
+        if (qkd_config->keylog_file != NULL)
+        {
+                free((void*) qkd_config->keylog_file);
+                qkd_config->keylog_file = NULL;
         }
 
         return 0;
@@ -837,9 +848,9 @@ static void print_help(char const* name)
         printf("  --pre_shared_key \"%s\"         Results in a HTTP request to the QKD key magament system and subsequent a QKD PSK.\r\n", EXTERNAL_PSK_IDENTIFIER);
         printf("  --pre_shared_key \"%s\"  Results in a (secured) HTPPS request to the QKD key management system and subsequent a QKD PSK.\r\n", SECURE_EXTERNAL_PSK_IDENTIFIER);
         printf("                                    In this mode, the https parameter must be set.\r\n");
-        printf("  --https_cert file_path         Path to the certificate file used for the HTTPS connection to the QKD line\r\n");
-        printf("  --https_root file_path         Path to the root certificate file used for the HTTPS connection to the QKD line\r\n");
-        printf("  --https_key file_path          Path to the private key file used for the HTTPS connection to the QKD line\r\n");
+        printf("  --qkd_cert file_path         Path to the certificate file used for the HTTPS connection to the QKD line\r\n");
+        printf("  --qkd_root file_path         Path to the root certificate file used for the HTTPS connection to the QKD line\r\n");
+        printf("  --qkd_key file_path          Path to the private key file used for the HTTPS connection to the QKD line\r\n");
 
         printf("\nPKCS#11:\r\n");
         printf("  When using a PKCS#11 token for key/cert storage, you have to supply the PKCS#11 labels using the arguments\n");

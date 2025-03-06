@@ -34,16 +34,22 @@
 #                                     Hybrid: "secp256_mlkem512", "secp384_mlkem768", "secp256_mlkem768"
 #                                             "secp521_mlkem1024", "secp384_mlkem1024", "x25519_mlkem512"
 #                                             "x448_mlkem768", "x25519_mlkem768"
-#   --pre_shared_key key           Pre-shared key to use (Base64 encoded)
-#   --psk_enable_certs             Send Certificates in addition to PSK usage
+#
+# Pre-shared keys:
+#   --pre_shared_key id:key        Pre-shared key and identity to use. The identity is sent from client to server during
+#                                     the handshake. The key has to be Base64 encoded.
+#   --psk_enable_cert_auth         Use certificates in addition to the PSK for peer authentication
 #
 # PKCS#11:
 #   When using a PKCS#11 token for key/cert storage, you have to supply the PKCS#11 labels using the arguments
 #   "--key","--additionalKey", and "--cert", prepending the string "pkcs11:" followed by the label.
 #   As an alternative, the file provided by "--key", "--additionalKey" or "--cert" may also contain the key label with
 #   the same identifier before it. In this case, the label must be the first line of the file.
-#   To use a pre-shared master key on a PKCS#11 token, you have to provide the label of the key via the "--pre_shared_key"
-#   argument, prepending the string "pkcs11:".
+#
+#   To use a pre-shared key on a PKCS#11 token, the "--pre_shared_key" arguement is used: instead of a Base64
+#   encoded key, the label "pkcs11" has to be specified. In this case, the given PSK identity is used as
+#   the PKCS#11 label of the pre-shared key on the token.
+#
 #   --pkcs11_module file_path      Path to the PKCS#11 token middleware
 #   --pkcs11_pin pin               PIN for the token (default empty)
 #   --pkcs11_crypto_all            Use the PKCS#11 token for all supported crypto operations (default disabled)
@@ -78,7 +84,7 @@ _kritis3m_tls_completions() {
         roles="reverse_proxy forward_proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy management_client"
         opts_connection="--incoming --outgoing"
         opts_files="--cert --key --intermediate --root --additional_key --pkcs11_module --keylog_file"
-        opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --pre_shared_key --psk_enable_certs --pkcs11_pin --pkcs11_crypto_all"
+        opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --pre_shared_key --psk_enable_cert_auth --pkcs11_pin --pkcs11_crypto_all"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
                         --test_output_path --test_no_tls --test_silent"
         opts_mgmt="--mgmt_path"
@@ -115,7 +121,7 @@ _kritis3m_tls_completions() {
                 COMPREPLY=($(compgen -W "${kex_algos}" -- ${cur}))
                 return 0
                 ;;
-        --no_mutual_auth | --ciphersuites | --pre_shared_key | --psk_enable_certs | --test_num_handshakes | --test_handshake_delay | --test_num_messages | \
+        --no_mutual_auth | --ciphersuites | --pre_shared_key | --psk_enable_cert_auth | --test_num_handshakes | --test_handshake_delay | --test_num_messages | \
                 --test_message_delay | --test_message_size | --test_no_tls | --test_silent | --pkcs11_pin | pkcs11_crypto_all)
                 # No specific completion
                 COMPREPLY=()

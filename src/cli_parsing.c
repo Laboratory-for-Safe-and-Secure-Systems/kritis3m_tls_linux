@@ -24,7 +24,7 @@ static const struct option cli_options[] = {
         {"ciphersuites", required_argument, 0, 0x09},
         {"key_exchange_alg", required_argument, 0, 0x0B},
         {"pre_shared_key", required_argument, 0, 0x0A},
-        {"psk_enable_certs", no_argument, 0, 0x19},
+        {"psk_enable_cert_auth", no_argument, 0, 0x19},
 
         {"pkcs11_module", required_argument, 0, 0x0C},
         {"pkcs11_pin", required_argument, 0, 0x0D},
@@ -221,8 +221,10 @@ int parse_cli_arguments(application_config* app_config,
                         break;
                 case 0x0A: /* pre_shared_key */
                         tls_config.psk.enable_psk = true;
-                        tls_config.psk.master_key = duplicate_string(optarg);
-                        if (tls_config.psk.master_key == NULL)
+                        /* In the optarg, the concatination <id:key> is present. We strip
+                         * the key from the identity below. */
+                        tls_config.psk.identity = duplicate_string(optarg);
+                        if (tls_config.psk.identity == NULL)
                         {
                                 LOG_ERROR("unable to allocate memory for PSK master key");
                                 return -1;
@@ -340,9 +342,9 @@ int parse_cli_arguments(application_config* app_config,
                                 }
                                 break;
                         }
-                case 0x19: /* psk_enable_certs */
+                case 0x19: /* psk_enable_cert_auth */
                         {
-                                tls_config.psk.enable_certWithExternPsk = true;
+                                tls_config.psk.enable_cert_auth = true;
                                 break;
                         }
                 case 'v': /* verbose */
@@ -538,12 +540,12 @@ int parse_cli_arguments(application_config* app_config,
 
 static int check_pre_shared_key(asl_endpoint_configuration* tls_config)
 {
-        if (tls_config->psk.master_key == NULL)
+        /* The provided <id:key> concatination is already stored in the identity variable */
+        if (tls_config->psk.identity == NULL)
                 return 0;
 
         /* Check if we want to use the external callback feature of the ASL */
-        if (strncmp(tls_config->psk.master_key, EXTERNAL_PSK_IDENTIFIER, EXTERNAL_PSK_IDENTIFIER_LEN) ==
-            0)
+        if (strncmp(tls_config->psk.identity, EXTERNAL_PSK_IDENTIFIER, EXTERNAL_PSK_IDENTIFIER_LEN) == 0)
         {
                 tls_config->psk.use_external_callbacks = true;
 
@@ -552,15 +554,31 @@ static int check_pre_shared_key(asl_endpoint_configuration* tls_config)
 
                 tls_config->psk.psk_client_cb = asl_psk_client_callback;
                 tls_config->psk.psk_server_cb = asl_psk_server_callback;
+        }
+        else
+        {
+                /* Strip the key from the <id:key> concatination and store it in its own variable */
+                char* key_start = strchr(tls_config->psk.identity, ':');
+                if (key_start == NULL)
+                {
+                        LOG_ERROR("invalid PSK format");
+                        return -1;
+                }
+                *key_start = '\0'; /* Terminate the identity string */
+                key_start += 1;    /* Skip the colon */
 
-                free((void*) tls_config->psk.master_key);
-                tls_config->psk.master_key = NULL;
+                tls_config->psk.key = duplicate_string(key_start);
+                if (tls_config->psk.key == NULL)
+                {
+                        LOG_ERROR("unable to allocate memory for PSK master key");
+                        return -1;
+                }
         }
 
         /* Sanity check: if we want to send certs alongside, PSKs need to be used */
-        if (tls_config->psk.enable_certWithExternPsk && !tls_config->psk.enable_psk)
+        if (tls_config->psk.enable_cert_auth && !tls_config->psk.enable_psk)
         {
-                LOG_ERROR("--psk_enable_certs requires PSK usage");
+                LOG_ERROR("--psk_enable_cert_auth requires PSK usage");
                 return -1;
         }
 
@@ -669,9 +687,14 @@ void arguments_cleanup(application_config* app_config,
                 free((void*) tls_config->pkcs11.module_path);
         }
 
-        if (tls_config->psk.master_key != NULL)
+        if (tls_config->psk.key != NULL)
         {
-                free((void*) tls_config->psk.master_key);
+                free((void*) tls_config->psk.key);
+        }
+
+        if (tls_config->psk.identity != NULL)
+        {
+                free((void*) tls_config->psk.identity);
         }
 
         if (tls_config->keylog_file != NULL)
@@ -715,16 +738,21 @@ static void print_help(char const* name)
         printf("                                    Hybrid: \"secp256_mlkem512\", \"secp384_mlkem768\", \"secp256_mlkem768\"\r\n");
         printf("                                            \"secp521_mlkem1024\", \"secp384_mlkem1024\", \"x25519_mlkem512\"\r\n");
         printf("                                            \"x448_mlkem768\", \"x25519_mlkem768\"\r\n");
-        printf("  --pre_shared_key key           Pre-shared key to use (Base64 encoded)\r\n");
-        printf("  --psk_enable_certs             Send Certificates in addition to PSK usage\r\n");
+
+        printf("\nPre-shared keys:\r\n");
+        printf("  --pre_shared_key id:key        Pre-shared key and identity to use. The identity is sent from client to server during\r\n");
+        printf("                                    the handshake. The key has to be Base64 encoded.\r\n");
+        printf("  --psk_enable_cert_auth         Use certificates in addition to the PSK for peer authentication\r\n");
 
         printf("\nPKCS#11:\r\n");
         printf("  When using a PKCS#11 token for key/cert storage, you have to supply the PKCS#11 labels using the arguments\n");
         printf("  \"--key\",\"--additionalKey\", and \"--cert\", prepending the string \"%s\" followed by the label.\r\n", PKCS11_LABEL_IDENTIFIER);
         printf("  As an alternative, the file provided by \"--key\", \"--additionalKey\" or \"--cert\" may also contain the key label with\r\n");
-        printf("  the same identifier before it. In this case, the label must be the first line of the file.\r\n");
-        printf("  To use a pre-shared master key on a PKCS#11 token, you have to provide the label of the key via the \"--pre_shared_key\"\r\n");
-        printf("  argument, prepending the string \"%s\".\r\n", PKCS11_LABEL_IDENTIFIER);
+        printf("  the same identifier before it. In this case, the label must be the first line of the file.\r\n\n");
+        printf("  To use a pre-shared key on a PKCS#11 token, the \"--pre_shared_key\" arguement is used: instead of a Base64\r\n");
+        printf("  encoded key, the label \"%.*s\" has to be specified. In this case, the given PSK identity is used as\r\n", PKCS11_LABEL_IDENTIFIER_LEN - 1,
+                                                                                                                             PKCS11_LABEL_IDENTIFIER);
+        printf("  the PKCS#11 label of the pre-shared key on the token.\r\n\n");
         printf("  --pkcs11_module file_path      Path to the PKCS#11 token middleware\r\n");
         printf("  --pkcs11_pin pin               PIN for the token (default empty)\r\n");
         printf("  --pkcs11_crypto_all            Use the PKCS#11 token for all supported crypto operations (default disabled)\r\n");

@@ -58,8 +58,10 @@ extern unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx
 extern unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx);
 
 static int check_pre_shared_key(asl_endpoint_configuration* tls_config);
-static int check_qkd_config(asl_endpoint_configuration* qkd_config,
-                            asl_endpoint_configuration* tls_config);
+static int check_qkd_config(quest_configuration* quest_config,
+                            asl_endpoint_configuration* qkd_config,
+                            asl_endpoint_configuration* tls_config,
+                            application_config* app_config);
 static void print_help(char const* name);
 
 /* Parse the provided argv array and store the information in the provided config variables.
@@ -71,6 +73,7 @@ int parse_cli_arguments(application_config* app_config,
                         proxy_config* proxy_config,
                         echo_server_config* echo_server_config,
                         network_tester_config* tester_config,
+                        quest_configuration* quest_config,
                         char** mgmt_config_path,
                         size_t argc,
                         char** argv)
@@ -453,7 +456,7 @@ int parse_cli_arguments(application_config* app_config,
         qkd_config.private_key.buffer = qkd_certs.key_buffer;
         qkd_config.private_key.size = qkd_certs.key_buffer_size;
 
-        if (check_qkd_config(&qkd_config, &tls_config) != 0)
+        if (check_qkd_config(quest_config, &qkd_config, &tls_config, app_config) != 0)
         {
                 return -1;
         }
@@ -602,15 +605,24 @@ int parse_cli_arguments(application_config* app_config,
         return 0;
 }
 
-static int check_qkd_config(asl_endpoint_configuration* qkd_config,
-                            asl_endpoint_configuration* tls_config)
+static int check_qkd_config(quest_configuration* quest_config,
+                            asl_endpoint_configuration* qkd_config,
+                            asl_endpoint_configuration* tls_config,
+                            application_config* app_config)
 {
+        /* if these roles are set, we are on the server side of the tls communicaton and need to 
+         * modify the hostname of the quest_configuration to address the correct QKD endpoint */
+        if((app_config->role) == ROLE_ECHO_SERVER ||(app_config->role == ROLE_REVERSE_PROXY))
+        {
+                quest_config->connection_info.hostname = "im-lfd-qkd-alice.othr.de";
+        }
+
         /* Check if qkd:secure was selected as qkd usage */
         if (strncmp(tls_config->psk.master_key,
                     SECURE_EXTERNAL_PSK_IDENTIFIER,
                     SECURE_EXTERNAL_PSK_IDENTIFIER_LEN) == 0)
         {
-                /* In this case the https_cert, https_key and https_root options must be set */
+                /* In this case the qkd_cert, qkd_key and qkd_root options must be set */
                 if ((qkd_config->root_certificate.buffer == NULL) ||
                     (qkd_config->private_key.buffer == NULL) ||
                     (qkd_config->device_certificate_chain.buffer == NULL))
@@ -624,15 +636,20 @@ static int check_qkd_config(asl_endpoint_configuration* qkd_config,
                         qkd_config->keylog_file = duplicate_string(tls_config->keylog_file);
                 }
 
-                /* We pass the resulting asl_endpoint to the callback_ctx */
+                /* Initialize the resulting asl_endpoint */
                 asl_endpoint* https_endpoint = asl_setup_client_endpoint(qkd_config);
-                tls_config->psk.callback_ctx = https_endpoint;
 
-        } /* Otherwise we can clear the qkd_config (not required for unsecure qkd) */
-        else
+                /* Enable secure connection and set asl_endpoint reference */
+                quest_config->security_param.enable_secure_con = true;
+                quest_config->security_param.client_endpoint = https_endpoint;
+
+        }
+        else /* Otherwise we can clear the qkd_config (not required for unsecure qkd) */
         {
-                /* In this case we do not need any additional fields and pass NULL to the callback_ctx */
-                tls_config->psk.callback_ctx = NULL;
+                /* In this case we do not need the secure connection and set 
+                 * the asl_endpoint reference to NULL */
+                quest_config->security_param.enable_secure_con = false;
+                quest_config->security_param.client_endpoint = NULL;
         }
 
         /* As last step, we clean-up the qkd_config */
@@ -699,7 +716,8 @@ void arguments_cleanup(application_config* app_config,
                        proxy_config* proxy_config,
                        echo_server_config* echo_server_config,
                        char** management_file_path,
-                       network_tester_config* tester_config)
+                       network_tester_config* tester_config,
+                       quest_configuration* quest_config)
 {
         /* Nothing to clean here */
         (void) app_config;
@@ -760,6 +778,12 @@ void arguments_cleanup(application_config* app_config,
         {
                 LOG_ERROR("unsupported role");
                 return;
+        }
+
+        /* Free memory of the quest configuration */
+        if (quest_config != NULL)
+        {
+                quest_deinit(quest_config);
         }
 
         /* Free memory of certificates and private key */

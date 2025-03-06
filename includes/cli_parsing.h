@@ -9,6 +9,7 @@
 #include "logging.h"
 #include "network_tester.h"
 #include "tls_proxy.h"
+#include "quest.h"
 
 #define LOCALHOST_IP "127.0.0.1"
 
@@ -45,6 +46,7 @@ int parse_cli_arguments(application_config* app_config,
                         proxy_config* proxy_config,
                         echo_server_config* echo_server_config,
                         network_tester_config* tester_config,
+                        quest_configuration* quest_config,
                         char** management_file_path,
                         size_t argc,
                         char** argv);
@@ -55,7 +57,8 @@ void arguments_cleanup(application_config* app_config,
                        proxy_config* proxy_config,
                        echo_server_config* echo_server_config,
                        char** management_file_path,
-                       network_tester_config* tester_config);
+                       network_tester_config* tester_config,
+                       quest_configuration* quest_config);
 
 /* Helper method to dynamically duplicate a string */
 char* duplicate_string(char const* source);

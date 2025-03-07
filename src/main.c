@@ -57,68 +57,88 @@ struct qkd_key_info* kritis3m_allocate_key_info()
 
 /// @brief requests a new QKD key from the QKD line ether without or without a specific key_ID
 ///        parameter and copies the key and the identity to the key_info parameter.
+/// @param ctx callback_context containing the asl_endoint, if a secure connection to the QKD
+///            line is desired. Otherwise this parameter is NULL.
 /// @param key_info struct object, which contains the reserved buffer for key and key_ID as
-///        well as the associated sizes.
+///                 well as the associated sizes.
 /// @param identity (OPTIONAL) string of the key_ID sent by the client to the server to request
-///        the corresponding QKD key. In case the tls client is calling this function, identity is
-///        set to NULL.
+///                 the corresponding QKD key. In case the tls client is calling this function,
+///                 identity is set to NULL.
 /// @return returns the E_OK or a specific status return in case of an error.
-enum kritis3m_status_info kritis3m_get_qkd_key(struct qkd_key_info* key_info, const char* identity)
+enum kritis3m_status_info kritis3m_get_qkd_key(void* ctx, struct qkd_key_info* key_info, const char* identity)
 {
         enum kritis3m_status_info status;
-        struct quest_configuration* quest_config;
-
-        quest_config = quest_default_config();
+        quest_transaction* key_request;
+        quest_endpoint* qkd_endpoint = (quest_endpoint*) ctx;
+        if (qkd_endpoint == NULL)
+        {
+                LOG_ERROR("callback context was NULL here.");
+                return ALLOC_ERR;
+        }
 
         /* if identity is NULL, we are on the client side requesting a new key without an ID */
         if (identity == NULL)
         {
-                /* modify the request type to key request WITHOUT an ID */
-                quest_config->request_type = HTTP_KEY_NO_ID;
+                key_request = quest_setup_transaction(qkd_endpoint, HTTP_KEY_NO_ID, NULL);
         }
         else /* if an identity is passed as a parameter, we request a key with a specific ID */
         {
-                quest_config->request_type = HTTP_KEY_WITH_ID;
-                quest_config->connection_info.hostname = "im-lfd-qkd-alice.othr.de";
-                memcpy(quest_config->key_ID, identity, strlen(identity));
+                key_request = quest_setup_transaction(qkd_endpoint, HTTP_KEY_WITH_ID, (char*) identity);
         }
 
-        status = quest_init(quest_config);
-        if (status != E_OK)
-                goto LIB_ERR;
+        if (key_request == NULL)
+        {
+                LOG_ERROR("allocation of quest transaction did not succeed.");
+                return ALLOC_ERR;
+        }
 
-        status = quest_send_request(quest_config);
+        status = quest_execute_transaction(key_request);
         if (status != E_OK)
-                goto LIB_ERR;
+        {
+                LOG_ERROR("error occured during transaction execution.");
+                goto TRANSACTION_ERR;
+        }
+
+        struct http_get_response* key_response = quest_get_transaction_response(key_request);
+        if (key_request == NULL)
+        {
+                LOG_ERROR("error occured during key request.");
+                goto TRANSACTION_ERR;
+        }
 
         /* if identity is NULL, we can copy the key_ID and key to the key_info object */
         if (identity != NULL)
         {
-                if (strcmp(quest_config->response->key_info->key_ID, identity) != 0)
+                /* if not, we perform a sanity check to verify the correct QKD key */
+                if (strcmp(key_response->key_info->key_ID, identity) != 0)
                 {
                         LOG_ERROR("identities do not match!\n");
-                        status = E_NOT_OK;
-                        goto LIB_ERR;
+                        goto TRANSACTION_ERR;
                 }
         }
 
-        key_info->key_len = quest_config->response->key_info->key_len;
-        key_info->key_ID_len = quest_config->response->key_info->key_ID_len;
+        key_info->key_len = key_response->key_info->key_len;
+        key_info->key_ID_len = key_response->key_info->key_ID_len;
 
         /* copy key from the http_response oject */
-        memcpy(key_info->key, quest_config->response->key_info->key, (key_info->key_len + 1));
+        memcpy(key_info->key, key_response->key_info->key, (key_info->key_len + 1));
 
         /* copy key ID from the http_response object */
-        memcpy(key_info->key_ID, quest_config->response->key_info->key_ID, (key_info->key_ID_len + 1));
+        memcpy(key_info->key_ID, key_response->key_info->key_ID, (key_info->key_ID_len + 1));
 
-LIB_ERR:
-        quest_deinit(quest_config);
-        return status;
+        /* if everything worked correctly we can close the transaction. */
+        quest_close_transaction(key_request);
+        quest_free_transaction(key_request);
+
+        return E_OK;
+
+TRANSACTION_ERR:
+        quest_free_transaction(key_request);
+        return E_NOT_OK;
 }
 
 unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx)
 {
-        (void) ctx;
         enum kritis3m_status_info status;
         struct qkd_key_info* key_info;
 
@@ -126,7 +146,7 @@ unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx)
         if (key_info == NULL)
                 return 0;
 
-        status = kritis3m_get_qkd_key(key_info, NULL);
+        status = kritis3m_get_qkd_key(ctx, key_info, NULL);
         if (status == E_OK)
         {
                 memcpy(key, key_info->key, (key_info->key_len + 1));
@@ -139,7 +159,6 @@ unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx)
 
 unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx)
 {
-        (void) ctx;
         enum kritis3m_status_info status;
         struct qkd_key_info* key_info;
 
@@ -147,7 +166,7 @@ unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx)
         if (key_info == NULL)
                 return 0;
 
-        status = kritis3m_get_qkd_key(key_info, identity);
+        status = kritis3m_get_qkd_key(ctx, key_info, identity);
         if (status == E_OK)
         {
                 memcpy(key, key_info->key, (key_info->key_len + 1));
@@ -164,6 +183,9 @@ int main(int argc, char** argv)
         proxy_config tls_proxy_config = tls_proxy_default_config();
         echo_server_config echo_server_config = echo_server_default_config();
         network_tester_config network_tester_config = network_tester_default_config();
+        quest_configuration* quest_config = quest_default_config();
+        quest_endpoint* qkd_endpoint = NULL;
+
         char* management_file_path = NULL;
 
         /* Install the signal handler and ignore SIGPIPE */
@@ -182,6 +204,7 @@ int main(int argc, char** argv)
                                       &tls_proxy_config,
                                       &echo_server_config,
                                       &network_tester_config,
+                                      quest_config,
                                       &management_file_path,
                                       argc,
                                       argv);
@@ -195,10 +218,27 @@ int main(int argc, char** argv)
                 exit(0); /* help was printed, so we can exit here */
         }
 
+        if (app_config.use_qkd)
+        {
+                /* Setup quest_endpoint based on the configuration above. */
+                qkd_endpoint = quest_setup_endpoint(quest_config);
+                if (qkd_endpoint == NULL)
+                {
+                        LOG_ERROR("allocation of quest endpoint did not succeed.");
+                        return -1;
+                }
+        }
+
         int id = -1;
 
         if (app_config.role == ROLE_REVERSE_PROXY)
         {
+                if (app_config.use_qkd)
+                {
+                        /* Set PSK callback context to the quest_endpoint */
+                        tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                }
+
                 /* Run the proxy backend */
                 ret = tls_proxy_backend_run(&tls_proxy_backend_config);
                 if (ret != 0)
@@ -213,6 +253,12 @@ int main(int argc, char** argv)
         }
         else if (app_config.role == ROLE_FORWARD_PROXY)
         {
+                if (app_config.use_qkd)
+                {
+                        /* Set PSK callback context to the quest_endpoint */
+                        tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                }
+
                 /* Run the proxy backend */
                 ret = tls_proxy_backend_run(&tls_proxy_backend_config);
                 if (ret != 0)
@@ -227,6 +273,12 @@ int main(int argc, char** argv)
         }
         else if (app_config.role == ROLE_ECHO_SERVER)
         {
+                if (app_config.use_qkd)
+                {
+                        /* Set PSK callback context to the quest_endpoint */
+                        echo_server_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                }
+
                 /* Run the TCP echo server */
                 ret = echo_server_run(&echo_server_config);
                 if (ret != 0)
@@ -236,6 +288,12 @@ int main(int argc, char** argv)
         }
         else if (app_config.role == ROLE_ECHO_SERVER_PROXY)
         {
+                if (app_config.use_qkd)
+                {
+                        /* Set PSK callback context to the quest_endpoint */
+                        tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                }
+
                 /* Run the proxy backend */
                 ret = tls_proxy_backend_run(&tls_proxy_backend_config);
                 if (ret != 0)
@@ -263,6 +321,12 @@ int main(int argc, char** argv)
         }
         else if (app_config.role == ROLE_TLS_CLIENT)
         {
+                if (app_config.use_qkd)
+                {
+                        /* Set PSK callback context to the quest_endpoint */
+                        tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                }
+
                 tcp_client_stdin_bridge_config tcp_client_stdin_bridge_config = {
                         .target_ip_address = LOCALHOST_IP,
                         .target_port = 0, /* Updated to the random port of the forward proxy */
@@ -294,6 +358,12 @@ int main(int argc, char** argv)
         }
         else if (app_config.role == ROLE_NETWORK_TESTER)
         {
+                if (app_config.use_qkd)
+                {
+                        /* Set PSK callback context to the quest_endpoint */
+                        network_tester_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                }
+
                 /* Run the network_tester application asynchronously */
                 ret = network_tester_run(&network_tester_config);
                 if (ret != 0)
@@ -301,6 +371,12 @@ int main(int argc, char** argv)
         }
         else if (app_config.role == ROLE_NETWORK_TESTER_PROXY)
         {
+                if (app_config.use_qkd)
+                {
+                        /* Set PSK callback context to the quest_endpoint */
+                        tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                }
+
                 /* Run the proxy backend */
                 ret = tls_proxy_backend_run(&tls_proxy_backend_config);
                 if (ret != 0)
@@ -343,7 +419,8 @@ int main(int argc, char** argv)
                           &tls_proxy_config,
                           &echo_server_config,
                           &management_file_path,
-                          &network_tester_config);
+                          &network_tester_config,
+                          quest_config);
 
         ret = 0;
         while (running)
@@ -386,6 +463,11 @@ int main(int argc, char** argv)
         {
                 tls_proxy_stop(id);
                 tls_proxy_backend_terminate();
+        }
+
+        if (qkd_endpoint != NULL)
+        {
+                quest_free_endpoint(qkd_endpoint);
         }
 
         if ((app_config.role == ROLE_ECHO_SERVER) || (app_config.role == ROLE_ECHO_SERVER_PROXY))

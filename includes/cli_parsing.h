@@ -8,12 +8,15 @@
 #include "echo_server.h"
 #include "logging.h"
 #include "network_tester.h"
+#include "quest.h"
 #include "tls_proxy.h"
 
 #define LOCALHOST_IP "127.0.0.1"
 
-#define EXTERNAL_PSK_IDENTIFIER "qkd"
-#define EXTERNAL_PSK_IDENTIFIER_LEN 3
+#define QKD_PSK_IDENTIFIER "qkd"
+#define QKD_PSK_IDENTIFIER_LEN 3
+#define SECURE_QKD_PSK_IDENTIFIER "qkd:secure"
+#define SECURE_QKD_PSK_IDENTIFIER_LEN 10
 
 enum application_role
 {
@@ -32,6 +35,7 @@ typedef struct application_config
 {
         enum application_role role;
         int32_t log_level;
+        bool use_qkd;
 } application_config;
 
 /* Parse the provided argv array and store the information in the provided config variables.
@@ -43,6 +47,7 @@ int parse_cli_arguments(application_config* app_config,
                         proxy_config* proxy_config,
                         echo_server_config* echo_server_config,
                         network_tester_config* tester_config,
+                        quest_configuration* quest_config,
                         char** management_file_path,
                         size_t argc,
                         char** argv);
@@ -53,7 +58,8 @@ void arguments_cleanup(application_config* app_config,
                        proxy_config* proxy_config,
                        echo_server_config* echo_server_config,
                        char** management_file_path,
-                       network_tester_config* tester_config);
+                       network_tester_config* tester_config,
+                       quest_configuration* quest_config);
 
 /* Helper method to dynamically duplicate a string */
 char* duplicate_string(char const* source);

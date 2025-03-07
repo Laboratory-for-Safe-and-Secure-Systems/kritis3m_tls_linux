@@ -40,6 +40,17 @@
 #                                     the handshake. The key has to be Base64 encoded.
 #   --psk_enable_cert_auth         Use certificates in addition to the PSK for peer authentication
 #
+# QKD:
+#   When using QKD in the TLS applications, you have to specify this in the --pre_shared_key parameter.
+#   In that case, two modes are possible:
+#       --pre_shared_key "qkd"         Use a HTTP request to the QKD key magament system.
+#       --pre_shared_key "qkd:secure"  Use a secured HTPPS request to the QKD key management system.
+#                                           In this mode, the qkd_xxx arguments below must be set.
+#
+#   --qkd_cert file_path           Path to the certificate file used for the HTTPS connection to the QKD server
+#   --qkd_root file_path           Path to the root certificate file used for the HTTPS connection to the QKD server
+#   --qkd_key file_path            Path to the private key file used for the HTTPS connection to the QKD server
+#
 # PKCS#11:
 #   When using a PKCS#11 token for key/cert storage, you have to supply the PKCS#11 labels using the arguments
 #   "--key","--additionalKey", and "--cert", prepending the string "pkcs11:" followed by the label.
@@ -83,7 +94,7 @@ _kritis3m_tls_completions() {
 
         roles="reverse_proxy forward_proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy management_client"
         opts_connection="--incoming --outgoing"
-        opts_files="--cert --key --intermediate --root --additional_key --pkcs11_module --keylog_file"
+        opts_files="--cert --key --intermediate --root --additional_key --pkcs11_module --keylog_file --qkd_cert --qkd_root --qkd_key"
         opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --pre_shared_key --psk_enable_cert_auth --pkcs11_pin --pkcs11_crypto_all"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
                         --test_output_path --test_no_tls --test_silent"
@@ -113,7 +124,8 @@ _kritis3m_tls_completions() {
                 COMPREPLY=($(compgen -W "ip:port port" -- ${cur}))
                 return 0
                 ;;
-        --cert | --key | --intermediate | --root | --additional_key | --pkcs11_module | --keylog_file | --test_output_path | --mgmt_path)
+        --cert | --key | --intermediate | --root | --additional_key | --pkcs11_module | --keylog_file | --test_output_path | --mgmt_path | --qkd_cert | \
+                --qkd_root | --qkd_key)
                 _filedir
                 return 0
                 ;;

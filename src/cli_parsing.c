@@ -24,7 +24,7 @@ static const struct option cli_options[] = {
         {"ciphersuites", required_argument, 0, 0x09},
         {"key_exchange_alg", required_argument, 0, 0x0B},
         {"pre_shared_key", required_argument, 0, 0x0A},
-        {"psk_enable_cert_auth", no_argument, 0, 0x19},
+        {"psk_no_cert_auth", no_argument, 0, 0x19},
 
         {"qkd_cert", required_argument, 0, 0x20},
         {"qkd_key", required_argument, 0, 0x21},
@@ -355,11 +355,9 @@ int parse_cli_arguments(application_config* app_config,
                                 }
                                 break;
                         }
-                case 0x19: /* psk_enable_cert_auth */
-                        {
-                                tls_config.psk.enable_cert_auth = true;
-                                break;
-                        }
+                case 0x19: /* psk_no_cert_auth */
+                        tls_config.psk.enable_cert_auth = false;
+                        break;
                 case 0x20: /* qkd certificate path */
                         qkd_certs.certificate_path = duplicate_string(optarg);
                         if (qkd_certs.certificate_path == NULL)
@@ -620,8 +618,9 @@ static int check_qkd_config(quest_configuration* quest_config,
         }
 
         /* Check if qkd:secure was selected as qkd usage */
-        if (strncmp(tls_config->psk.identity, SECURE_QKD_PSK_IDENTIFIER, SECURE_QKD_PSK_IDENTIFIER_LEN) ==
-            0)
+        if (tls_config->psk.identity != NULL && strncmp(tls_config->psk.identity,
+                                                        SECURE_QKD_PSK_IDENTIFIER,
+                                                        SECURE_QKD_PSK_IDENTIFIER_LEN) == 0)
         {
                 /* In this case the qkd_cert, qkd_key and qkd_root options must be set */
                 if ((qkd_config->root_certificate.buffer == NULL) ||
@@ -896,7 +895,7 @@ static void print_help(char const* name)
         printf("\nPre-shared keys:\r\n");
         printf("  --pre_shared_key id:key        Pre-shared key and identity to use. The identity is sent from client to server during\r\n");
         printf("                                    the handshake. The key has to be Base64 encoded.\r\n");
-        printf("  --psk_enable_cert_auth         Use certificates in addition to the PSK for peer authentication\r\n");
+        printf("  --psk_no_cert_auth             Disable certificates in addition to the PSK for peer authentication\r\n");
 
         printf("\nQKD:\r\n");
         printf("  When using QKD in the TLS applications, you have to specify this in the --pre_shared_key parameter.\r\n");

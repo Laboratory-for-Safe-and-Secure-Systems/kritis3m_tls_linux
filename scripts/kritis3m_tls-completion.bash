@@ -95,7 +95,7 @@ _kritis3m_tls_completions() {
         roles="reverse_proxy forward_proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy management_client"
         opts_connection="--incoming --outgoing"
         opts_files="--cert --key --intermediate --root --additional_key --pkcs11_module --keylog_file --qkd_cert --qkd_root --qkd_key"
-        opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --pre_shared_key --psk_enable_cert_auth --pkcs11_pin --pkcs11_crypto_all"
+        opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --pre_shared_key --psk_no_cert_auth --pkcs11_pin --pkcs11_crypto_all"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
                         --test_output_path --test_no_tls --test_silent"
         opts_mgmt="--mgmt_path"
@@ -133,7 +133,7 @@ _kritis3m_tls_completions() {
                 COMPREPLY=($(compgen -W "${kex_algos}" -- ${cur}))
                 return 0
                 ;;
-        --no_mutual_auth | --ciphersuites | --pre_shared_key | --psk_enable_cert_auth | --test_num_handshakes | --test_handshake_delay | --test_num_messages | \
+        --no_mutual_auth | --ciphersuites | --pre_shared_key | --psk_no_cert_auth | --test_num_handshakes | --test_handshake_delay | --test_num_messages | \
                 --test_message_delay | --test_message_size | --test_no_tls | --test_silent | --pkcs11_pin | pkcs11_crypto_all)
                 # No specific completion
                 COMPREPLY=()

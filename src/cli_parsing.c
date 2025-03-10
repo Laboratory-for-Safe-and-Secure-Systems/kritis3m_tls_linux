@@ -239,7 +239,7 @@ int parse_cli_arguments(application_config* app_config,
                         tls_config.psk.identity = duplicate_string(optarg);
                         if (tls_config.psk.identity == NULL)
                         {
-                                LOG_ERROR("unable to allocate memory for PSK master key");
+                                LOG_ERROR("unable to allocate memory for PSK key");
                                 return -1;
                         }
                         break;
@@ -719,13 +719,6 @@ static int check_pre_shared_key(asl_endpoint_configuration* tls_config, applicat
                         LOG_ERROR("unable to allocate memory for PSK master key");
                         return -1;
                 }
-        }
-
-        /* Sanity check: if we want to send certs alongside, PSKs need to be used */
-        if (tls_config->psk.enable_cert_auth && !tls_config->psk.enable_psk)
-        {
-                LOG_ERROR("--psk_enable_cert_auth requires PSK usage");
-                return -1;
         }
 
         /* ToDo: Add ability to read PSK from a file here... */

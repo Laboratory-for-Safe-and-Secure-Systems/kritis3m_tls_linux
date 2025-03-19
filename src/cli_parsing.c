@@ -627,6 +627,7 @@ static int check_qkd_config(quest_configuration* quest_config,
                     (qkd_config->private_key.buffer == NULL) ||
                     (qkd_config->device_certificate_chain.buffer == NULL))
                 {
+                        LOG_ERROR("QKD certificates are mandatory for secure QKD connection");
                         return -1;
                 }
 

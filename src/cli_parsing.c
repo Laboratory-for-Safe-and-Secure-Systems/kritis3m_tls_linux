@@ -25,6 +25,7 @@ static const struct option cli_options[] = {
         {"key_exchange_alg", required_argument, 0, 0x0B},
         {"pre_shared_key", required_argument, 0, 0x0A},
         {"psk_no_cert_auth", no_argument, 0, 0x19},
+        {"psk_no_dhe", no_argument, 0, 0x23},
 
         {"qkd_cert", required_argument, 0, 0x20},
         {"qkd_key", required_argument, 0, 0x21},
@@ -381,6 +382,9 @@ int parse_cli_arguments(application_config* app_config,
                                 LOG_ERROR("unable to allocate memory for qkd certificate");
                                 return -1;
                         }
+                        break;
+                case 0x23: /* psk disable (EC)DHE */
+                        tls_config.psk.enable_dhe_psk = false;
                         break;
                 case 'v': /* verbose */
                         app_config->log_level = LOG_LVL_INFO;
@@ -889,6 +893,7 @@ static void print_help(char const* name)
         printf("\nPre-shared keys:\r\n");
         printf("  --pre_shared_key id:key        Pre-shared key and identity to use. The identity is sent from client to server during\r\n");
         printf("                                    the handshake. The key has to be Base64 encoded.\r\n");
+        printf("  --psk_no_dhe                   Disable (EC)DHE key generation in addition to the PSK shared secret\r\n");
         printf("  --psk_no_cert_auth             Disable certificates in addition to the PSK for peer authentication\r\n");
 
         printf("\nQKD:\r\n");

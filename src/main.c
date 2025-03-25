@@ -52,7 +52,66 @@ struct qkd_key_info* kritis3m_allocate_key_info()
                 return NULL;
         }
 
+        /*initialize key_info struct object with zero */
+        memset(key_info, 0, sizeof(struct qkd_key_info));
+
         return key_info;
+}
+
+/// @brief As we currently have a point-to-point qkd line, we can specify the destination sae_ID
+///        relative to the own sae_ID specified in the qkd_endpoint. This function is only called
+///        in the TLS Client, as the sae_ID server is passed during the handshake.
+/// @param qkd_endpoint reference to the quest_endpoint object.
+/// @param dst_sae_ID reference to the destination sae_ID buffer.
+static void specify_client_remote_sae_id(quest_endpoint* qkd_endpoint, char** dst_sae_ID)
+{
+        /* set sae_ID relative to the hostname */
+        char host_sae_id[64] = {0};
+        quest_get_own_sae_id(qkd_endpoint, &host_sae_id[0]);
+
+        if (strcmp(host_sae_id, "alice_sae_etsi_1") == 0)
+        {
+                *dst_sae_ID = "bob_sae_etsi_1";
+        }
+        else if (strcmp(host_sae_id, "bob_sae_etsi_1") == 0)
+        {
+                *dst_sae_ID = "alice_sae_etsi_1";
+        }
+        else
+        {
+                LOG_ERROR("invalid remote_sae_ID configuration to assemble url\n");
+                *dst_sae_ID = NULL;
+                return;
+        }
+}
+
+/// @brief To get the remote_sae_ID on the server side, we need to deparse both the sae_ID and the 
+///        qkd_key identity from the identity string we receive from the qkd_client. 
+/// @param identity concatenation of the sae_id and the qkd_key identifier sent by the client.
+/// @param dst_sae_ID reference to the destination sae_ID buffer.
+static void parse_server_remote_sae_id(const char** identity, char** dst_sae_ID)
+{
+        /* From the qkd_client we receive an identity with the following structure */
+        /* <remote_sae_id> : <qkd_key_identifier> */
+
+        /* assign start of the identity to the remote_sae_id */
+        *dst_sae_ID = (char*)*identity;
+
+        /* Strip the remote_sae_id from the key identifier */
+        char* identity_start = strchr(((char*)*identity), ':');
+        if (identity_start != NULL)
+        {
+                /* Terminate the identity string */
+                *identity_start = '\0';
+                
+                /* Set reference to qkd_key identity */
+                *identity = identity_start + 1;
+        }
+        else
+        {
+                LOG_ERROR("remote_sae_id was not part of the identifier.\n");
+                *dst_sae_ID = NULL;
+        }
 }
 
 /// @brief requests a new QKD key from the QKD line ether without or without a specific key_ID
@@ -64,26 +123,22 @@ struct qkd_key_info* kritis3m_allocate_key_info()
 /// @param identity (OPTIONAL) string of the key_ID sent by the client to the server to request
 ///                 the corresponding QKD key. In case the tls client is calling this function,
 ///                 identity is set to NULL.
+/// @param dst_sae_ID Identifier of the destination Secure Application Entity, which should be 
+///                   referenced in the GET_KEY request.
 /// @return returns the E_OK or a specific status return in case of an error.
-enum kritis3m_status_info kritis3m_get_qkd_key(void* ctx, struct qkd_key_info* key_info, const char* identity)
+enum kritis3m_status_info kritis3m_get_qkd_key(quest_endpoint* qkd_endpoint, struct qkd_key_info* key_info, const char* identity, const char* dst_sae_ID)
 {
         enum kritis3m_status_info status;
         quest_transaction* key_request;
-        quest_endpoint* qkd_endpoint = (quest_endpoint*) ctx;
-        if (qkd_endpoint == NULL)
-        {
-                LOG_ERROR("callback context was NULL here.");
-                return ALLOC_ERR;
-        }
 
         /* if identity is NULL, we are on the client side requesting a new key without an ID */
         if (identity == NULL)
         {
-                key_request = quest_setup_transaction(qkd_endpoint, HTTP_KEY_NO_ID, NULL);
+                key_request = quest_setup_transaction(qkd_endpoint, HTTP_KEY_NO_ID, (char*) dst_sae_ID, NULL);
         }
         else /* if an identity is passed as a parameter, we request a key with a specific ID */
         {
-                key_request = quest_setup_transaction(qkd_endpoint, HTTP_KEY_WITH_ID, (char*) identity);
+                key_request = quest_setup_transaction(qkd_endpoint, HTTP_KEY_WITH_ID, (char*) dst_sae_ID, (char*) identity);
         }
 
         if (key_request == NULL)
@@ -123,8 +178,15 @@ enum kritis3m_status_info kritis3m_get_qkd_key(void* ctx, struct qkd_key_info* k
         /* copy key from the http_response oject */
         memcpy(key_info->key, key_response->key_info->key, (key_info->key_len + 1));
 
-        /* copy key ID from the http_response object */
-        memcpy(key_info->key_ID, key_response->key_info->key_ID, (key_info->key_ID_len + 1));
+        /* pass host_sae_id as preceding parameter seperated with a ':' */
+        quest_get_own_sae_id(qkd_endpoint, key_info->key_ID);
+        strcat(key_info->key_ID, ":");
+
+        /* append key ID from the http_response object */
+        strcat(key_info->key_ID, key_response->key_info->key_ID);
+
+        /* adjust new key_ID length */
+        key_info->key_ID_len = strlen(key_info->key_ID);
 
         /* if everything worked correctly we can close the transaction. */
         quest_close_transaction(key_request);
@@ -142,11 +204,24 @@ unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx)
         enum kritis3m_status_info status;
         struct qkd_key_info* key_info;
 
+        /* parse quest_endpoint from callback context */
+        quest_endpoint* qkd_endpoint = (quest_endpoint*) ctx;
+        if (qkd_endpoint == NULL)
+        {
+                LOG_ERROR("callback context was NULL here.");
+                return ALLOC_ERR;
+        }
+
+        /* Currently in the TLS client, we set the destination sae ID 
+         * via exclusion procedure in a point-to-point connection. */
+        char* dst_sae_ID;
+        specify_client_remote_sae_id(qkd_endpoint, &dst_sae_ID);        
+
         key_info = kritis3m_allocate_key_info();
         if (key_info == NULL)
                 return 0;
 
-        status = kritis3m_get_qkd_key(ctx, key_info, NULL);
+        status = kritis3m_get_qkd_key(qkd_endpoint, key_info, NULL, dst_sae_ID);
         if (status == E_OK)
         {
                 memcpy(key, key_info->key, (key_info->key_len + 1));
@@ -162,11 +237,22 @@ unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx)
         enum kritis3m_status_info status;
         struct qkd_key_info* key_info;
 
+        /* parse quest_endpoint from callback context */
+        quest_endpoint* qkd_endpoint = (quest_endpoint*) ctx;
+        if (qkd_endpoint == NULL)
+        {
+                LOG_ERROR("callback context was NULL here.");
+                return ALLOC_ERR;
+        }
+
+        char* dst_sae_ID;
+        parse_server_remote_sae_id(&identity, &dst_sae_ID);
+
         key_info = kritis3m_allocate_key_info();
         if (key_info == NULL)
                 return 0;
-
-        status = kritis3m_get_qkd_key(ctx, key_info, identity);
+        
+        status = kritis3m_get_qkd_key(qkd_endpoint, key_info, identity, dst_sae_ID);
         if (status == E_OK)
         {
                 memcpy(key, key_info->key, (key_info->key_len + 1));

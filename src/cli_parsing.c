@@ -392,7 +392,7 @@ int parse_cli_arguments(application_config* app_config,
                         /* In the optarg, the concatination <id:key> is present. We strip
                         * the key from the identity below. */
                         qkd_config.psk.identity = duplicate_string(optarg);
-                        if (tls_config.psk.identity == NULL)
+                        if (qkd_config.psk.identity == NULL)
                         {
                                 LOG_ERROR("unable to allocate memory for PSK key");
                                 return -1;

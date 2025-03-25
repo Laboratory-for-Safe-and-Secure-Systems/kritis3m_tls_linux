@@ -30,6 +30,7 @@ static const struct option cli_options[] = {
         {"qkd_cert", required_argument, 0, 0x20},
         {"qkd_key", required_argument, 0, 0x21},
         {"qkd_root", required_argument, 0, 0x22},
+        {"qkd_psk", required_argument, 0, 0x24},
 
         {"pkcs11_module", required_argument, 0, 0x0C},
         {"pkcs11_pin", required_argument, 0, 0x0D},
@@ -386,6 +387,17 @@ int parse_cli_arguments(application_config* app_config,
                 case 0x23: /* psk disable (EC)DHE */
                         tls_config.psk.enable_dhe_psk = false;
                         break;
+                case 0x24: /* qkd pre-shared key */
+                        qkd_config.psk.enable_psk = true;
+                        /* In the optarg, the concatination <id:key> is present. We strip
+                        * the key from the identity below. */
+                        qkd_config.psk.identity = duplicate_string(optarg);
+                        if (qkd_config.psk.identity == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for PSK key");
+                                return -1;
+                        }
+                        break;
                 case 'v': /* verbose */
                         app_config->log_level = LOG_LVL_INFO;
                         break;
@@ -633,6 +645,13 @@ static int check_qkd_config(quest_configuration* quest_config,
                 {
                         LOG_ERROR("QKD certificates are mandatory for secure QKD connection");
                         return -1;
+                }
+
+                /* In case the connetion to the qkd line shall be secured with a psk */
+                if(qkd_config->psk.enable_psk)
+                {
+                        if(check_pre_shared_key(qkd_config, app_config) != 0)
+                                return -1;
                 }
 
                 if (tls_config->keylog_file != NULL)
@@ -905,6 +924,8 @@ static void print_help(char const* name)
         printf("  --qkd_cert file_path           Path to the certificate file used for the HTTPS connection to the QKD server\r\n");
         printf("  --qkd_root file_path           Path to the root certificate file used for the HTTPS connection to the QKD server\r\n");
         printf("  --qkd_key file_path            Path to the private key file used for the HTTPS connection to the QKD server\r\n");
+        printf("  --qkd_psk id:key               Pre-shared key and identity to use for the HTTPS connection to the QKD server\r\n");
+        printf("                                    The key has to be Base64 encoded.\r\n");
 
         printf("\nPKCS#11:\r\n");
         printf("  When using a PKCS#11 token for key/cert storage, you have to supply the PKCS#11 labels using the arguments\n");

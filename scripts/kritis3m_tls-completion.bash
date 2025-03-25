@@ -51,6 +51,8 @@
 #   --qkd_cert file_path           Path to the certificate file used for the HTTPS connection to the QKD server
 #   --qkd_root file_path           Path to the root certificate file used for the HTTPS connection to the QKD server
 #   --qkd_key file_path            Path to the private key file used for the HTTPS connection to the QKD server
+#   --qkd_psk id:key               Pre-shared key and identity to use for the HTTPS connectionto the QKD server.
+#                                     The key has to be Base64 encoded.  
 #
 # PKCS#11:
 #   When using a PKCS#11 token for key/cert storage, you have to supply the PKCS#11 labels using the arguments
@@ -96,7 +98,7 @@ _kritis3m_tls_completions() {
         roles="reverse_proxy forward_proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy management_client"
         opts_connection="--incoming --outgoing"
         opts_files="--cert --key --intermediate --root --additional_key --pkcs11_module --keylog_file --qkd_cert --qkd_root --qkd_key"
-        opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --pre_shared_key --psk_no_dhe --psk_no_cert_auth --pkcs11_pin --pkcs11_crypto_all"
+        opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --pre_shared_key --psk_no_dhe --psk_no_cert_auth --pkcs11_pin --pkcs11_crypto_all --qkd_psk"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
                         --test_output_path --test_no_tls --test_silent"
         opts_mgmt="--mgmt_path"
@@ -134,7 +136,7 @@ _kritis3m_tls_completions() {
                 COMPREPLY=($(compgen -W "${kex_algos}" -- ${cur}))
                 return 0
                 ;;
-        --no_mutual_auth | --ciphersuites | --pre_shared_key | --psk_no_dhe | --psk_no_cert_auth | --test_num_handshakes | --test_handshake_delay | \
+        --no_mutual_auth | --ciphersuites | --pre_shared_key | --psk_no_dhe | --psk_no_cert_auth | --qkd_psk | --test_num_handshakes | --test_handshake_delay | \
                 --test_num_messages | --test_message_delay | --test_message_size | --test_no_tls | --test_silent | --pkcs11_pin | pkcs11_crypto_all)
                 # No specific completion
                 COMPREPLY=()

@@ -37,6 +37,7 @@ target_include_directories(kritis3m_tls PUBLIC
 
 target_sources(kritis3m_tls PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/qkd_management.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/cli_parsing.c
 )
 if (NOT MSVC)

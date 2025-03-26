@@ -627,10 +627,12 @@ static int check_qkd_config(quest_configuration* quest_config,
                             application_config* app_config)
 {
         /* if these roles are set, we are on the server side of the tls communicaton and need to
-         * modify the hostname of the quest_configuration to address the correct QKD endpoint */
+         * modify the hostname and sae_ID of the quest_configuration to address the correct QKD 
+           endpoint */
         if ((app_config->role) == ROLE_ECHO_SERVER || (app_config->role == ROLE_REVERSE_PROXY))
         {
                 quest_config->connection_info.hostname = "im-lfd-qkd-alice.othr.de";
+                quest_config->connection_info.host_sae_ID = "alice_sae_etsi_1";
         }
 
         /* Check if qkd:secure was selected as qkd usage */

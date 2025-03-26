@@ -60,25 +60,25 @@ static void specify_client_remote_sae_id(quest_endpoint* qkd_endpoint, char** ds
         }
 }
 
-/// @brief To get the remote_sae_ID on the server side, we need to deparse both the sae_ID and the 
-///        qkd_key identity from the identity string we receive from the qkd_client. 
+/// @brief To get the remote_sae_ID on the server side, we need to deparse both the sae_ID and the
+///        qkd_key identity from the identity string we receive from the qkd_client.
 /// @param identity concatenation of the sae_id and the qkd_key identifier sent by the client.
 /// @param dst_sae_ID reference to the destination sae_ID buffer.
-static void parse_server_remote_sae_id(const char** identity, char** dst_sae_ID)
+static void parse_server_remote_sae_id(char** identity, char** dst_sae_ID)
 {
         /* From the qkd_client we receive an identity with the following structure */
         /* <remote_sae_id> : <qkd_key_identifier> */
 
         /* assign start of the identity to the remote_sae_id */
-        *dst_sae_ID = (char*)*identity;
+        *dst_sae_ID = *identity;
 
         /* Strip the remote_sae_id from the key identifier */
-        char* identity_start = strchr(((char*)*identity), ':');
+        char* identity_start = strchr((*identity), ':');
         if (identity_start != NULL)
         {
                 /* Terminate the identity string */
                 *identity_start = '\0';
-                
+
                 /* Set reference to qkd_key identity */
                 *identity = identity_start + 1;
         }
@@ -98,10 +98,13 @@ static void parse_server_remote_sae_id(const char** identity, char** dst_sae_ID)
 /// @param identity (OPTIONAL) string of the key_ID sent by the client to the server to request
 ///                 the corresponding QKD key. In case the tls client is calling this function,
 ///                 identity is set to NULL.
-/// @param dst_sae_ID Identifier of the destination Secure Application Entity, which should be 
+/// @param dst_sae_ID Identifier of the destination Secure Application Entity, which should be
 ///                   referenced in the GET_KEY request.
 /// @return returns the E_OK or a specific status return in case of an error.
-enum kritis3m_status_info kritis3m_get_qkd_key(quest_endpoint* qkd_endpoint, struct qkd_key_info* key_info, const char* identity, const char* dst_sae_ID)
+enum kritis3m_status_info kritis3m_get_qkd_key(quest_endpoint* qkd_endpoint,
+                                               struct qkd_key_info* key_info,
+                                               char* identity,
+                                               const char* dst_sae_ID)
 {
         enum kritis3m_status_info status;
         quest_transaction* key_request;
@@ -109,11 +112,17 @@ enum kritis3m_status_info kritis3m_get_qkd_key(quest_endpoint* qkd_endpoint, str
         /* if identity is NULL, we are on the client side requesting a new key without an ID */
         if (identity == NULL)
         {
-                key_request = quest_setup_transaction(qkd_endpoint, HTTP_KEY_NO_ID, (char*) dst_sae_ID, NULL);
+                key_request = quest_setup_transaction(qkd_endpoint,
+                                                      HTTP_KEY_NO_ID,
+                                                      (char*) dst_sae_ID,
+                                                      NULL);
         }
         else /* if an identity is passed as a parameter, we request a key with a specific ID */
         {
-                key_request = quest_setup_transaction(qkd_endpoint, HTTP_KEY_WITH_ID, (char*) dst_sae_ID, (char*) identity);
+                key_request = quest_setup_transaction(qkd_endpoint,
+                                                      HTTP_KEY_WITH_ID,
+                                                      (char*) dst_sae_ID,
+                                                      identity);
         }
 
         if (key_request == NULL)
@@ -187,10 +196,10 @@ unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx)
                 return ALLOC_ERR;
         }
 
-        /* Currently in the TLS client, we set the destination sae ID 
+        /* Currently in the TLS client, we set the destination sae ID
          * via exclusion procedure in a point-to-point connection. */
         char* dst_sae_ID;
-        specify_client_remote_sae_id(qkd_endpoint, &dst_sae_ID);        
+        specify_client_remote_sae_id(qkd_endpoint, &dst_sae_ID);
 
         key_info = kritis3m_allocate_key_info();
         if (key_info == NULL)
@@ -207,7 +216,7 @@ unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx)
         return strlen(key);
 }
 
-unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx)
+unsigned int asl_psk_server_callback(char* key, char* identity, void* ctx)
 {
         enum kritis3m_status_info status;
         struct qkd_key_info* key_info;
@@ -226,7 +235,7 @@ unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx)
         key_info = kritis3m_allocate_key_info();
         if (key_info == NULL)
                 return 0;
-        
+
         status = kritis3m_get_qkd_key(qkd_endpoint, key_info, identity, dst_sae_ID);
         if (status == E_OK)
         {

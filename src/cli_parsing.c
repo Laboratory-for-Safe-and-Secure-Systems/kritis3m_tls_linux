@@ -57,7 +57,7 @@ static const struct option cli_options[] = {
 };
 
 extern unsigned int asl_psk_client_callback(char* key, char* identity, void* ctx);
-extern unsigned int asl_psk_server_callback(char* key, const char* identity, void* ctx);
+extern unsigned int asl_psk_server_callback(char* key, char* identity, void* ctx);
 
 static int check_pre_shared_key(asl_endpoint_configuration* tls_config, application_config* app_config);
 static int check_qkd_config(quest_configuration* quest_config,
@@ -390,7 +390,7 @@ int parse_cli_arguments(application_config* app_config,
                 case 0x24: /* qkd pre-shared key */
                         qkd_config.psk.enable_psk = true;
                         /* In the optarg, the concatination <id:key> is present. We strip
-                        * the key from the identity below. */
+                         * the key from the identity below. */
                         qkd_config.psk.identity = duplicate_string(optarg);
                         if (qkd_config.psk.identity == NULL)
                         {
@@ -627,7 +627,7 @@ static int check_qkd_config(quest_configuration* quest_config,
                             application_config* app_config)
 {
         /* if these roles are set, we are on the server side of the tls communicaton and need to
-         * modify the hostname and sae_ID of the quest_configuration to address the correct QKD 
+         * modify the hostname and sae_ID of the quest_configuration to address the correct QKD
            endpoint */
         if ((app_config->role) == ROLE_ECHO_SERVER || (app_config->role == ROLE_REVERSE_PROXY))
         {
@@ -650,9 +650,9 @@ static int check_qkd_config(quest_configuration* quest_config,
                 }
 
                 /* In case the connetion to the qkd line shall be secured with a psk */
-                if(qkd_config->psk.enable_psk)
+                if (qkd_config->psk.enable_psk)
                 {
-                        if(check_pre_shared_key(qkd_config, app_config) != 0)
+                        if (check_pre_shared_key(qkd_config, app_config) != 0)
                                 return -1;
                 }
 

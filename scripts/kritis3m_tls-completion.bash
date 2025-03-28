@@ -40,6 +40,7 @@
 #                                     the handshake. The key has to be Base64 encoded.
 #   --psk_no_dhe                   Disable (EC)DHE key generation in addition to the PSK shared secret
 #   --psk_no_cert_auth             Disable certificates in addition to the PSK for peer authentication
+#   --psk_pre_extracted            HKDF-Extract operation is already performed, only the Expand part is necessary
 #
 # QKD:
 #   When using QKD in the TLS applications, you have to specify this in the --pre_shared_key parameter.
@@ -98,7 +99,8 @@ _kritis3m_tls_completions() {
         roles="reverse_proxy forward_proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy management_client"
         opts_connection="--incoming --outgoing"
         opts_files="--cert --key --intermediate --root --additional_key --pkcs11_module --keylog_file --qkd_cert --qkd_root --qkd_key"
-        opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --pre_shared_key --psk_no_dhe --psk_no_cert_auth --pkcs11_pin --pkcs11_crypto_all --qkd_psk"
+        opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --pre_shared_key --psk_no_dhe --psk_no_cert_auth --psk_pre_extracted \
+                        --pkcs11_pin --pkcs11_crypto_all --qkd_psk"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
                         --test_output_path --test_no_tls --test_silent"
         opts_mgmt="--mgmt_path"
@@ -136,8 +138,9 @@ _kritis3m_tls_completions() {
                 COMPREPLY=($(compgen -W "${kex_algos}" -- ${cur}))
                 return 0
                 ;;
-        --no_mutual_auth | --ciphersuites | --pre_shared_key | --psk_no_dhe | --psk_no_cert_auth | --qkd_psk | --test_num_handshakes | --test_handshake_delay | \
-                --test_num_messages | --test_message_delay | --test_message_size | --test_no_tls | --test_silent | --pkcs11_pin | pkcs11_crypto_all)
+        --no_mutual_auth | --ciphersuites | --pre_shared_key | --psk_no_dhe | --psk_no_cert_auth | --psk_pre_extracted | --qkd_psk | \
+                --test_num_handshakes | --test_handshake_delay | --test_num_messages | --test_message_delay | --test_message_size | --test_no_tls | \
+                --test_silent | --pkcs11_pin | pkcs11_crypto_all)
                 # No specific completion
                 COMPREPLY=()
                 return 0

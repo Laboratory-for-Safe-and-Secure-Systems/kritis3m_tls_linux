@@ -26,6 +26,7 @@ static const struct option cli_options[] = {
         {"pre_shared_key", required_argument, 0, 0x0A},
         {"psk_no_cert_auth", no_argument, 0, 0x19},
         {"psk_no_dhe", no_argument, 0, 0x23},
+        {"psk_pre_extracted", no_argument, 0, 0x25},
 
         {"qkd_cert", required_argument, 0, 0x20},
         {"qkd_key", required_argument, 0, 0x21},
@@ -398,6 +399,9 @@ int parse_cli_arguments(application_config* app_config,
                                 return -1;
                         }
                         break;
+                case 0x25: /* psk pre-extracted */
+                        tls_config.psk.pre_extracted = true;
+                        break;
                 case 'v': /* verbose */
                         app_config->log_level = LOG_LVL_INFO;
                         break;
@@ -722,8 +726,8 @@ static int check_pre_shared_key(asl_endpoint_configuration* tls_config, applicat
 
                 tls_config->psk.use_external_callbacks = true;
 
-                tls_config->psk.psk_client_cb = asl_psk_client_callback;
-                tls_config->psk.psk_server_cb = asl_psk_server_callback;
+                tls_config->psk.client_cb = asl_psk_client_callback;
+                tls_config->psk.server_cb = asl_psk_server_callback;
         }
         else
         {
@@ -916,6 +920,7 @@ static void print_help(char const* name)
         printf("                                    the handshake. The key has to be Base64 encoded.\r\n");
         printf("  --psk_no_dhe                   Disable (EC)DHE key generation in addition to the PSK shared secret\r\n");
         printf("  --psk_no_cert_auth             Disable certificates in addition to the PSK for peer authentication\r\n");
+        printf("  --psk_pre_extracted            HKDF-Extract operation is already performed, only the Expand part is necessary\r\n");
 
         printf("\nQKD:\r\n");
         printf("  When using QKD in the TLS applications, you have to specify this in the --pre_shared_key parameter.\r\n");

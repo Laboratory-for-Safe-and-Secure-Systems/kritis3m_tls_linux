@@ -82,6 +82,9 @@ int main(int argc, char** argv)
                 exit(0); /* help was printed, so we can exit here */
         }
 
+        /* Make sure network related settings are set */
+        initialize_network_interfaces(app_config.log_level);
+
         if (app_config.use_qkd)
         {
                 /* Setup quest_endpoint based on the configuration above. */

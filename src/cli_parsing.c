@@ -552,7 +552,7 @@ int parse_cli_arguments(application_config* app_config,
                 proxy_config->listening_port = 0; /* 0 selects random available port */
                 proxy_config->target_ip_address = outgoing_ip;
                 proxy_config->target_port = outgoing_port;
-                proxy_config->log_level = LOG_LVL_WARN;
+                proxy_config->log_level = app_config->log_level;
                 proxy_config->tls_config = tls_config;
 
                 if (incoming_ip != NULL)

@@ -318,7 +318,7 @@ int main(int argc, char** argv)
                                 break;
                         }
                 }
-                usleep(1000 * 1000);
+                usleep(100 * 1000);
         }
 
         LOG_INFO("Terminating...");

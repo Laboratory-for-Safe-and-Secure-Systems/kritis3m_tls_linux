@@ -24,6 +24,7 @@ option(KRITIS3M_TLS_SELF_CONTAINED "Build a self-contained executable" OFF)
 
 # Use an externally installed ASL library. If disabled, ASL will be built.
 option(KRITIS3M_TLS_EXTERNAL_ASL "Use external ASL library" OFF)
+option(KRITIS3M_TLS_EXTERNAL_PKI "Use external PKI library" OFF)
 
 # Set the C standard to C17
 set(C_STANDARD 17)
@@ -82,6 +83,60 @@ if(NOT kritis3m_applications_POPULATED)
 endif()
 
 
+set(BUILD_SHARED_LIBS OFF)
+set (PAHO_WITH_SSL OFF)
+set (PAHO_WITH_LIBRESSL OFF)
+set (PAHO_WITH_LIBUUID OFF)
+set (PAHO_BUILD_SHARED OFF)
+set (PAHO_USE_SELECT OFF)
+set (PAHO_WITH_ASL ON)
+set (PAHO_BUILD_STATIC ON)
+
+
+FetchContent_Declare(kritis3m_mqtt
+        GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_mqtt.git
+        GIT_TAG                 origin/main
+        GIT_PROGRESS            TRUE
+)
+FetchContent_GetProperties(kritis3m_mqtt)
+if(NOT kritis3m_mqtt_POPULATED)
+        FetchContent_Populate(kritis3m_mqtt)
+        add_subdirectory(${kritis3m_mqtt_SOURCE_DIR} ${kritis3m_mqtt_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
+# Set BUILD_SHARED_LIBS to OFF to build kritis3m_pki as static library
+
+
+# Add PKI library dependency
+if(KRITIS3M_TLS_EXTERNAL_PKI)
+    set(FIND_LIBRARY_USE_LIB32_PATHS TRUE)
+    set(FIND_LIBRARY_USE_LIB64_PATHS TRUE)
+    find_package(kritis3m_pki REQUIRED)
+else()
+    FetchContent_Declare(kritis3m_pki
+        GIT_REPOSITORY          git@github.com:Laboratory-for-Safe-and-Secure-Systems/kritis3m_pki.git
+        GIT_TAG                 origin/main
+        GIT_PROGRESS            TRUE
+    )
+    FetchContent_GetProperties(kritis3m_pki)
+    if(NOT kritis3m_pki_POPULATED)
+        FetchContent_Populate(kritis3m_pki)
+        add_subdirectory(${kritis3m_pki_SOURCE_DIR} ${kritis3m_pki_BINARY_DIR} EXCLUDE_FROM_ALL)
+    endif()
+endif()
+
+
+
+# set (KRITIS3M_PKI_EXTERNAL_WOLFSSL ON)
+
+# Restore BUILD_SHARED_LIBS setting for other dependencies
+if(KRITIS3M_TLS_SELF_CONTAINED)
+        set(BUILD_SHARED_LIBS OFF)
+else()
+        set(BUILD_SHARED_LIBS ON)
+endif()
+
+
 # Add the KRITIS3M_ASL dependency
 if(KRITIS3M_TLS_EXTERNAL_ASL)
         # Search for system-wide installed libraries in both lib and lib64 paths
@@ -118,6 +173,8 @@ else(KRITIS3M_TLS_EXTERNAL_ASL)
         endif()
 endif(KRITIS3M_TLS_EXTERNAL_ASL)
 
+
+
 # Link kritis3m_asl against the http(s) library
 
 
@@ -130,12 +187,17 @@ target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_network_tester)
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_service)
 
 # Link KRITIS3M_ASL to the required KRITIS3M_APPLICATIONS targets
+
 target_link_libraries(kritis3m-http-libs PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m-quest PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_network_tester PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_echo_server PUBLIC kritis3m_asl)
+
+target_link_libraries(kritis3m_mqtt_as PUBLIC kritis3m_asl)
+target_link_libraries(kritis3m_service PUBLIC kritis3m_mqtt_as)
 target_link_libraries(kritis3m_service PUBLIC kritis3m_asl)
+target_link_libraries(kritis3m_service PUBLIC kritis3m_pki_client)
 
 target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_service)
 

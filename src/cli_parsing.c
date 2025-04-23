@@ -697,8 +697,8 @@ static int check_pre_shared_key(asl_endpoint_configuration* tls_config, applicat
 
                 tls_config->psk.use_external_callbacks = true;
 
-                tls_config->psk.psk_client_cb = asl_psk_client_callback;
-                tls_config->psk.psk_server_cb = asl_psk_server_callback;
+                // tls_config->psk.client_cb = asl_psk_client_callback;
+                // tls_config->psk.server_cb = asl_psk_server_callback;
         }
         else
         {

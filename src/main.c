@@ -13,7 +13,6 @@
 #include "networking.h"
 
 #include "echo_server.h"
-#include "http_service.h"
 #include "kritis3m_scale_service.h"
 #include "network_tester.h"
 #include "quest.h"
@@ -48,7 +47,7 @@ struct qkd_key_info* kritis3m_allocate_key_info()
         struct qkd_key_info* key_info = malloc(sizeof(struct qkd_key_info));
         if (key_info == NULL)
         {
-                LOG_ERROR("failed to allocate key_info struct.\n");
+                LOG_ERROR("faile d to allocate key_info struct.\n");
                 return NULL;
         }
 
@@ -236,7 +235,7 @@ int main(int argc, char** argv)
                 if (app_config.use_qkd)
                 {
                         /* Set PSK callback context to the quest_endpoint */
-                        tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                        // tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
                 }
 
                 /* Run the proxy backend */
@@ -256,7 +255,7 @@ int main(int argc, char** argv)
                 if (app_config.use_qkd)
                 {
                         /* Set PSK callback context to the quest_endpoint */
-                        tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                        // tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
                 }
 
                 /* Run the proxy backend */

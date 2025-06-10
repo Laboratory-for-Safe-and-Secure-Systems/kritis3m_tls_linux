@@ -25,9 +25,12 @@ static const struct option cli_options[] = {
         {"key_exchange_alg", required_argument, 0, 0x0B},
         {"pre_shared_key", required_argument, 0, 0x0A},
         {"psk_no_cert_auth", no_argument, 0, 0x19},
-        {"psk_no_dhe", no_argument, 0, 0x23},
+        {"psk_no_kex", no_argument, 0, 0x23},
         {"psk_pre_extracted", no_argument, 0, 0x25},
 
+        {"qkd_node", required_argument, 0, 0x26},
+        {"qkd_own_sae_id", required_argument, 0, 0x27},
+        {"qkd_remote_sae_id", required_argument, 0, 0x28},
         {"qkd_cert", required_argument, 0, 0x20},
         {"qkd_key", required_argument, 0, 0x21},
         {"qkd_root", required_argument, 0, 0x22},
@@ -385,8 +388,8 @@ int parse_cli_arguments(application_config* app_config,
                                 return -1;
                         }
                         break;
-                case 0x23: /* psk disable (EC)DHE */
-                        tls_config.psk.enable_dhe_psk = false;
+                case 0x23: /* psk_no_key */
+                        tls_config.psk.enable_kex = false;
                         break;
                 case 0x24: /* qkd pre-shared key */
                         qkd_config.psk.enable_psk = true;
@@ -401,6 +404,31 @@ int parse_cli_arguments(application_config* app_config,
                         break;
                 case 0x25: /* psk pre-extracted */
                         tls_config.psk.pre_extracted = true;
+                        break;
+                case 0x26: /* qkd_node */
+                        if (parse_ip_address(optarg,
+                                             &quest_config->connection_info.hostname,
+                                             &quest_config->connection_info.hostport) != 0)
+                        {
+                                LOG_ERROR("unable to parse qkd_node IP address");
+                                return -1;
+                        }
+                        break;
+                case 0x27: /* qkd_own_sae_id */
+                        quest_config->connection_info.own_sae_ID = duplicate_string(optarg);
+                        if (quest_config->connection_info.own_sae_ID == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for own QKD SAE ID");
+                                return -1;
+                        }
+                        break;
+                case 0x28: /* qkd_remote_sae_id */
+                        quest_config->connection_info.remote_sae_ID = duplicate_string(optarg);
+                        if (quest_config->connection_info.remote_sae_ID == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for remote QKD SAE ID");
+                                return -1;
+                        }
                         break;
                 case 'v': /* verbose */
                         app_config->log_level = LOG_LVL_INFO;
@@ -630,15 +658,6 @@ static int check_qkd_config(quest_configuration* quest_config,
                             asl_endpoint_configuration* tls_config,
                             application_config* app_config)
 {
-        /* if these roles are set, we are on the server side of the tls communicaton and need to
-         * modify the hostname and sae_ID of the quest_configuration to address the correct QKD
-           endpoint */
-        if ((app_config->role) == ROLE_ECHO_SERVER || (app_config->role == ROLE_REVERSE_PROXY))
-        {
-                quest_config->connection_info.hostname = "im-lfd-qkd-alice.othr.de";
-                quest_config->connection_info.host_sae_ID = "alice_sae_etsi_1";
-        }
-
         /* Check if qkd:secure was selected as qkd usage */
         if (tls_config->psk.identity != NULL && strncmp(tls_config->psk.identity,
                                                         SECURE_QKD_PSK_IDENTIFIER,
@@ -829,7 +848,7 @@ void arguments_cleanup(application_config* app_config,
         /* Free memory of the quest configuration */
         if (quest_config != NULL)
         {
-                quest_deinit(quest_config);
+                quest_config_deinit(quest_config);
         }
 
         /* Free memory of certificates and private key */
@@ -918,7 +937,7 @@ static void print_help(char const* name)
         printf("\nPre-shared keys:\r\n");
         printf("  --pre_shared_key id:key        Pre-shared key and identity to use. The identity is sent from client to server during\r\n");
         printf("                                    the handshake. The key has to be Base64 encoded.\r\n");
-        printf("  --psk_no_dhe                   Disable (EC)DHE key generation in addition to the PSK shared secret\r\n");
+        printf("  --psk_no_kex                   Disable ephemeral key exchange in addition to the PSK shared secret\r\n");
         printf("  --psk_no_cert_auth             Disable certificates in addition to the PSK for peer authentication\r\n");
         printf("  --psk_pre_extracted            HKDF-Extract operation is already performed, only the Expand part is necessary\r\n");
 
@@ -928,6 +947,9 @@ static void print_help(char const* name)
         printf("      --pre_shared_key \"%s\"         Use a HTTP request to the QKD key magament system.\r\n", QKD_PSK_IDENTIFIER);
         printf("      --pre_shared_key \"%s\"  Use a secured HTPPS request to the QKD key management system.\r\n", SECURE_QKD_PSK_IDENTIFIER);
         printf("                                          In this mode, the qkd_xxx arguments below must be set.\r\n\n");
+        printf("  --qkd_node ip:port             Endpoint of the QKD Node from where the keys are requested.\r\n");
+        printf("  --qkd_own_sae_id id            Our own SAE ID within the QKD system.\r\n");
+        printf("  --qkd_remote_sae_id id         SAE ID of the remote peer within the QKD system (only needed on the client-side).\r\n");
         printf("  --qkd_cert file_path           Path to the certificate file used for the HTTPS connection to the QKD server\r\n");
         printf("  --qkd_root file_path           Path to the root certificate file used for the HTTPS connection to the QKD server\r\n");
         printf("  --qkd_key file_path            Path to the private key file used for the HTTPS connection to the QKD server\r\n");

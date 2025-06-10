@@ -48,7 +48,7 @@ int main(int argc, char** argv)
         echo_server_config echo_server_config = echo_server_default_config();
         network_tester_config network_tester_config = network_tester_default_config();
         quest_configuration* quest_config = quest_default_config();
-        quest_endpoint* qkd_endpoint = NULL;
+        quest_connection qkd_connection;
 
         char* management_file_path = NULL;
 
@@ -88,11 +88,28 @@ int main(int argc, char** argv)
         if (app_config.use_qkd)
         {
                 /* Setup quest_endpoint based on the configuration above. */
-                qkd_endpoint = quest_setup_endpoint(quest_config);
-                if (qkd_endpoint == NULL)
+                qkd_connection.local_endpoint = quest_setup_endpoint(quest_config);
+                if (qkd_connection.local_endpoint == NULL)
                 {
                         LOG_ERROR("allocation of quest endpoint did not succeed.");
                         return -1;
+                }
+
+                if (quest_config->connection_info.remote_sae_ID != NULL)
+                {
+                        /* Duplicate the remote SAE ID */
+                        qkd_connection.remote_sae_ID = duplicate_string(
+                                quest_config->connection_info.remote_sae_ID);
+                        if (qkd_connection.remote_sae_ID == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for remote SAE ID");
+                                return -1;
+                        }
+                }
+                else
+                {
+                        /* If no remote SAE ID is set, we need to set it later in the TLS client */
+                        qkd_connection.remote_sae_ID = NULL;
                 }
         }
 
@@ -102,8 +119,8 @@ int main(int argc, char** argv)
         {
                 if (app_config.use_qkd)
                 {
-                        /* Set PSK callback context to the quest_endpoint */
-                        tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                        /* Set PSK callback context to the qkd_connection */
+                        tls_proxy_config.tls_config.psk.callback_ctx = &qkd_connection;
                 }
 
                 /* Run the proxy backend */
@@ -122,8 +139,8 @@ int main(int argc, char** argv)
         {
                 if (app_config.use_qkd)
                 {
-                        /* Set PSK callback context to the quest_endpoint */
-                        tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                        /* Set PSK callback context to the qkd_connection */
+                        tls_proxy_config.tls_config.psk.callback_ctx = &qkd_connection;
                 }
 
                 /* Run the proxy backend */
@@ -142,8 +159,8 @@ int main(int argc, char** argv)
         {
                 if (app_config.use_qkd)
                 {
-                        /* Set PSK callback context to the quest_endpoint */
-                        echo_server_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                        /* Set PSK callback context to the qkd_connection */
+                        echo_server_config.tls_config.psk.callback_ctx = &qkd_connection;
                 }
 
                 /* Run the TCP echo server */
@@ -157,8 +174,8 @@ int main(int argc, char** argv)
         {
                 if (app_config.use_qkd)
                 {
-                        /* Set PSK callback context to the quest_endpoint */
-                        tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                        /* Set PSK callback context to the qkd_connection */
+                        tls_proxy_config.tls_config.psk.callback_ctx = &qkd_connection;
                 }
 
                 /* Run the proxy backend */
@@ -190,8 +207,8 @@ int main(int argc, char** argv)
         {
                 if (app_config.use_qkd)
                 {
-                        /* Set PSK callback context to the quest_endpoint */
-                        tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                        /* Set PSK callback context to the qkd_connection */
+                        tls_proxy_config.tls_config.psk.callback_ctx = &qkd_connection;
                 }
 
                 tcp_client_stdin_bridge_config tcp_client_stdin_bridge_config = {
@@ -227,8 +244,8 @@ int main(int argc, char** argv)
         {
                 if (app_config.use_qkd)
                 {
-                        /* Set PSK callback context to the quest_endpoint */
-                        network_tester_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                        /* Set PSK callback context to the qkd_connection */
+                        network_tester_config.tls_config.psk.callback_ctx = &qkd_connection;
                 }
 
                 /* Run the network_tester application asynchronously */
@@ -240,8 +257,8 @@ int main(int argc, char** argv)
         {
                 if (app_config.use_qkd)
                 {
-                        /* Set PSK callback context to the quest_endpoint */
-                        tls_proxy_config.tls_config.psk.callback_ctx = qkd_endpoint;
+                        /* Set PSK callback context to the qkd_connection */
+                        tls_proxy_config.tls_config.psk.callback_ctx = &qkd_connection;
                 }
 
                 /* Run the proxy backend */
@@ -332,9 +349,13 @@ int main(int argc, char** argv)
                 tls_proxy_backend_terminate();
         }
 
-        if (qkd_endpoint != NULL)
+        if (app_config.use_qkd)
         {
-                quest_free_endpoint(qkd_endpoint);
+                quest_free_endpoint(qkd_connection.local_endpoint);
+                if (qkd_connection.remote_sae_ID != NULL)
+                {
+                        free((char*) qkd_connection.remote_sae_ID);
+                }
         }
 
         if ((app_config.role == ROLE_ECHO_SERVER) || (app_config.role == ROLE_ECHO_SERVER_PROXY))

@@ -23,7 +23,7 @@ struct qkd_key_info* kritis3m_allocate_key_info()
         struct qkd_key_info* key_info = malloc(sizeof(struct qkd_key_info));
         if (key_info == NULL)
         {
-                LOG_ERROR("failed to allocate key_info struct.\n");
+                LOG_ERROR("failed to allocate key_info struct.");
                 return NULL;
         }
 
@@ -57,7 +57,7 @@ static void parse_server_remote_sae_id(char** identity, char** dst_sae_ID)
         }
         else
         {
-                LOG_ERROR("remote_sae_id was not part of the identifier.\n");
+                LOG_ERROR("remote_sae_id was not part of the identifier.");
                 *dst_sae_ID = NULL;
         }
 }
@@ -124,7 +124,7 @@ enum kritis3m_status_info kritis3m_get_qkd_key(quest_endpoint* qkd_endpoint,
                 /* if not, we perform a sanity check to verify the correct QKD key */
                 if (strcmp(key_response->key_info->key_ID, identity) != 0)
                 {
-                        LOG_ERROR("identities do not match!\n");
+                        LOG_ERROR("identities do not match!");
                         goto TRANSACTION_ERR;
                 }
         }

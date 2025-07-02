@@ -38,6 +38,7 @@ static const struct option cli_options[] = {
 
         {"pkcs11_module", required_argument, 0, 0x0C},
         {"pkcs11_pin", required_argument, 0, 0x0D},
+        {"pkcs11_slot_id", required_argument, 0, 0x29},
         {"pkcs11_crypto_all", no_argument, 0, 0x0E},
 
         {"test_num_handshakes", required_argument, 0, 0x0F},
@@ -429,6 +430,9 @@ int parse_cli_arguments(application_config* app_config,
                                 LOG_ERROR("unable to allocate memory for remote QKD SAE ID");
                                 return -1;
                         }
+                        break;
+                case 0x29: /* pkcs11_slot_id */
+                        tls_config.pkcs11.slot_id = (int) strtol(optarg, NULL, 10);
                         break;
                 case 'v': /* verbose */
                         app_config->log_level = LOG_LVL_INFO;
@@ -967,6 +971,7 @@ static void print_help(char const* name)
         printf("  the PKCS#11 label of the pre-shared key on the token.\r\n\n");
         printf("  --pkcs11_module file_path      Path to the PKCS#11 token middleware\r\n");
         printf("  --pkcs11_pin pin               PIN for the token (default empty)\r\n");
+        printf("  --pkcs11_slot_id id            Slot ID of the PKCS#11 module to use (default 0)\r\n");
         printf("  --pkcs11_crypto_all            Use the PKCS#11 token for all supported crypto operations (default disabled)\r\n");
 
         printf("\nNetwork tester configuration:\r\n");

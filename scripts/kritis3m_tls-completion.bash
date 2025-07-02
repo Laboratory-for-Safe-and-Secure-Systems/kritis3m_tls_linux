@@ -100,7 +100,7 @@ _kritis3m_tls_completions() {
         opts_connection="--incoming --outgoing"
         opts_files="--cert --key --intermediate --root --additional_key --pkcs11_module --keylog_file --qkd_cert --qkd_root --qkd_key"
         opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --pre_shared_key --psk_no_kex --psk_no_cert_auth --psk_pre_extracted \
-                        --pkcs11_pin --pkcs11_crypto_all --qkd_psk --qkd_node --qkd_own_sae_id --qkd_remote_sae_id"
+                        --pkcs11_pin --pkcs11_slot_id --pkcs11_crypto_all --qkd_psk --qkd_node --qkd_own_sae_id --qkd_remote_sae_id"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
                         --test_output_path --test_no_tls --test_silent"
         opts_mgmt="--mgmt_path"
@@ -142,7 +142,7 @@ _kritis3m_tls_completions() {
                 --qkd_psk | --qkd_node | --qkd_own_sae_id | --qkd_remote_sae_id | \
                 --test_num_handshakes | --test_handshake_delay | --test_num_messages | --test_message_delay | --test_message_size | --test_no_tls | \
                 --test_silent | \
-                --pkcs11_pin | pkcs11_crypto_all)
+                --pkcs11_pin | --pkcs11_slot_id | pkcs11_crypto_all)
                 # No specific completion
                 COMPREPLY=()
                 return 0

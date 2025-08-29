@@ -756,6 +756,24 @@ static int check_pre_shared_key(asl_endpoint_configuration* tls_config, applicat
         {
                 app_config->use_qkd = false;
 
+                /* Check if user passed a file path */
+                if (file_exists(tls_config->psk.identity))
+                {
+                        uint8_t* psk_buffer = NULL;
+                        size_t psk_len = 0;
+
+                        if (read_file(tls_config->psk.identity, &psk_buffer, &psk_len) < 0)
+                        {
+                                LOG_ERROR("failed to read PSK from file");
+                                if (psk_buffer != NULL)
+                                        free(psk_buffer);
+                                return -1;
+                        }
+
+                        free((char*) tls_config->psk.identity);
+                        tls_config->psk.identity = (char*) psk_buffer;
+                }
+
                 /* Strip the key from the <id:key> concatination and store it in its own variable */
                 char* key_start = strchr(tls_config->psk.identity, ':');
                 if (key_start == NULL)
@@ -773,8 +791,6 @@ static int check_pre_shared_key(asl_endpoint_configuration* tls_config, applicat
                         return -1;
                 }
         }
-
-        /* ToDo: Add ability to read PSK from a file here... */
 
         return 0;
 }

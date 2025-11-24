@@ -103,7 +103,7 @@ _kritis3m_tls_completions() {
         opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --psk_no_kex --psk_no_cert_auth --psk_pre_extracted \
                         --pkcs11_pin --pkcs11_slot_id --pkcs11_crypto_all --qkd_node --qkd_own_sae_id --qkd_remote_sae_id"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
-                        --test_output_path --test_no_tls --test_silent"
+                        --test_output_path --test_name --test_no_tls --test_silent"
         opts_mgmt="--mgmt_path"
         opts_general="--verbose --debug --help"
 
@@ -142,7 +142,7 @@ _kritis3m_tls_completions() {
         --no_mutual_auth | --ciphersuites | --psk_no_kex | --psk_no_cert_auth | --psk_pre_extracted | \
                 --qkd_node | --qkd_own_sae_id | --qkd_remote_sae_id | \
                 --test_num_handshakes | --test_handshake_delay | --test_num_messages | --test_message_delay | --test_message_size | --test_no_tls | \
-                --test_silent | \
+                --test_silent | --test_name |\
                 --pkcs11_pin | --pkcs11_slot_id | pkcs11_crypto_all)
                 # No specific completion
                 COMPREPLY=()

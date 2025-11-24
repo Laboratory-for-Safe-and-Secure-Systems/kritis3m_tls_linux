@@ -47,6 +47,7 @@ static const struct option cli_options[] = {
         {"test_message_delay", required_argument, 0, 0x12},
         {"test_message_size", required_argument, 0, 0x13},
         {"test_output_path", required_argument, 0, 0x14},
+        {"test_name", required_argument, 0, 0x30},
         {"test_no_tls", no_argument, 0, 0x15},
         {"test_silent", no_argument, 0, 0x16},
 
@@ -433,6 +434,14 @@ int parse_cli_arguments(application_config* app_config,
                         break;
                 case 0x29: /* pkcs11_slot_id */
                         tls_config.pkcs11.slot_id = (int) strtol(optarg, NULL, 10);
+                        break;
+                case 0x30: /* test_name */
+                        tester_config->test_name = duplicate_string(optarg);
+                        if (tester_config->test_name == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for test name");
+                                return -1;
+                        }
                         break;
                 case 'v': /* verbose */
                         app_config->log_level = LOG_LVL_INFO;
@@ -916,6 +925,16 @@ void arguments_cleanup(application_config* app_config,
         {
                 free((void*) tls_config->keylog_file);
         }
+
+        if (tester_config->output_path != NULL)
+        {
+                free((void*) tester_config->output_path);
+        }
+
+        if (tester_config->test_name != NULL)
+        {
+                free((void*) tester_config->test_name);
+        }
 }
 
 static void print_help(char const* name)
@@ -997,6 +1016,7 @@ static void print_help(char const* name)
         printf("  --test_message_delay num_us    Delay between messages in microseconds (default 0)\r\n");
         printf("  --test_message_size num        Size of the echo message in bytes (default 1)\r\n");
         printf("  --test_output_path path        Path to the output file (filename will be appended)\r\n");
+        printf("  --test_name name               Name of the test (used in output file names)\r\n");
         printf("  --test_no_tls                  Disable TLS for test (plain TCP; default disabled)\r\n");
         printf("  --test_silent                  Disable progress printing\r\n");
 

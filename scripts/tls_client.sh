@@ -7,7 +7,7 @@ fi
 
 echo -e "Starting KRITIS3M TLS client to $1 with certs in dir $2\r"
 kritis3m_tls tls_client \
-	--outgoing "$1" \
+	--outgoing tls://"$1" \
 	--root "$2"/root.pem \
 	--cert "$2"/chain.pem \
 	--key "$2"/privateKey.pem \

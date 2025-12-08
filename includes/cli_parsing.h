@@ -15,14 +15,11 @@
 
 #define QKD_PSK_IDENTIFIER "qkd"
 #define QKD_PSK_IDENTIFIER_LEN 3
-#define SECURE_QKD_PSK_IDENTIFIER "qkd:secure"
-#define SECURE_QKD_PSK_IDENTIFIER_LEN 10
 
 enum application_role
 {
         NOT_SET,
-        ROLE_REVERSE_PROXY,
-        ROLE_FORWARD_PROXY,
+        ROLE_PROXY,
         ROLE_ECHO_SERVER,
         ROLE_ECHO_SERVER_PROXY,
         ROLE_TLS_CLIENT,

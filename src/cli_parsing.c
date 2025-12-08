@@ -55,6 +55,42 @@ static const struct option cli_options[] = {
 
         {"mgmt_path", required_argument, 0, 0x18},
 
+        {"in_cert", required_argument, 0, 0x31},
+        {"in_key", required_argument, 0, 0x32},
+        {"in_intermediate", required_argument, 0, 0x33},
+        {"in_root", required_argument, 0, 0x34},
+        {"in_additional_key", required_argument, 0, 0x35},
+        {"in_no_mutual_auth", no_argument, 0, 0x36},
+        {"in_ciphersuites", required_argument, 0, 0x37},
+        {"in_key_exchange_alg", required_argument, 0, 0x38},
+        {"in_pre_shared_key", required_argument, 0, 0x39},
+        {"in_psk_no_cert_auth", no_argument, 0, 0x3A},
+        {"in_psk_no_kex", no_argument, 0, 0x3B},
+        {"in_psk_pre_extracted", no_argument, 0, 0x3C},
+        {"in_pkcs11_module", required_argument, 0, 0x49},
+        {"in_pkcs11_pin", required_argument, 0, 0x4A},
+        {"in_pkcs11_slot_id", required_argument, 0, 0x4B},
+        {"in_pkcs11_crypto_all", no_argument, 0, 0x4C},
+        {"in_keylog_file", required_argument, 0, 0x4D},
+
+        {"out_cert", required_argument, 0, 0x3D},
+        {"out_key", required_argument, 0, 0x3E},
+        {"out_intermediate", required_argument, 0, 0x3F},
+        {"out_root", required_argument, 0, 0x40},
+        {"out_additional_key", required_argument, 0, 0x41},
+        {"out_no_mutual_auth", no_argument, 0, 0x42},
+        {"out_ciphersuites", required_argument, 0, 0x43},
+        {"out_key_exchange_alg", required_argument, 0, 0x44},
+        {"out_pre_shared_key", required_argument, 0, 0x45},
+        {"out_psk_no_cert_auth", no_argument, 0, 0x46},
+        {"out_psk_no_kex", no_argument, 0, 0x47},
+        {"out_psk_pre_extracted", no_argument, 0, 0x48},
+        {"out_pkcs11_module", required_argument, 0, 0x4E},
+        {"out_pkcs11_pin", required_argument, 0, 0x4F},
+        {"out_pkcs11_slot_id", required_argument, 0, 0x50},
+        {"out_pkcs11_crypto_all", no_argument, 0, 0x51},
+        {"out_keylog_file", required_argument, 0, 0x52},
+
         {"verbose", no_argument, 0, 'v'},
         {"debug", no_argument, 0, 'd'},
         {"help", no_argument, 0, 'h'},
@@ -69,7 +105,8 @@ static int check_pre_shared_key(asl_endpoint_configuration* tls_config, applicat
 static int check_qkd_config(quest_configuration* quest_config,
                             asl_endpoint_configuration* qkd_config,
                             asl_endpoint_configuration* tls_config,
-                            application_config* app_config);
+                            application_config* app_config,
+                            char* qkd_protocol);
 static void print_help(char const* name);
 
 /* Parse the provided argv array and store the information in the provided config variables.
@@ -100,11 +137,22 @@ int parse_cli_arguments(application_config* app_config,
 
         char* incoming_ip = NULL;
         uint16_t incoming_port = 0;
+        char* incoming_protocol = NULL;
+
         char* outgoing_ip = NULL;
         uint16_t outgoing_port = 0;
+        char* outgoing_protocol = NULL;
+
+        char* qkd_protocol = NULL;
 
         certificates certs = get_empty_certificates();
         asl_endpoint_configuration tls_config = asl_default_endpoint_config();
+
+        certificates in_certs = get_empty_certificates();
+        asl_endpoint_configuration in_tls_config = asl_default_endpoint_config();
+
+        certificates out_certs = get_empty_certificates();
+        asl_endpoint_configuration out_tls_config = asl_default_endpoint_config();
 
         /* TLS config for HTTPS connection to the QKD line */
         certificates qkd_certs = get_empty_certificates();
@@ -115,13 +163,9 @@ int parse_cli_arguments(application_config* app_config,
         app_config->log_level = LOG_LVL_WARN;
 
         /* Parse role */
-        if (strcmp(argv[1], "reverse_proxy") == 0)
+        if (strcmp(argv[1], "proxy") == 0)
         {
-                app_config->role = ROLE_REVERSE_PROXY;
-        }
-        else if (strcmp(argv[1], "forward_proxy") == 0)
-        {
-                app_config->role = ROLE_FORWARD_PROXY;
+                app_config->role = ROLE_PROXY;
         }
         else if (strcmp(argv[1], "echo_server") == 0)
         {
@@ -171,14 +215,16 @@ int parse_cli_arguments(application_config* app_config,
                 switch (result)
                 {
                 case 0x01: /* incoming */
-                        if (parse_ip_address(optarg, &incoming_ip, &incoming_port) != 0)
+                        if (parse_ip_address(optarg, &incoming_ip, &incoming_port, &incoming_protocol) !=
+                            0)
                         {
                                 LOG_ERROR("unable to parse incoming IP address");
                                 return -1;
                         }
                         break;
                 case 0x02: /* outgoing */
-                        if (parse_ip_address(optarg, &outgoing_ip, &outgoing_port) != 0)
+                        if (parse_ip_address(optarg, &outgoing_ip, &outgoing_port, &outgoing_protocol) !=
+                            0)
                         {
                                 LOG_ERROR("unable to parse outgoing IP address");
                                 return -1;
@@ -390,7 +436,7 @@ int parse_cli_arguments(application_config* app_config,
                                 return -1;
                         }
                         break;
-                case 0x23: /* psk_no_key */
+                case 0x23: /* psk_no_kex */
                         tls_config.psk.enable_kex = false;
                         break;
                 case 0x24: /* qkd pre-shared key */
@@ -410,7 +456,8 @@ int parse_cli_arguments(application_config* app_config,
                 case 0x26: /* qkd_node */
                         if (parse_ip_address(optarg,
                                              &quest_config->connection_info.hostname,
-                                             &quest_config->connection_info.hostport) != 0)
+                                             &quest_config->connection_info.hostport,
+                                             &qkd_protocol) != 0)
                         {
                                 LOG_ERROR("unable to parse qkd_node IP address");
                                 return -1;
@@ -443,6 +490,296 @@ int parse_cli_arguments(application_config* app_config,
                                 return -1;
                         }
                         break;
+                case 0x31: /* in_cert */
+                        in_certs.certificate_path = duplicate_string(optarg);
+                        if (in_certs.certificate_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for in certificate");
+                                return -1;
+                        }
+                        break;
+                case 0x32: /* in_key */
+                        in_certs.private_key_path = duplicate_string(optarg);
+                        if (in_certs.private_key_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for in private key");
+                                return -1;
+                        }
+                        break;
+                case 0x33: /* in_intermediate */
+                        in_certs.intermediate_path = duplicate_string(optarg);
+                        if (in_certs.intermediate_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for in intermediate");
+                                return -1;
+                        }
+                        break;
+                case 0x34: /* in_root */
+                        in_certs.root_path = duplicate_string(optarg);
+                        if (in_certs.root_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for in root");
+                                return -1;
+                        }
+                        break;
+                case 0x35: /* in_additional_key */
+                        in_certs.additional_key_path = duplicate_string(optarg);
+                        if (in_certs.additional_key_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for in additional key");
+                                return -1;
+                        }
+                        break;
+                case 0x36: /* in_no_mutual_auth */
+                        in_tls_config.mutual_authentication = false;
+                        break;
+                case 0x37: /* in_ciphersuites */
+                        in_tls_config.ciphersuites = duplicate_string(optarg);
+                        if (in_tls_config.ciphersuites == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for in ciphersuites");
+                                return -1;
+                        }
+                        break;
+                case 0x38: /* in_key_exchange_alg */
+                        {
+                                enum asl_key_exchange_method kex_algo;
+                                if (strcmp(optarg, "secp256") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_SECP256;
+                                else if (strcmp(optarg, "secp384") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_SECP384;
+                                else if (strcmp(optarg, "secp521") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_SECP521;
+                                else if (strcmp(optarg, "x25519") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_X25519;
+                                else if (strcmp(optarg, "x448") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_X448;
+                                else if (strcmp(optarg, "mlkem512") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM512;
+                                else if (strcmp(optarg, "mlkem768") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM768;
+                                else if (strcmp(optarg, "mlkem1024") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM1024;
+                                else if (strcmp(optarg, "secp256_mlkem512") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM512;
+                                else if (strcmp(optarg, "secp384_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM768;
+                                else if (strcmp(optarg, "secp256_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM768;
+                                else if (strcmp(optarg, "secp521_mlkem1024") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP521_MLKEM1024;
+                                else if (strcmp(optarg, "secp384_mlkem1024") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM1024;
+                                else if (strcmp(optarg, "x25519_mlkem512") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_X25519_MLKEM512;
+                                else if (strcmp(optarg, "x448_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_X448_MLKEM768;
+                                else if (strcmp(optarg, "x25519_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_X25519_MLKEM768;
+                                else
+                                {
+                                        printf("invalid in key exchange algorithm: %s\r\n", optarg);
+                                        print_help(argv[0]);
+                                        return 1;
+                                }
+                                in_tls_config.key_exchange_method = kex_algo;
+                                break;
+                        }
+                case 0x39: /* in_pre_shared_key */
+                        in_tls_config.psk.enable_psk = true;
+                        /* In the optarg, the concatination <id:key> is present. We strip
+                         * the key from the identity below. */
+                        in_tls_config.psk.identity = duplicate_string(optarg);
+                        if (in_tls_config.psk.identity == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for in PSK key");
+                                return -1;
+                        }
+                        break;
+                case 0x3A: /* in_psk_no_cert_auth */
+                        in_tls_config.psk.enable_cert_auth = false;
+                        break;
+                case 0x3B: /* in_psk_no_kex */
+                        in_tls_config.psk.enable_kex = false;
+                        break;
+                case 0x3C: /* in_psk_pre_extracted */
+                        in_tls_config.psk.pre_extracted = true;
+                        break;
+                case 0x49: /* in_pkcs11_module */
+                        in_tls_config.pkcs11.module_path = duplicate_string(optarg);
+                        if (in_tls_config.pkcs11.module_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for in PKCS#11 module path");
+                                return -1;
+                        }
+                        break;
+                case 0x4A: /* in_pkcs11_pin */
+                        in_tls_config.pkcs11.module_pin = duplicate_string(optarg);
+                        if (in_tls_config.pkcs11.module_pin == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for in PKCS#11 module pin");
+                                return -1;
+                        }
+                        break;
+                case 0x4B: /* in_pkcs11_slot_id */
+                        in_tls_config.pkcs11.slot_id = (int) strtol(optarg, NULL, 10);
+                        break;
+                case 0x4C: /* in_pkcs11_crypto_all */
+                        in_tls_config.pkcs11.use_for_all = true;
+                        break;
+                case 0x4D: /* in_keylog_file */
+                        in_tls_config.keylog_file = duplicate_string(optarg);
+                        if (in_tls_config.keylog_file == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for in keylog file path");
+                                return -1;
+                        }
+                        break;
+                case 0x3D: /* out_cert */
+                        out_certs.certificate_path = duplicate_string(optarg);
+                        if (out_certs.certificate_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for out certificate");
+                                return -1;
+                        }
+                        break;
+                case 0x3E: /* out_key */
+                        out_certs.private_key_path = duplicate_string(optarg);
+                        if (out_certs.private_key_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for out private key");
+                                return -1;
+                        }
+                        break;
+                case 0x3F: /* out_intermediate */
+                        out_certs.intermediate_path = duplicate_string(optarg);
+                        if (out_certs.intermediate_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for out intermediate");
+                                return -1;
+                        }
+                        break;
+                case 0x40: /* out_root */
+                        out_certs.root_path = duplicate_string(optarg);
+                        if (out_certs.root_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for out root");
+                                return -1;
+                        }
+                        break;
+                case 0x41: /* out_additional_key */
+                        out_certs.additional_key_path = duplicate_string(optarg);
+                        if (out_certs.additional_key_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for out additional key");
+                                return -1;
+                        }
+                        break;
+                case 0x42: /* out_no_mutual_auth */
+                        out_tls_config.mutual_authentication = false;
+                        break;
+                case 0x43: /* out_ciphersuites */
+                        out_tls_config.ciphersuites = duplicate_string(optarg);
+                        if (out_tls_config.ciphersuites == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for out ciphersuites");
+                                return -1;
+                        }
+                        break;
+                case 0x44: /* out_key_exchange_alg */
+                        {
+                                enum asl_key_exchange_method kex_algo;
+                                if (strcmp(optarg, "secp256") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_SECP256;
+                                else if (strcmp(optarg, "secp384") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_SECP384;
+                                else if (strcmp(optarg, "secp521") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_SECP521;
+                                else if (strcmp(optarg, "x25519") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_X25519;
+                                else if (strcmp(optarg, "x448") == 0)
+                                        kex_algo = ASL_KEX_CLASSIC_X448;
+                                else if (strcmp(optarg, "mlkem512") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM512;
+                                else if (strcmp(optarg, "mlkem768") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM768;
+                                else if (strcmp(optarg, "mlkem1024") == 0)
+                                        kex_algo = ASL_KEX_PQC_MLKEM1024;
+                                else if (strcmp(optarg, "secp256_mlkem512") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM512;
+                                else if (strcmp(optarg, "secp384_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM768;
+                                else if (strcmp(optarg, "secp256_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP256_MLKEM768;
+                                else if (strcmp(optarg, "secp521_mlkem1024") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP521_MLKEM1024;
+                                else if (strcmp(optarg, "secp384_mlkem1024") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_SECP384_MLKEM1024;
+                                else if (strcmp(optarg, "x25519_mlkem512") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_X25519_MLKEM512;
+                                else if (strcmp(optarg, "x448_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_X448_MLKEM768;
+                                else if (strcmp(optarg, "x25519_mlkem768") == 0)
+                                        kex_algo = ASL_KEX_HYBRID_X25519_MLKEM768;
+                                else
+                                {
+                                        printf("invalid in key exchange algorithm: %s\r\n", optarg);
+                                        print_help(argv[0]);
+                                        return 1;
+                                }
+                                out_tls_config.key_exchange_method = kex_algo;
+                                break;
+                        }
+                case 0x45: /* out_pre_shared_key */
+                        out_tls_config.psk.enable_psk = true;
+                        /* In the optarg, the concatination <id:key> is present. We strip
+                         * the key from the identity below. */
+                        out_tls_config.psk.identity = duplicate_string(optarg);
+                        if (out_tls_config.psk.identity == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for out PSK key");
+                                return -1;
+                        }
+                        break;
+                case 0x46: /* out_psk_no_cert_auth */
+                        out_tls_config.psk.enable_cert_auth = false;
+                        break;
+                case 0x47: /* out_psk_no_kex */
+                        out_tls_config.psk.enable_kex = false;
+                        break;
+                case 0x48: /* out_psk_pre_extracted */
+                        out_tls_config.psk.pre_extracted = true;
+                        break;
+                case 0x4E: /* out_pkcs11_module */
+                        out_tls_config.pkcs11.module_path = duplicate_string(optarg);
+                        if (out_tls_config.pkcs11.module_path == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for out PKCS#11 module path");
+                                return -1;
+                        }
+                        break;
+                case 0x4F: /* out_pkcs11_pin */
+                        out_tls_config.pkcs11.module_pin = duplicate_string(optarg);
+                        if (out_tls_config.pkcs11.module_pin == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for out PKCS#11 module pin");
+                                return -1;
+                        }
+                        break;
+                case 0x50: /* out_pkcs11_slot_id */
+                        out_tls_config.pkcs11.slot_id = (int) strtol(optarg, NULL, 10);
+                        break;
+                case 0x51: /* out_pkcs11_crypto_all */
+                        out_tls_config.pkcs11.use_for_all = true;
+                        break;
+                case 0x52: /* out_keylog_file */
+                        out_tls_config.keylog_file = duplicate_string(optarg);
+                        if (out_tls_config.keylog_file == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for out keylog file path");
+                                return -1;
+                        }
+                        break;
                 case 'v': /* verbose */
                         app_config->log_level = LOG_LVL_INFO;
                         break;
@@ -461,22 +798,23 @@ int parse_cli_arguments(application_config* app_config,
         if ((app_config->role == ROLE_MANAGEMENT_CLIENT) && (*mgmt_config_path != NULL))
                 return 0;
 
-        if (app_config->role == ROLE_REVERSE_PROXY || app_config->role == ROLE_ECHO_SERVER)
+        if (app_config->role == ROLE_ECHO_SERVER || app_config->role == ROLE_ECHO_SERVER_PROXY)
         {
-                if (!certs.certificate_path)
+                if (!certs.certificate_path && !in_certs.certificate_path)
                 {
                         LOG_ERROR("certificate file missing");
                         return -1;
                 }
-                else if (!certs.private_key_path)
+                else if (!certs.private_key_path && !in_certs.private_key_path)
                 {
                         LOG_ERROR("private key file missing");
                         return -1;
                 }
         }
-        else if (app_config->role == ROLE_FORWARD_PROXY || app_config->role == ROLE_TLS_CLIENT)
+        else if (app_config->role == ROLE_TLS_CLIENT || app_config->role == ROLE_NETWORK_TESTER ||
+                 app_config->role == ROLE_NETWORK_TESTER_PROXY)
         {
-                if (!certs.root_path)
+                if (!certs.root_path && !out_certs.root_path)
                 {
                         LOG_ERROR("root certificate file missing");
                         return -1;
@@ -494,21 +832,6 @@ int parse_cli_arguments(application_config* app_config,
         {
                 return -1;
         }
-        if (qkd_certs.certificate_path != NULL)
-        {
-                free((void*) qkd_certs.certificate_path);
-                qkd_certs.certificate_path = NULL;
-        }
-        if (qkd_certs.root_path != NULL)
-        {
-                free((void*) qkd_certs.root_path);
-                qkd_certs.root_path = NULL;
-        }
-        if (qkd_certs.private_key_path != NULL)
-        {
-                free((void*) qkd_certs.private_key_path);
-                qkd_certs.private_key_path = NULL;
-        }
 
         qkd_config.device_certificate_chain.buffer = qkd_certs.chain_buffer;
         qkd_config.device_certificate_chain.size = qkd_certs.chain_buffer_size;
@@ -517,14 +840,550 @@ int parse_cli_arguments(application_config* app_config,
         qkd_config.private_key.buffer = qkd_certs.key_buffer;
         qkd_config.private_key.size = qkd_certs.key_buffer_size;
 
-        if (check_qkd_config(quest_config, &qkd_config, &tls_config, app_config) != 0)
+        /* Handle TLS arguements for in and out side */
+
+        char* in_proto = incoming_protocol;
+        char* out_proto = outgoing_protocol;
+
+        if (in_proto == NULL)
         {
-                return -1;
+                if (app_config->role == ROLE_ECHO_SERVER ||
+                    app_config->role == ROLE_ECHO_SERVER_PROXY || app_config->role == ROLE_PROXY)
+                {
+                        in_proto = "tls";
+                }
+                else
+                {
+                        in_proto = "tcp";
+                }
+        }
+        if (out_proto == NULL)
+        {
+                if (app_config->role == ROLE_TLS_CLIENT || app_config->role == ROLE_NETWORK_TESTER ||
+                    app_config->role == ROLE_NETWORK_TESTER_PROXY)
+                {
+                        out_proto = "tls";
+                }
+                else
+                {
+                        out_proto = "tcp";
+                }
         }
 
-        if (read_certificates(&certs) != 0)
+        if ((strncasecmp(in_proto, "tls", 3) == 0) && (strncasecmp(out_proto, "tcp", 3) == 0))
         {
-                return -1;
+                /* Reverse proxy. Use "normal" TLS arguments for input side. */
+                proxy_config->incoming_tls = true;
+                proxy_config->outgoing_tls = false;
+
+                if (in_certs.certificate_path == NULL && certs.certificate_path != NULL)
+                {
+                        in_certs.certificate_path = certs.certificate_path;
+                        certs.certificate_path = NULL;
+                }
+                if (in_certs.private_key_path == NULL && certs.private_key_path != NULL)
+                {
+                        in_certs.private_key_path = certs.private_key_path;
+                        certs.private_key_path = NULL;
+                }
+                if (in_certs.intermediate_path == NULL && certs.intermediate_path != NULL)
+                {
+                        in_certs.intermediate_path = certs.intermediate_path;
+                        certs.intermediate_path = NULL;
+                }
+                if (in_certs.root_path == NULL && certs.root_path != NULL)
+                {
+                        in_certs.root_path = certs.root_path;
+                        certs.root_path = NULL;
+                }
+                if (in_certs.additional_key_path == NULL && certs.additional_key_path != NULL)
+                {
+                        in_certs.additional_key_path = certs.additional_key_path;
+                        certs.additional_key_path = NULL;
+                }
+
+                if (in_tls_config.mutual_authentication == true &&
+                    tls_config.mutual_authentication == false)
+                {
+                        in_tls_config.mutual_authentication = false;
+                }
+                if (in_tls_config.ciphersuites == NULL && tls_config.ciphersuites != NULL)
+                {
+                        in_tls_config.ciphersuites = tls_config.ciphersuites;
+                        tls_config.ciphersuites = NULL;
+                }
+                if (in_tls_config.key_exchange_method == ASL_KEX_DEFAULT &&
+                    tls_config.key_exchange_method != ASL_KEX_DEFAULT)
+                {
+                        in_tls_config.key_exchange_method = tls_config.key_exchange_method;
+                }
+                if (in_tls_config.psk.identity == NULL && tls_config.psk.identity != NULL)
+                {
+                        in_tls_config.psk.identity = tls_config.psk.identity;
+                        in_tls_config.psk.enable_psk = true;
+                        tls_config.psk.identity = NULL;
+                        tls_config.psk.enable_psk = false;
+                }
+                if (in_tls_config.psk.enable_cert_auth == true &&
+                    tls_config.psk.enable_cert_auth == false)
+                {
+                        in_tls_config.psk.enable_cert_auth = false;
+                }
+                if (in_tls_config.psk.enable_kex == true && tls_config.psk.enable_kex == false)
+                {
+                        in_tls_config.psk.enable_kex = false;
+                }
+                if (in_tls_config.psk.pre_extracted == false && tls_config.psk.pre_extracted == true)
+                {
+                        in_tls_config.psk.pre_extracted = true;
+                }
+                if (in_tls_config.pkcs11.module_path == NULL && tls_config.pkcs11.module_path != NULL)
+                {
+                        in_tls_config.pkcs11.module_path = tls_config.pkcs11.module_path;
+                        tls_config.pkcs11.module_path = NULL;
+                }
+                if (in_tls_config.pkcs11.module_pin == NULL && tls_config.pkcs11.module_pin != NULL)
+                {
+                        in_tls_config.pkcs11.module_pin = tls_config.pkcs11.module_pin;
+                        tls_config.pkcs11.module_pin = NULL;
+                }
+                if (in_tls_config.pkcs11.slot_id == -1 && tls_config.pkcs11.slot_id != -1)
+                {
+                        in_tls_config.pkcs11.slot_id = tls_config.pkcs11.slot_id;
+                        tls_config.pkcs11.slot_id = -1;
+                }
+                if (in_tls_config.pkcs11.use_for_all == false && tls_config.pkcs11.use_for_all == true)
+                {
+                        in_tls_config.pkcs11.use_for_all = true;
+                        tls_config.pkcs11.use_for_all = false;
+                }
+                if (in_tls_config.keylog_file == NULL && tls_config.keylog_file != NULL)
+                {
+                        in_tls_config.keylog_file = tls_config.keylog_file;
+                        tls_config.keylog_file = NULL;
+                }
+
+                if (check_qkd_config(quest_config, &qkd_config, &in_tls_config, app_config, qkd_protocol) !=
+                    0)
+                {
+                        return -1;
+                }
+
+                if (check_pre_shared_key(&in_tls_config, app_config) != 0)
+                {
+                        return -1;
+                }
+
+                if (read_certificates(&in_certs) != 0)
+                {
+                        return -1;
+                }
+
+                /* Set TLS config */
+                in_tls_config.device_certificate_chain.buffer = in_certs.chain_buffer;
+                in_tls_config.device_certificate_chain.size = in_certs.chain_buffer_size;
+                in_tls_config.private_key.buffer = in_certs.key_buffer;
+                in_tls_config.private_key.size = in_certs.key_buffer_size;
+                in_tls_config.private_key.additional_key_buffer = in_certs.additional_key_buffer;
+                in_tls_config.private_key.additional_key_size = in_certs.additional_key_buffer_size;
+                in_tls_config.root_certificate.buffer = in_certs.root_buffer;
+                in_tls_config.root_certificate.size = in_certs.root_buffer_size;
+        }
+        else if ((strncasecmp(in_proto, "tcp", 3) == 0) && (strncasecmp(out_proto, "tls", 3) == 0))
+        {
+                /* Forward proxy. Use "normal" TLS arguments for output side. */
+                proxy_config->incoming_tls = false;
+                proxy_config->outgoing_tls = true;
+
+                if (out_certs.certificate_path == NULL && certs.certificate_path != NULL)
+                {
+                        out_certs.certificate_path = certs.certificate_path;
+                        certs.certificate_path = NULL;
+                }
+                if (out_certs.private_key_path == NULL && certs.private_key_path != NULL)
+                {
+                        out_certs.private_key_path = certs.private_key_path;
+                        certs.private_key_path = NULL;
+                }
+                if (out_certs.intermediate_path == NULL && certs.intermediate_path != NULL)
+                {
+                        out_certs.intermediate_path = certs.intermediate_path;
+                        certs.intermediate_path = NULL;
+                }
+                if (out_certs.root_path == NULL && certs.root_path != NULL)
+                {
+                        out_certs.root_path = certs.root_path;
+                        certs.root_path = NULL;
+                }
+                if (out_certs.additional_key_path == NULL && certs.additional_key_path != NULL)
+                {
+                        out_certs.additional_key_path = certs.additional_key_path;
+                        certs.additional_key_path = NULL;
+                }
+
+                if (out_tls_config.mutual_authentication == true &&
+                    tls_config.mutual_authentication == false)
+                {
+                        out_tls_config.mutual_authentication = false;
+                }
+                if (out_tls_config.ciphersuites == NULL && tls_config.ciphersuites != NULL)
+                {
+                        out_tls_config.ciphersuites = tls_config.ciphersuites;
+                        tls_config.ciphersuites = NULL;
+                }
+                if (out_tls_config.key_exchange_method == ASL_KEX_DEFAULT &&
+                    tls_config.key_exchange_method != ASL_KEX_DEFAULT)
+                {
+                        out_tls_config.key_exchange_method = tls_config.key_exchange_method;
+                }
+                if (out_tls_config.psk.identity == NULL && tls_config.psk.identity != NULL)
+                {
+                        out_tls_config.psk.identity = tls_config.psk.identity;
+                        out_tls_config.psk.enable_psk = true;
+                        tls_config.psk.identity = NULL;
+                        tls_config.psk.enable_psk = false;
+                }
+                if (out_tls_config.psk.enable_cert_auth == true &&
+                    tls_config.psk.enable_cert_auth == false)
+                {
+                        out_tls_config.psk.enable_cert_auth = false;
+                }
+                if (out_tls_config.psk.enable_kex == true && tls_config.psk.enable_kex == false)
+                {
+                        out_tls_config.psk.enable_kex = false;
+                }
+                if (out_tls_config.psk.pre_extracted == false && tls_config.psk.pre_extracted == true)
+                {
+                        out_tls_config.psk.pre_extracted = true;
+                }
+                if (out_tls_config.pkcs11.module_path == NULL && tls_config.pkcs11.module_path != NULL)
+                {
+                        out_tls_config.pkcs11.module_path = tls_config.pkcs11.module_path;
+                        tls_config.pkcs11.module_path = NULL;
+                }
+                if (out_tls_config.pkcs11.module_pin == NULL && tls_config.pkcs11.module_pin != NULL)
+                {
+                        out_tls_config.pkcs11.module_pin = tls_config.pkcs11.module_pin;
+                        tls_config.pkcs11.module_pin = NULL;
+                }
+                if (out_tls_config.pkcs11.slot_id == -1 && tls_config.pkcs11.slot_id != -1)
+                {
+                        out_tls_config.pkcs11.slot_id = tls_config.pkcs11.slot_id;
+                        tls_config.pkcs11.slot_id = -1;
+                }
+                if (out_tls_config.pkcs11.use_for_all == false && tls_config.pkcs11.use_for_all == true)
+                {
+                        out_tls_config.pkcs11.use_for_all = true;
+                        tls_config.pkcs11.use_for_all = false;
+                }
+                if (out_tls_config.keylog_file == NULL && tls_config.keylog_file != NULL)
+                {
+                        out_tls_config.keylog_file = tls_config.keylog_file;
+                        tls_config.keylog_file = NULL;
+                }
+
+                if (check_qkd_config(quest_config, &qkd_config, &out_tls_config, app_config, qkd_protocol) !=
+                    0)
+                {
+                        return -1;
+                }
+
+                if (check_pre_shared_key(&out_tls_config, app_config) != 0)
+                {
+                        return -1;
+                }
+
+                if (read_certificates(&out_certs) != 0)
+                {
+                        return -1;
+                }
+
+                /* Set TLS config */
+                out_tls_config.device_certificate_chain.buffer = out_certs.chain_buffer;
+                out_tls_config.device_certificate_chain.size = out_certs.chain_buffer_size;
+                out_tls_config.private_key.buffer = out_certs.key_buffer;
+                out_tls_config.private_key.size = out_certs.key_buffer_size;
+                out_tls_config.private_key.additional_key_buffer = out_certs.additional_key_buffer;
+                out_tls_config.private_key.additional_key_size = out_certs.additional_key_buffer_size;
+                out_tls_config.root_certificate.buffer = out_certs.root_buffer;
+                out_tls_config.root_certificate.size = out_certs.root_buffer_size;
+        }
+        else if ((strncasecmp(in_proto, "tls", 3) == 0) && (strncasecmp(out_proto, "tls", 3) == 0))
+        {
+                bool in_qkd = false;
+                bool out_qkd = false;
+
+                /* TLS-TLS proxy */
+                proxy_config->incoming_tls = true;
+                proxy_config->outgoing_tls = true;
+
+                if ((in_tls_config.psk.identity != NULL) &&
+                    (strncmp(in_tls_config.psk.identity, QKD_PSK_IDENTIFIER, QKD_PSK_IDENTIFIER_LEN) ==
+                     0) &&
+                    (out_tls_config.psk.identity != NULL) &&
+                    (strncmp(out_tls_config.psk.identity, QKD_PSK_IDENTIFIER, QKD_PSK_IDENTIFIER_LEN) ==
+                     0))
+                {
+                        LOG_ERROR("QKD PSK cannot be used on both sides of the proxy");
+                        return -1;
+                }
+
+                if (in_tls_config.psk.identity != NULL)
+                {
+                        if (strncmp(in_tls_config.psk.identity,
+                                    QKD_PSK_IDENTIFIER,
+                                    QKD_PSK_IDENTIFIER_LEN) == 0)
+                        {
+                                if (check_qkd_config(quest_config,
+                                                     &qkd_config,
+                                                     &in_tls_config,
+                                                     app_config,
+                                                     qkd_protocol) != 0)
+                                {
+                                        return -1;
+                                }
+                        }
+
+                        if (check_pre_shared_key(&in_tls_config, app_config) != 0)
+                        {
+                                return -1;
+                        }
+
+                        in_qkd = app_config->use_qkd;
+                }
+
+                if (out_tls_config.psk.identity != NULL)
+                {
+                        if (strncmp(out_tls_config.psk.identity,
+                                    QKD_PSK_IDENTIFIER,
+                                    QKD_PSK_IDENTIFIER_LEN) == 0)
+                        {
+                                if (check_qkd_config(quest_config,
+                                                     &qkd_config,
+                                                     &out_tls_config,
+                                                     app_config,
+                                                     qkd_protocol) != 0)
+                                {
+                                        return -1;
+                                }
+                        }
+
+                        if (check_pre_shared_key(&out_tls_config, app_config) != 0)
+                        {
+                                return -1;
+                        }
+
+                        out_qkd = app_config->use_qkd;
+                }
+
+                app_config->use_qkd = in_qkd || out_qkd;
+
+                if (read_certificates(&in_certs) != 0)
+                {
+                        return -1;
+                }
+
+                /* Set TLS config */
+                in_tls_config.device_certificate_chain.buffer = in_certs.chain_buffer;
+                in_tls_config.device_certificate_chain.size = in_certs.chain_buffer_size;
+                in_tls_config.private_key.buffer = in_certs.key_buffer;
+                in_tls_config.private_key.size = in_certs.key_buffer_size;
+                in_tls_config.private_key.additional_key_buffer = in_certs.additional_key_buffer;
+                in_tls_config.private_key.additional_key_size = in_certs.additional_key_buffer_size;
+                in_tls_config.root_certificate.buffer = in_certs.root_buffer;
+                in_tls_config.root_certificate.size = in_certs.root_buffer_size;
+
+                if (read_certificates(&out_certs) != 0)
+                {
+                        return -1;
+                }
+
+                /* Set TLS config */
+                out_tls_config.device_certificate_chain.buffer = out_certs.chain_buffer;
+                out_tls_config.device_certificate_chain.size = out_certs.chain_buffer_size;
+                out_tls_config.private_key.buffer = out_certs.key_buffer;
+                out_tls_config.private_key.size = out_certs.key_buffer_size;
+                out_tls_config.private_key.additional_key_buffer = out_certs.additional_key_buffer;
+                out_tls_config.private_key.additional_key_size = out_certs.additional_key_buffer_size;
+                out_tls_config.root_certificate.buffer = out_certs.root_buffer;
+                out_tls_config.root_certificate.size = out_certs.root_buffer_size;
+        }
+
+        /* Store the parsed configuration data in the relevant structures depending on the role */
+        if (app_config->role == ROLE_NETWORK_TESTER)
+        {
+                tester_config->log_level = app_config->log_level;
+                tester_config->target_ip = outgoing_ip;
+                tester_config->target_port = outgoing_port;
+                tester_config->tls_config = out_tls_config;
+
+                if (incoming_ip != NULL)
+                {
+                        free(incoming_ip);
+                }
+        }
+        else if (app_config->role == ROLE_NETWORK_TESTER_PROXY)
+        {
+                tester_config->log_level = app_config->log_level;
+                tester_config->target_ip = duplicate_string(LOCALHOST_IP);
+                tester_config->target_port = incoming_port; /* Must be updated after the proxy started */
+                tester_config->use_tls = false;
+
+                proxy_backend_config->log_level = app_config->log_level;
+
+                proxy_config->incoming_ip_address = duplicate_string(LOCALHOST_IP);
+                proxy_config->incoming_port = 0; /* 0 selects random available port */
+                proxy_config->outgoing_ip_address = outgoing_ip;
+                proxy_config->outgoing_port = outgoing_port;
+                proxy_config->outgoing_tls = true;
+                proxy_config->log_level = app_config->log_level;
+                proxy_config->outgoing_tls_config = out_tls_config;
+
+                if (incoming_ip != NULL)
+                {
+                        free(incoming_ip);
+                }
+        }
+        else if (app_config->role == ROLE_ECHO_SERVER)
+        {
+                echo_server_config->own_ip_address = incoming_ip;
+                echo_server_config->listening_port = incoming_port;
+                echo_server_config->log_level = app_config->log_level;
+                if (tester_config->use_tls == false)
+                {
+                        echo_server_config->use_tls = false;
+                }
+                else
+                {
+                        if (strncasecmp(in_proto, "tls", 3) == 0)
+                        {
+                                echo_server_config->use_tls = true;
+                        }
+                        else
+                        {
+                                echo_server_config->use_tls = false;
+                        }
+                }
+                echo_server_config->tls_config = in_tls_config;
+
+                if (outgoing_ip != NULL)
+                {
+                        free(outgoing_ip);
+                }
+        }
+        else if (app_config->role == ROLE_ECHO_SERVER_PROXY)
+        {
+                echo_server_config->own_ip_address = duplicate_string(LOCALHOST_IP);
+                echo_server_config->listening_port = 0; /* 0 selects random available port */
+                echo_server_config->log_level = app_config->log_level;
+                echo_server_config->use_tls = false;
+
+                proxy_backend_config->log_level = app_config->log_level;
+
+                proxy_config->incoming_ip_address = incoming_ip;
+                proxy_config->incoming_port = incoming_port;
+                proxy_config->incoming_tls = true;
+                proxy_config->outgoing_ip_address = duplicate_string(LOCALHOST_IP);
+                proxy_config->outgoing_port = 0; /* Must be updated after the echo server started */
+                proxy_config->log_level = app_config->log_level;
+                proxy_config->incoming_tls_config = in_tls_config;
+
+                if (outgoing_ip != NULL)
+                {
+                        free(outgoing_ip);
+                }
+        }
+        else if (app_config->role == ROLE_TLS_CLIENT)
+        {
+                proxy_backend_config->log_level = app_config->log_level;
+
+                proxy_config->incoming_ip_address = duplicate_string(LOCALHOST_IP);
+                proxy_config->incoming_port = 0; /* 0 selects random available port */
+                proxy_config->outgoing_ip_address = outgoing_ip;
+                proxy_config->outgoing_port = outgoing_port;
+                proxy_config->outgoing_tls = true;
+                proxy_config->log_level = app_config->log_level;
+                proxy_config->outgoing_tls_config = out_tls_config;
+
+                if (incoming_ip != NULL)
+                {
+                        free(incoming_ip);
+                }
+        }
+        else if (app_config->role == ROLE_PROXY)
+        {
+                proxy_backend_config->log_level = app_config->log_level;
+
+                proxy_config->incoming_ip_address = incoming_ip;
+                proxy_config->incoming_port = incoming_port;
+                proxy_config->outgoing_ip_address = outgoing_ip;
+                proxy_config->outgoing_port = outgoing_port;
+                proxy_config->log_level = app_config->log_level;
+                proxy_config->incoming_tls_config = in_tls_config;
+                proxy_config->outgoing_tls_config = out_tls_config;
+        }
+
+        if (qkd_protocol != NULL)
+        {
+                free(qkd_protocol);
+        }
+        if (outgoing_protocol != NULL)
+        {
+                free(outgoing_protocol);
+        }
+        if (incoming_protocol != NULL)
+        {
+                free(incoming_protocol);
+        }
+        if (in_certs.certificate_path != NULL)
+        {
+                free((void*) in_certs.certificate_path);
+                in_certs.certificate_path = NULL;
+        }
+        if (in_certs.private_key_path != NULL)
+        {
+                free((void*) in_certs.private_key_path);
+                in_certs.private_key_path = NULL;
+        }
+        if (in_certs.additional_key_path != NULL)
+        {
+                free((void*) in_certs.additional_key_path);
+                in_certs.additional_key_path = NULL;
+        }
+        if (in_certs.intermediate_path != NULL)
+        {
+                free((void*) in_certs.intermediate_path);
+                in_certs.intermediate_path = NULL;
+        }
+        if (in_certs.root_path != NULL)
+        {
+                free((void*) in_certs.root_path);
+                in_certs.root_path = NULL;
+        }
+        if (out_certs.certificate_path != NULL)
+        {
+                free((void*) out_certs.certificate_path);
+                out_certs.certificate_path = NULL;
+        }
+        if (out_certs.private_key_path != NULL)
+        {
+                free((void*) out_certs.private_key_path);
+                out_certs.private_key_path = NULL;
+        }
+        if (out_certs.additional_key_path != NULL)
+        {
+                free((void*) out_certs.additional_key_path);
+                out_certs.additional_key_path = NULL;
+        }
+        if (out_certs.intermediate_path != NULL)
+        {
+                free((void*) out_certs.intermediate_path);
+                out_certs.intermediate_path = NULL;
+        }
+        if (out_certs.root_path != NULL)
+        {
+                free((void*) out_certs.root_path);
+                out_certs.root_path = NULL;
         }
         if (certs.certificate_path != NULL)
         {
@@ -551,116 +1410,20 @@ int parse_cli_arguments(application_config* app_config,
                 free((void*) certs.root_path);
                 certs.root_path = NULL;
         }
-
-        if (check_pre_shared_key(&tls_config, app_config) != 0)
+        if (qkd_certs.certificate_path != NULL)
         {
-                return -1;
+                free((void*) qkd_certs.certificate_path);
+                qkd_certs.certificate_path = NULL;
         }
-
-        /* Set TLS config */
-        tls_config.device_certificate_chain.buffer = certs.chain_buffer;
-        tls_config.device_certificate_chain.size = certs.chain_buffer_size;
-        tls_config.private_key.buffer = certs.key_buffer;
-        tls_config.private_key.size = certs.key_buffer_size;
-        tls_config.private_key.additional_key_buffer = certs.additional_key_buffer;
-        tls_config.private_key.additional_key_size = certs.additional_key_buffer_size;
-        tls_config.root_certificate.buffer = certs.root_buffer;
-        tls_config.root_certificate.size = certs.root_buffer_size;
-
-        /* Store the parsed configuration data in the relevant structures depending on the role */
-        if (app_config->role == ROLE_NETWORK_TESTER)
+        if (qkd_certs.root_path != NULL)
         {
-                tester_config->log_level = app_config->log_level;
-                tester_config->target_ip = outgoing_ip;
-                tester_config->target_port = outgoing_port;
-                tester_config->tls_config = tls_config;
-
-                if (incoming_ip != NULL)
-                {
-                        free(incoming_ip);
-                }
+                free((void*) qkd_certs.root_path);
+                qkd_certs.root_path = NULL;
         }
-        else if (app_config->role == ROLE_NETWORK_TESTER_PROXY)
+        if (qkd_certs.private_key_path != NULL)
         {
-                tester_config->log_level = app_config->log_level;
-                tester_config->target_ip = duplicate_string(LOCALHOST_IP);
-                tester_config->target_port = incoming_port; /* Must be updated after the proxy started */
-                tester_config->use_tls = false;
-
-                proxy_backend_config->log_level = app_config->log_level;
-
-                proxy_config->own_ip_address = duplicate_string(LOCALHOST_IP);
-                proxy_config->listening_port = 0; /* 0 selects random available port */
-                proxy_config->target_ip_address = outgoing_ip;
-                proxy_config->target_port = outgoing_port;
-                proxy_config->log_level = app_config->log_level;
-                proxy_config->tls_config = tls_config;
-
-                if (incoming_ip != NULL)
-                {
-                        free(incoming_ip);
-                }
-        }
-        else if (app_config->role == ROLE_ECHO_SERVER)
-        {
-                echo_server_config->own_ip_address = incoming_ip;
-                echo_server_config->listening_port = incoming_port;
-                echo_server_config->log_level = app_config->log_level;
-                echo_server_config->use_tls = tester_config->use_tls;
-                echo_server_config->tls_config = tls_config;
-
-                if (outgoing_ip != NULL)
-                {
-                        free(outgoing_ip);
-                }
-        }
-        else if (app_config->role == ROLE_ECHO_SERVER_PROXY)
-        {
-                echo_server_config->own_ip_address = duplicate_string(LOCALHOST_IP);
-                echo_server_config->listening_port = 0; /* 0 selects random available port */
-                echo_server_config->log_level = app_config->log_level;
-                echo_server_config->use_tls = false;
-
-                proxy_backend_config->log_level = app_config->log_level;
-
-                proxy_config->own_ip_address = incoming_ip;
-                proxy_config->listening_port = incoming_port;
-                proxy_config->target_ip_address = duplicate_string(LOCALHOST_IP);
-                proxy_config->target_port = 0; /* Must be updated after the echo server started */
-                proxy_config->log_level = app_config->log_level;
-                proxy_config->tls_config = tls_config;
-
-                if (outgoing_ip != NULL)
-                {
-                        free(outgoing_ip);
-                }
-        }
-        else if (app_config->role == ROLE_TLS_CLIENT)
-        {
-                proxy_backend_config->log_level = app_config->log_level;
-
-                proxy_config->own_ip_address = duplicate_string(LOCALHOST_IP);
-                proxy_config->listening_port = 0; /* 0 selects random available port */
-                proxy_config->target_ip_address = outgoing_ip;
-                proxy_config->target_port = outgoing_port;
-                proxy_config->log_level = app_config->log_level;
-                proxy_config->tls_config = tls_config;
-
-                if (incoming_ip != NULL)
-                {
-                        free(incoming_ip);
-                }
-        }
-        else if ((app_config->role == ROLE_REVERSE_PROXY) || (app_config->role == ROLE_FORWARD_PROXY))
-        {
-                proxy_backend_config->log_level = app_config->log_level;
-
-                proxy_config->own_ip_address = incoming_ip;
-                proxy_config->listening_port = incoming_port;
-                proxy_config->target_ip_address = outgoing_ip;
-                proxy_config->target_port = outgoing_port;
-                proxy_config->log_level = app_config->log_level;
-                proxy_config->tls_config = tls_config;
+                free((void*) qkd_certs.private_key_path);
+                qkd_certs.private_key_path = NULL;
         }
 
         return 0;
@@ -669,12 +1432,13 @@ int parse_cli_arguments(application_config* app_config,
 static int check_qkd_config(quest_configuration* quest_config,
                             asl_endpoint_configuration* qkd_config,
                             asl_endpoint_configuration* tls_config,
-                            application_config* app_config)
+                            application_config* app_config,
+                            char* qkd_protocol)
 {
-        /* Check if qkd:secure was selected as qkd usage */
-        if (tls_config->psk.identity != NULL && strncmp(tls_config->psk.identity,
-                                                        SECURE_QKD_PSK_IDENTIFIER,
-                                                        SECURE_QKD_PSK_IDENTIFIER_LEN) == 0)
+        /* Check if qkd was selected as psk and TLS is set as protocol */
+        if ((tls_config->psk.identity != NULL) &&
+            (strncmp(tls_config->psk.identity, QKD_PSK_IDENTIFIER, QKD_PSK_IDENTIFIER_LEN) == 0) &&
+            (qkd_protocol != NULL) && (strcmp(qkd_protocol, "tls") == 0))
         {
                 /* In this case the qkd_cert, qkd_key and qkd_root options must be set */
                 if ((qkd_config->root_certificate.buffer == NULL) ||
@@ -696,10 +1460,20 @@ static int check_qkd_config(quest_configuration* quest_config,
                 {
                         /* For debug reasons, we copy the keylog_file from the tls_config */
                         qkd_config->keylog_file = duplicate_string(tls_config->keylog_file);
+                        if (qkd_config->keylog_file == NULL)
+                        {
+                                LOG_ERROR("unable to allocate memory for QKD keylog file path");
+                                return -1;
+                        }
                 }
 
                 /* Initialize the resulting asl_endpoint */
                 asl_endpoint* https_endpoint = asl_setup_client_endpoint(qkd_config);
+                if (https_endpoint == NULL)
+                {
+                        LOG_ERROR("unable to setup secure QKD connection endpoint");
+                        return -1;
+                }
 
                 /* Enable secure connection and set asl_endpoint reference */
                 quest_config->security_param.enable_secure_con = true;
@@ -745,16 +1519,9 @@ static int check_pre_shared_key(asl_endpoint_configuration* tls_config, applicat
                 return 0;
 
         /* Check if we want to use the external callback feature of the ASL */
-        if ((strncmp(tls_config->psk.identity, QKD_PSK_IDENTIFIER, QKD_PSK_IDENTIFIER_LEN) == 0) ||
-            (strncmp(tls_config->psk.identity, SECURE_QKD_PSK_IDENTIFIER, SECURE_QKD_PSK_IDENTIFIER_LEN) ==
-             0))
+        if (strncmp(tls_config->psk.identity, QKD_PSK_IDENTIFIER, QKD_PSK_IDENTIFIER_LEN) == 0)
         {
                 app_config->use_qkd = true;
-
-                /* Strip the ":secure" in case of SECURE_QKD_PSK_IDENTIFIER */
-                char* key_start = strchr(tls_config->psk.identity, ':');
-                if (key_start != NULL)
-                        *key_start = '\0'; /* Terminate the identity string */
 
                 tls_config->psk.use_external_callbacks = true;
 
@@ -828,10 +1595,10 @@ void arguments_cleanup(application_config* app_config,
         else if (app_config->role == ROLE_NETWORK_TESTER_PROXY)
         {
                 free(tester_config->target_ip);
-                free(proxy_config->own_ip_address);
-                free(proxy_config->target_ip_address);
+                free(proxy_config->incoming_ip_address);
+                free(proxy_config->outgoing_ip_address);
 
-                tls_config = &proxy_config->tls_config;
+                tls_config = &proxy_config->outgoing_tls_config;
         }
 
         else if (app_config->role == ROLE_MANAGEMENT_CLIENT)
@@ -849,25 +1616,74 @@ void arguments_cleanup(application_config* app_config,
         else if (app_config->role == ROLE_ECHO_SERVER_PROXY)
         {
                 free(echo_server_config->own_ip_address);
-                free(proxy_config->own_ip_address);
-                free(proxy_config->target_ip_address);
+                free(proxy_config->incoming_ip_address);
+                free(proxy_config->outgoing_ip_address);
 
-                tls_config = &proxy_config->tls_config;
+                tls_config = &proxy_config->incoming_tls_config;
         }
         else if (app_config->role == ROLE_TLS_CLIENT)
         {
-                free(proxy_config->own_ip_address);
-                free(proxy_config->target_ip_address);
+                free(proxy_config->incoming_ip_address);
+                free(proxy_config->outgoing_ip_address);
 
-                tls_config = &proxy_config->tls_config;
+                tls_config = &proxy_config->outgoing_tls_config;
         }
-        else if (app_config->role == ROLE_REVERSE_PROXY || app_config->role == ROLE_FORWARD_PROXY)
+        else if (app_config->role == ROLE_PROXY)
         {
-                free(proxy_config->own_ip_address);
-                free(proxy_config->target_ip_address);
+                free(proxy_config->incoming_ip_address);
+                free(proxy_config->outgoing_ip_address);
 
-                tls_config = &proxy_config->tls_config;
+                /* incoming_tls_config is freed below */
+                tls_config = &proxy_config->incoming_tls_config;
+
+                /* free outgoing_tls_config here */
+                /* Free memory of certificates and private key */
+                if (proxy_config->outgoing_tls_config.device_certificate_chain.buffer != NULL)
+                {
+                        free((void*) proxy_config->outgoing_tls_config.device_certificate_chain.buffer);
+                }
+
+                if (proxy_config->outgoing_tls_config.private_key.buffer != NULL)
+                {
+                        free((void*) proxy_config->outgoing_tls_config.private_key.buffer);
+                }
+
+                if (proxy_config->outgoing_tls_config.private_key.additional_key_buffer != NULL)
+                {
+                        free((void*) proxy_config->outgoing_tls_config.private_key.additional_key_buffer);
+                }
+
+                if (proxy_config->outgoing_tls_config.root_certificate.buffer != NULL)
+                {
+                        free((void*) proxy_config->outgoing_tls_config.root_certificate.buffer);
+                }
+
+                if (proxy_config->outgoing_tls_config.ciphersuites != NULL)
+                {
+                        free((void*) proxy_config->outgoing_tls_config.ciphersuites);
+                }
+
+                if (proxy_config->outgoing_tls_config.pkcs11.module_path != NULL)
+                {
+                        free((void*) proxy_config->outgoing_tls_config.pkcs11.module_path);
+                }
+
+                if (proxy_config->outgoing_tls_config.psk.key != NULL)
+                {
+                        free((void*) proxy_config->outgoing_tls_config.psk.key);
+                }
+
+                if (proxy_config->outgoing_tls_config.psk.identity != NULL)
+                {
+                        free((void*) proxy_config->outgoing_tls_config.psk.identity);
+                }
+
+                if (proxy_config->outgoing_tls_config.keylog_file != NULL)
+                {
+                        free((void*) proxy_config->outgoing_tls_config.keylog_file);
+                }
         }
+
         else
         {
                 LOG_ERROR("unsupported role");
@@ -981,11 +1797,11 @@ static void print_help(char const* name)
         printf("  --psk_pre_extracted            HKDF-Extract operation is already performed, only the Expand part is necessary\r\n");
 
         printf("\nQKD:\r\n");
-        printf("  When using QKD in the TLS applications, you have to specify this in the --pre_shared_key parameter.\r\n");
-        printf("  In that case, two modes are possible:\r\n");
-        printf("      --pre_shared_key \"%s\"         Use a HTTP request to the QKD key magament system.\r\n", QKD_PSK_IDENTIFIER);
-        printf("      --pre_shared_key \"%s\"  Use a secured HTPPS request to the QKD key management system.\r\n", SECURE_QKD_PSK_IDENTIFIER);
-        printf("                                          In this mode, the qkd_xxx arguments below must be set.\r\n\n");
+        printf("  When using QKD in the TLS applications, you have to specify this in the --pre_shared_key parameter via:.\r\n");
+        printf("      --pre_shared_key \"%s\"         Use a REST request to the QKD key magament system via ETSQ QKD 014 API.\r\n", QKD_PSK_IDENTIFIER);
+        printf("                                          To use TLS for this conneciton, you have to provide \"tls://\" in front of the\r\n");
+        printf("                                          qkd_node argument below. Otherwise TCP is used. In this mode, the qkd_xxx arguments\r\n");
+        printf("                                          below must be set.\r\n\n");
         printf("  --qkd_node ip:port             Endpoint of the QKD Node from where the keys are requested.\r\n");
         printf("  --qkd_own_sae_id id            Our own SAE ID within the QKD system.\r\n");
         printf("  --qkd_remote_sae_id id         SAE ID of the remote peer within the QKD system (only needed on the client-side).\r\n");

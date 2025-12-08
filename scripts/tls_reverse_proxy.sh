@@ -5,10 +5,10 @@ if [ "$#" -lt 3 ]; then
         exit 2
 fi
 
-echo -e "Starting KRITIS3M TLS Reverse Proxy from $1 to $2 with certs in $3\r"
-kritis3m_tls reverse_proxy \
-        --incoming "$1" \
-        --outgoing "$2" \
+echo -e "Starting KRITIS3M TLS-TCP Reverse Proxy from $1 to $2 with certs in $3\r"
+kritis3m_tls proxy \
+        --incoming tls://"$1" \
+        --outgoing tcp://"$2" \
         --root "$3"/root.pem \
         --cert "$3"/chain.pem \
         --key "$3"/privateKey.pem \

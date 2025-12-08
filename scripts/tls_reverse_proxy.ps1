@@ -5,12 +5,12 @@ if ($Args.Count -lt 3) {
 }
 
 # Output message
-Write-Host "Starting KRITIS3M TLS Reverse Proxy from $($Args[0]) to $($Args[1]) with certs in $($Args[2])`r"
+Write-Host "Starting KRITIS3M TLS-TCP Reverse Proxy from $($Args[0]) to $($Args[1]) with certs in $($Args[2])`r"
 
 # Run the kritis3m_tls reverse_proxy command with the provided arguments
-kritis3m_tls reverse_proxy `
-        --incoming $Args[0] `
-        --outgoing $Args[1] `
+kritis3m_tls proxy `
+        --incoming "tls://$($Args[0])" `
+        --outgoing "tcp://$($Args[1])" `
         --root "$($Args[2])/root/cert.pem" `
         --cert "$($Args[2])/server/chain.pem" `
         --key "$($Args[2])/server/privateKey.pem" `

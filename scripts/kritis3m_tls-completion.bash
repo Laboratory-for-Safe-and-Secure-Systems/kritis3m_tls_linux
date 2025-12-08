@@ -96,12 +96,18 @@ _kritis3m_tls_completions() {
         _get_comp_words_by_ref -n : cur
         _get_comp_words_by_ref -n : prev
 
-        roles="reverse_proxy forward_proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy management_client"
+        roles="proxy echo_server echo_server_proxy tls_client network_tester network_tester_proxy management_client"
         opts_connection="--incoming --outgoing"
         opts_files="--cert --key --intermediate --root --additional_key --pkcs11_module --keylog_file --pre_shared_key --qkd_cert \
-                        --qkd_root --qkd_key --qkd_psk"
+                        --qkd_root --qkd_key --qkd_psk \
+                        --in_cert --in_key --in_intermediate --in_root --in_additional_key --in_pkcs11_module --in_keylog_file --in_pre_shared_key \
+                        --_out_cert --_out_key --_out_intermediate --_out_root --_out_additional_key --_out_pkcs11_module --_out_keylog_file --_out_pre_shared_key"
         opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --psk_no_kex --psk_no_cert_auth --psk_pre_extracted \
-                        --pkcs11_pin --pkcs11_slot_id --pkcs11_crypto_all --qkd_node --qkd_own_sae_id --qkd_remote_sae_id"
+                        --pkcs11_pin --pkcs11_slot_id --pkcs11_crypto_all --qkd_node --qkd_own_sae_id --qkd_remote_sae_id \
+                        --in_no_mutual_auth --in_ciphersuites --in_key_exchange_alg --in_psk_no_kex --in_psk_no_cert_auth --in_psk_pre_extracted \
+                        --in_pkcs11_pin --in_pkcs11_slot_id --in_pkcs11_crypto_all \
+                        --out_no_mutual_auth --out_ciphersuites --out_key_exchange_alg --out_psk_no_kex --out_psk_no_cert_auth --out_psk_pre_extracted \
+                        --out_pkcs11_pin --out_pkcs11_slot_id --out_pkcs11_crypto_all"
         opts_tester="--test_num_handshakes --test_handshake_delay --test_num_messages --test_message_delay --test_message_size \
                         --test_output_path --test_name --test_no_tls --test_silent"
         opts_mgmt="--mgmt_path"
@@ -122,7 +128,7 @@ _kritis3m_tls_completions() {
         fi
 
         case "${prev}" in
-        reverse_proxy | forward_proxy | echo_server | echo_server_proxy | tls_client | network_tester | network_tester_proxy | management_client)
+        proxy | echo_server | echo_server_proxy | tls_client | network_tester | network_tester_proxy | management_client)
                 COMPREPLY=($(compgen -W "${opts_connection} ${opts_files} ${opts_security} ${opts_tester} ${opts_mgmt} ${opts_general}" -- ${cur}))
                 return 0
                 ;;
@@ -131,19 +137,25 @@ _kritis3m_tls_completions() {
                 return 0
                 ;;
         --cert | --key | --intermediate | --root | --additional_key | --pkcs11_module | --keylog_file | --test_output_path | --mgmt_path | --pre_shared_key | \
-                --qkd_cert | --qkd_root | --qkd_key | --qkd_psk)
+                --qkd_cert | --qkd_root | --qkd_key | --qkd_psk | \
+                --in_cert | --in_key | --in_intermediate | --in_root | --in_additional_key | --in_pkcs11_module | --in_keylog_file | --in_pre_shared_key | \
+                --out_cert | --out_key | --out_intermediate | --out_root | --out_additional_key | --out_pkcs11_module | --out_keylog_file | --out_pre_shared_key)
                 _filedir
                 return 0
                 ;;
-        --key_exchange_alg)
+        --key_exchange_alg | --in_key_exchange_alg | --out_key_exchange_alg)
                 COMPREPLY=($(compgen -W "${kex_algos}" -- ${cur}))
                 return 0
                 ;;
         --no_mutual_auth | --ciphersuites | --psk_no_kex | --psk_no_cert_auth | --psk_pre_extracted | \
                 --qkd_node | --qkd_own_sae_id | --qkd_remote_sae_id | \
                 --test_num_handshakes | --test_handshake_delay | --test_num_messages | --test_message_delay | --test_message_size | --test_no_tls | \
-                --test_silent | --test_name |\
-                --pkcs11_pin | --pkcs11_slot_id | pkcs11_crypto_all)
+                --test_silent | --test_name | \
+                --pkcs11_pin | --pkcs11_slot_id | --pkcs11_crypto_all | \
+                --in_no_mutual_auth | --in_ciphersuites | --in_psk_no_kex | --in_psk_no_cert_auth | --in_psk_pre_extracted | \
+                --in_pkcs11_pin | --in_pkcs11_slot_id | --in_pkcs11_crypto_all | \
+                --out_no_mutual_auth | --out_ciphersuites | --out_psk_no_kex | --out_psk_no_cert_auth | --out_psk_pre_extracted | \
+                --out_pkcs11_pin | --out_pkcs11_slot_id | --out_pkcs11_crypto_all)
                 # No specific completion
                 COMPREPLY=()
                 return 0
@@ -205,8 +217,7 @@ _endpoint_helper_completions() {
 
 complete -F _kritis3m_tls_completions kritis3m_tls
 
-complete -F _proxy_helper_completions kritis3m_forward_proxy
-complete -F _proxy_helper_completions kritis3m_reverse_proxy
+complete -F _proxy_helper_completions kritis3m_proxy
 complete -F _endpoint_helper_completions kritis3m_echo_server
 complete -F _endpoint_helper_completions kritis3m_echo_server_proxy
 complete -F _endpoint_helper_completions kritis3m_tls_client

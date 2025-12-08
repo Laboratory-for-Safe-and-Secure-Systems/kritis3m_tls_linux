@@ -128,7 +128,7 @@ target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_echo_server)
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_tcp_client_stdin_bridge)
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_proxy)
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_applications_network_tester)
-target_link_libraries(kritis3m_tls PUBLIC kritis3m_service)
+# target_link_libraries(kritis3m_tls PUBLIC kritis3m_service)
 
 # Link KRITIS3M_ASL to the required KRITIS3M_APPLICATIONS targets
 target_link_libraries(kritis3m-http-libs PUBLIC kritis3m_asl)
@@ -136,9 +136,9 @@ target_link_libraries(kritis3m-quest PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_network_tester PUBLIC kritis3m_asl)
 target_link_libraries(kritis3m_applications_echo_server PUBLIC kritis3m_asl)
-target_link_libraries(kritis3m_service PUBLIC kritis3m_asl)
+# target_link_libraries(kritis3m_service PUBLIC kritis3m_asl)
 
-target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_service)
+# target_link_libraries(kritis3m_applications_proxy PUBLIC kritis3m_service)
 
 # Link KRITIS3M_ASL to the main target
 target_link_libraries(kritis3m_tls PUBLIC kritis3m_asl)
@@ -167,13 +167,6 @@ if(WIN32)
                 DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_reverse_proxy.ps1)
         install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_server.ps1
                 DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_echo_server.ps1)
-
-        install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_forward_proxy_smartcard.ps1
-                DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_forward_proxy_smartcard.ps1)
-        install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_reverse_proxy_smartcard.ps1
-                DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_reverse_proxy_smartcard.ps1)
-        install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_server_smartcard.ps1
-                DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_echo_server_smartcard.ps1)
 else()
         install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_forward_proxy.sh
                 DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_forward_proxy)
@@ -184,13 +177,6 @@ else()
                 DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_echo_server)
         install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_server_proxy.sh
                 DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_echo_server_proxy)
-
-        install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_forward_proxy_smartcard.sh
-                DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_forward_proxy_smartcard)
-        install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_reverse_proxy_smartcard.sh
-                DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_reverse_proxy_smartcard)
-        install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_echo_server_smartcard.sh
-                DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_echo_server_smartcard)
 
         install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tls_client.sh
                 DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME kritis3m_tls_client)

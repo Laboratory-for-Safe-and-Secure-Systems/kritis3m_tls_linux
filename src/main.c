@@ -12,9 +12,11 @@
 #include "logging.h"
 #include "networking.h"
 
+#include "kritis3m_application_config.h"
+
 #include "echo_server.h"
-#include "http_service.h"
-#include "kritis3m_scale_service.h"
+// #include "http_service.h"
+// #include "kritis3m_scale_service.h"
 #include "network_tester.h"
 #include "quest.h"
 #include "tcp_client_stdin_bridge.h"
@@ -115,12 +117,13 @@ int main(int argc, char** argv)
 
         int id = -1;
 
-        if (app_config.role == ROLE_REVERSE_PROXY)
+        if (app_config.role == ROLE_PROXY)
         {
                 if (app_config.use_qkd)
                 {
                         /* Set PSK callback context to the qkd_connection */
-                        tls_proxy_config.tls_config.psk.callback_ctx = &qkd_connection;
+                        tls_proxy_config.incoming_tls_config.psk.callback_ctx = &qkd_connection;
+                        tls_proxy_config.outgoing_tls_config.psk.callback_ctx = &qkd_connection;
                 }
 
                 /* Run the proxy backend */
@@ -129,31 +132,11 @@ int main(int argc, char** argv)
                         fatal("unable to run tls proxy backend");
 
                 /* Add the new TLS reverse proxy to the application backend */
-                id = tls_reverse_proxy_start(&tls_proxy_config);
+                id = tls_proxy_start(&tls_proxy_config);
                 if (id < 0)
                         fatal("unable to start TLS reverse proxy");
 
-                LOG_INFO("started TLS reverse proxy with id %d", id);
-        }
-        else if (app_config.role == ROLE_FORWARD_PROXY)
-        {
-                if (app_config.use_qkd)
-                {
-                        /* Set PSK callback context to the qkd_connection */
-                        tls_proxy_config.tls_config.psk.callback_ctx = &qkd_connection;
-                }
-
-                /* Run the proxy backend */
-                ret = tls_proxy_backend_run(&tls_proxy_backend_config);
-                if (ret != 0)
-                        fatal("unable to run tls proxy backend");
-
-                /* Add the new TLS forward proxy to the application backend */
-                id = tls_forward_proxy_start(&tls_proxy_config);
-                if (id < 0)
-                        fatal("unable to start TLS forward proxy");
-
-                LOG_INFO("started TLS forward proxy with id %d", id);
+                LOG_INFO("started proxy with id %d", id);
         }
         else if (app_config.role == ROLE_ECHO_SERVER)
         {
@@ -175,7 +158,7 @@ int main(int argc, char** argv)
                 if (app_config.use_qkd)
                 {
                         /* Set PSK callback context to the qkd_connection */
-                        tls_proxy_config.tls_config.psk.callback_ctx = &qkd_connection;
+                        tls_proxy_config.incoming_tls_config.psk.callback_ctx = &qkd_connection;
                 }
 
                 /* Run the proxy backend */
@@ -194,10 +177,10 @@ int main(int argc, char** argv)
                         fatal("unable to run TCP echo server");
 
                 /* Configure the TLS reverse proxy */
-                tls_proxy_config.target_port = echo_server_status.listening_port_v4;
+                tls_proxy_config.outgoing_port = echo_server_status.listening_port_v4;
 
                 /* Add the new TLS reverse proxy to the application backend */
-                id = tls_reverse_proxy_start(&tls_proxy_config);
+                id = tls_proxy_start(&tls_proxy_config);
                 if (id < 0)
                         fatal("unable to start TLS reverse proxy");
 
@@ -208,7 +191,7 @@ int main(int argc, char** argv)
                 if (app_config.use_qkd)
                 {
                         /* Set PSK callback context to the qkd_connection */
-                        tls_proxy_config.tls_config.psk.callback_ctx = &qkd_connection;
+                        tls_proxy_config.outgoing_tls_config.psk.callback_ctx = &qkd_connection;
                 }
 
                 tcp_client_stdin_bridge_config tcp_client_stdin_bridge_config = {
@@ -223,7 +206,7 @@ int main(int argc, char** argv)
                         fatal("unable to run tls proxy backend");
 
                 /* Add the new TLS forward proxy to the application backend */
-                id = tls_forward_proxy_start(&tls_proxy_config);
+                id = tls_proxy_start(&tls_proxy_config);
                 if (id < 0)
                         fatal("unable to start TLS forward proxy");
 
@@ -258,7 +241,7 @@ int main(int argc, char** argv)
                 if (app_config.use_qkd)
                 {
                         /* Set PSK callback context to the qkd_connection */
-                        tls_proxy_config.tls_config.psk.callback_ctx = &qkd_connection;
+                        tls_proxy_config.outgoing_tls_config.psk.callback_ctx = &qkd_connection;
                 }
 
                 /* Run the proxy backend */
@@ -267,7 +250,7 @@ int main(int argc, char** argv)
                         fatal("unable to run tls proxy backend");
 
                 /* Start the forward proxy */
-                id = tls_forward_proxy_start(&tls_proxy_config);
+                id = tls_proxy_start(&tls_proxy_config);
                 if (id < 0)
                         fatal("unable to start forward proxy");
 
@@ -286,11 +269,13 @@ int main(int argc, char** argv)
         }
         else if ((app_config.role == ROLE_MANAGEMENT_CLIENT) || (management_file_path != NULL))
         {
+#if defined(ENABLE_MANAGEMENT)
                 ret = start_kritis3m_service(management_file_path, app_config.log_level);
                 if (ret < 0)
                 {
                         return -1;
                 }
+#endif
         }
         else
         {
@@ -373,8 +358,10 @@ int main(int argc, char** argv)
         }
         else if ((app_config.role == ROLE_MANAGEMENT_CLIENT) || (management_file_path != NULL))
         {
+#if defined(ENABLE_MANAGEMENT)
                 LOG_INFO("stoping kritis3m_service");
                 stop_kritis3m_service();
+#endif
         }
 
         return ret;

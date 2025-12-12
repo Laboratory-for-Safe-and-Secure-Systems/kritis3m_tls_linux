@@ -60,8 +60,7 @@ The tools supports various roles, which mainly reflect the available application
 
 With each invocation, the instance of the application takes one role.
 
-* `reverse_proxy`: Reverse proxy mapping incoming TLS connections to outgoing TCP connections. Once the connections are established, full-duplex communication is possible.
-* `forward_proxy`: Forward proxy mapping incoing TCP connections to outgoing TLS connections. Once the connections are established, full-duplex communication is possible.
+* `proxy`: Proxy application mapping incoming TCP or TLS connections to outgoing TCP or TLS connections. Once the connections are established, full-duplex communication is possible. Currently, TCP-TLS ("Forward Proxy"), TLS-TCP ("Reverse Proxy") and TLS-TLS Proxies are possible.
 * `echo_server`: Wait for incoming TLS connections and echo all received data back to the client.
 * `tls_client`: Establish a TLS connection to a remote server. Once the connection is established, all stdin data is sent to the server and all received data from the server is printed to stdout.
 * `network_tester`: Measure TLS handshake duration and message roundtrip latency with a remote TLS server.
@@ -70,47 +69,74 @@ With each invocation, the instance of the application takes one role.
 The two additional roles "echo_server_proxy" and "network_tester_proxy" do exactly the same as their equivalents without the suffix, but by using a reverse/forward proxy internally instead of directly handling the TLS connection. This is only used for internal testing.
 
 For all network connection related settings, two CLI arguments are used.
-* `--incoming <ip>:port`: Wait for incoming TCP/TLS connections on given port (on the network interface with given IP address). If no IP address is given, all interfaces are used. Both IPv4 and IPv6 addresses and also domain names for `<ip>` are supported. IPv6 addresses must be wrapped in "[ ]" to enable the port separation.
-* `--outgoing ip:port`: Establish a TCP/TLS connection to the peer at given IP address on given port. Both IPv4 and IPv6 addresses and also domain names for `<ip>` are supported. IPv6 addresses must be wrapped in "[ ]" to enable the port separation.
+* `--incoming protocol://<ip>:port`: Wait for incoming TCP/TLS connections on given port (on the network interface with given IP address). If no IP address is given, all interfaces are used. Both IPv4 and IPv6 addresses and also domain names for `<ip>` are supported. IPv6 addresses must be wrapped in "[ ]" to enable the port separation. The protocol could be either "tcp" or "tls".
+* `--outgoing protocol://ip:port`: Establish a TCP/TLS connection to the peer at given IP address on given port. Both IPv4 and IPv6 addresses and also domain names for `<ip>` are supported. IPv6 addresses must be wrapped in "[ ]" to enable the port separation. The protocol could be either "tcp" or "tls".
 
 
 ### Certificates and Private Keys
 
 For TLS endpoints, certificates and a privat key are necessary. For its own identity, a certificate chain and the correspondig private key are required. These can be provided by the following arguments:
-* `--cert`: Path to the certificate of the endpoint in PEM format. This file may also contain the full certificate chain (excluding the root certificate).
-* `--intermediate`: If the certificate file does not contain the intermediate certificate(s), they can be provided with this argument (again in PEM format).
-* `--key`: Path to the corresponding private key (in PEM format). In case of a hybrid certificate, this file may also contain the additional private key.
-* `--additional_key`: Path to the additional private key for a hybrid certificate, in case the additional key is not present in the primary key file.
+* `--cert`: Path to the certificate of the endpoint. This file may also contain the full certificate chain (excluding the root certificate).
+* `--intermediate`: If the certificate file does not contain the intermediate certificate(s), they can be provided with this argument.
+* `--key`: Path to the corresponding private key. In case of a dual algorithm certificate, this file may also contain the additional private key (only supported for PEM files, not for DER encoded keys).
+* `--additional_key`: Path to the additional private key for a dual algorithm certificate, in case the additional key is not present in the primary key file.
 
 In case the TLS endpoint need not to authenticate itself to a peer (e.g. a TLS client connects to a server without mutual authentication), the certificates and private keys may be omitted.
 
 For verification of a peer certificate chain, a root certificate must be provided. This can be done via the `--root` argument. This takes a path to a PEM file containing one or more root certificates. If no peer verification will be performed (e.g. in case of a TLS server with mutual authentication disabled), the root certificate may be omitted.
 
+In the special situation of a TLS-TLS proxy, in which two TLS endpoints are handled within the application, two identies (certificate chain, private key and root certificate) are required. For that, the following set of extended arguments is available:
+* `--in_cert`: Path to the certificate of the incoming TLS endpoint.
+* `--in_intermediate`: Path to optional intermediate certificate(s) of the incoming TLS endpoint.
+* `--in_key`: Path to the corresponding private key of the incoming TLS endpoint.
+* `--in_additional_key`: Path to the additional private key for a dual algorithm certificate of the incoming TLS endpoint.
+* `--in_root`: Path to the root certificate of the incoming TLS endpoint.
+* `--out_cert`: Path to the certificate of the outgoing TLS endpoint.
+* `--out_intermediate`: Path to optional intermediate certificate(s) of the outgoing TLS endpoint.
+* `--out_key`: Path to the corresponding private key of the outgoing TLS endpoint.
+* `--out_additional_key`: Path to the additional private key for a dual algorithm certificate of the outgoing TLS endpoint.
+* `--out_root`: Path to the root certificate of the outgoing TLS endpoint.
+
 ### PKCS#11 support
 
-The application supports private keys that are stored on a PKCS#11 token. The private keys on the token are identified using a label string. To provide this label to the application, two options are available.
-* Instead of giving the two arguments `--key` and `--additional_key` a path to a PEM file, you can give them the PKCS#11 key label, prepending it with the string "pkcs11:" (e.g. `--key pkcs11:KEY_LABEL`).
-* The file given to one of the arguments contains a string of the form "pkcs11:KEY_LABEL" as its content instead of PEM data.
+The application supports private keys and certificates that are stored on a PKCS#11 token. The objects on the token are identified using a label string. To provide this label to the application, two options are available.
+* Instead of providing paths to certificate/key files for the arguments from abouve, you can give them the PKCS#11 label, prepending it with the string "pkcs11:" (e.g. `--key pkcs11:LABEL`).
+* The file given to one of the arguments contains a string of the form "pkcs11:LABEL" as its content instead of PEM/DER data.
 
-To interact with a PKCS#11 token, a middleware library is necessary. The path to this file must be provided via the argument `--pkcs11_module`. Once the application detects a PKCS#11 key label during TLS endpoint initialization, it loads the middleware library and references the private key. All private key operations are then executed on the token without the private key leaving the token. In case the module requires a PIN to use the key, you can provide that with `--pkcs11_pin`.
+To interact with a PKCS#11 token, a middleware library is necessary. The path to this file must be provided via the argument `--pkcs11_module`. Once the application detects a PKCS#11 label during TLS endpoint initialization, it loads the middleware library and uses the objects (either loading the certificate or referencing the private key). Private key operations are then executed on the token without the private key leaving the token. In case the module requires a PIN to use the key, you can provide that with `--pkcs11_pin`. If a specific PKCS#11 slot is required, `--pkcs11_slot_id` can be used to set one.
 
 In addition to the private key operations, all other cryptographic operations may also be offloaded to the PKCS#11 library. This feature can be enabled with the argument `--pkcs11_crypto_all`. In case the library does not support a cryptographic feature, the main crytpo code of the application is used as a fallback.
+
+All of these PKCS#11 arguments are also available as extended `in_` and `out_` versions to also support TLS-TLS proxy configurations.
 
 ### Security Configuration
 
 Next to the certificates and private keys, the following additional security configuration options are available:
 * `no_mutual_auth`: Flag to disable mutual authentication. Only relevant for server endpoints.
-* `integrity_only_cipher`: Flag to force the usage of the integrity-only cipher-suite "TLS_SHA384_SHA384" instead of the default "TLS13_AES256_GCM_SHA384". Only relevant for client entpoints.
-* `key_exchange_alg`: Select the key exchange algorithm to be used for the intial TLS ClientHello message. The default one is the hybrid `secp384_mlkem768`. In case the server does not support the selected algorithm and a HelloRetryRequest message is sent, the client automatically uses another supported algorithm.
+* `ciphersuites`: List of supported ciphersuites to negotiate, separated by a colon (":"). Currently, the following ciphersuites are supported:
+    * `TLS13-AES128-GCM-SHA256`
+    * `TLS13-AES256-GCM-SHA384`
+    * `TLS13-SHA256-SHA256`
+    * `TLS13-SHA384-SHA384`
+    * `TLS13-CHACHA20-POLY1305-SHA256`
+* `key_exchange_alg`: Select the key exchange algorithm to be used for the intial TLS ClientHello message. The default one is the hybrid `secp384_mlkem768`. In case the server does not support the selected algorithm and a HelloRetryRequest message is sent, the client automatically uses another supported algorithm. Currently, the following key exchange algorithms are supported:
+    * Classic: `secp256`, `secp384`, `secp521`, `x25519`, `x448`
+    * PQC: `mlkem512`, `mlkem768`, `mlkem1024`
+    * Hybrid: `secp256_mlkem512`, `secp384_mlkem768`, `secp256_mlkem768`, `secp521_mlkem1024`, `secp384_mlkem1024`, `x25519_mlkem512`, `x448_mlkem768`, `x25519_mlkem768`
 
-Currently, the following key exchange algorithms are supported:
-* Classic: `secp256`, `secp384`, `secp521`, `x25519`, `x448`
-* PQC: `mlkem512`, `mlkem768`, `mlkem1024`
-* Hybrid: `secp256_mlkem512`, `secp384_mlkem768`, `secp256_mlkem768`, `secp521_mlkem1024`, `secp384_mlkem1024`, `x25519_mlkem512`, `x448_mlkem768`, `x25519_mlkem768`
+Furthermore, the application also supports Pre-Shared Keys (PSK) for the TLS connections, either in addition to asymmetric algorithms (key exchange and certificate authentication) or as a replacement (default is in addition). For simultaneous usage of certificates and a PSK for authentication, RFC8773 is implemented.
+
+A PSK can be provided with the `--pre_shared_key` argument. The structure of the argument is `<key_identity>:<base64 key>`. The `key_identity` is used as the identity of the PSK transmitted in the ClientHello message. However, the PSK Importer Interface of RFC9258 is implemented. The base64 encoded key is decoded and then used as is for the importer interface. As an alternative, the `--pre_shared_key` argument may also be given a file path. In this file, the same structure for the PSK must be used to store the PSK with its identity. The two options `--psk_no_cert_auth` and `--psk_no_kex` disable either functionality during the handshake.
+
+Finally, PSKs on PKCS#11 tokens are supported as well. For that, instead of the actual base64 key, the identifier `pkcs11` is used within the provided argument. The provided key_identity is then used as the PKCS#11 label to find the object on the token.
+
+All of the presented arguments are also available as extended `in_` and `out_` versions to also support TLS-TLS proxy configurations.
 
 ### Keylog-File support
 
 To decrypt recorded TLS traffic, e.g. with Wireshark, the tools supports the creation of a keylog-file. With the argument `--keylog_file`, you can provide a path to a keylog-file. In case the file doesn't exist, it is created.
+
+Alternatively, if the `--keylog_file` argument is not provided, the application also reads the `SSLKEYLOGFILE` environment variable on Linux systems. When this variable points to a file, it is used as the keylog-file.
 
 
 ### Network Tester options
@@ -126,6 +152,7 @@ The following arguments are available to configure the test:
 * `--test_message_delay`: Delay in microseconds inbetween two messages. Default 0.
 * `--test_message_size`: Size of the message in bytes. Default 1.
 * `--test_output_path`: Path where to store the CSV files. If this argument is omitted, no CSVs are created.
+* `--test_name`: Name of the test. Used in CSV output file names as a prefix to "handshake_time" or "message_latency".
 * `--test_no_tls`: Disable TLS and only use TCP for the two measurement types.
 * `--test_silent`: Do not print test progress, even when verbose output is enabled.
 
@@ -146,20 +173,20 @@ The startup parameters for the management client are specified in the `configfil
 
 #### TLS echo server
 ```bash
-kritis3m_tls echo_server --incoming 4433 --cert /path/to/chain.pem \
+kritis3m_tls echo_server --incoming tls://4433 --cert /path/to/chain.pem \
                          --key /path/to/key.pem --root /path/to/root.pem
 ```
 
 #### TLS echo server without mutual authentication
 ```bash
-kritis3m_tls echo_server --incoming 4433 --cert /path/to/chain.pem \
+kritis3m_tls echo_server --incoming tls://4433 --cert /path/to/chain.pem \
                          --key /path/to/key.pem --no_mutual_auth
 ```
 Root certificate is omitted as no peer authentication takes place.
 
 #### TLS echo server with private key on PKCS#11 token
 ```bash
-kritis3m_tls echo_server --incoming 4433 --root /path/to/root.pem \
+kritis3m_tls echo_server --incoming tls://4433 --root /path/to/root.pem \
                          --cert /path/to/chain.pem --key pkcs11:KEY_LABEL \
                          --pkcs11_module /path/to/library.so
 ```
@@ -167,36 +194,46 @@ This assumes that on the PKCS#11 token the private key for the certificate is al
 
 #### TLS client with mutual authentication to local server
 ```bash
-kritis3m_tls tls_client --outgoing localhost:4433 --cert /path/to/chain.pem \
+kritis3m_tls tls_client --outgoing tls://localhost:4433 --cert /path/to/chain.pem \
                         --key /path/to/key.pem --root /path/to/root.pem
 ```
 
 #### TLS client without mutual authentication to external IPv4 server
 ```bash
-kritis3m_tls tls_client --outgoing 192.168.0.10:4433 --root /path/to/root.pem
+kritis3m_tls tls_client --outgoing tls://192.168.0.10:4433 --root /path/to/root.pem
 ```
 
 #### TLS client without mutual authentication to external IPv6 server
 ```bash
-kritis3m_tls tls_client --outgoing [2001:0db8:85a3:0000:0000:8a2e:0370:7334]:4433 \
+kritis3m_tls tls_client --outgoing tls://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:4433 \
                         --root /path/to/root.pem
 ```
 
 #### Forward Proxy
 ```bash
-kritis3m_tls forward_proxy --incoming 8080 --outgoing 192.168.0.10:4433 \
-                           --cert /path/to/chain.pem --key /path/to/key.pem \
-                           --root /path/to/root.pem
+kritis3m_tls proxy --incoming tcp://8080 --outgoing tls://192.168.0.10:4433 \
+                   --cert /path/to/chain.pem --key /path/to/key.pem \
+                   --root /path/to/root.pem
 ```
 Wait for incoming TCP connections on port 8080. When a TCP connection is established, a TLS connection is established to the remote host at 192.168.0.10 on port 4433. After both connections are up, all messages in both directions are forwarded to the other peer.
 
 #### Reverse Proxy
 ```bash
-kritis3m_tls reverse_proxy --incoming 4433 --outgoing 192.168.0.10:8080 \
-                           --cert /path/to/chain.pem --key /path/to/key.pem \
-                           --root /path/to/root.pem
+kritis3m_tls proxy --incoming tls://4433 --outgoing tcp://192.168.0.10:8080 \
+                   --cert /path/to/chain.pem --key /path/to/key.pem \
+                   --root /path/to/root.pem
 ```
 Wait for incoming TLS connections on port 4433. When a TLS connection is established with a trusted peer, a TCP connection is established to the remote host at 192.168.0.10 on port 4433. After both connections are up, all messages in both directions are forwarded to the other peer.
+
+#### TLS-TLS Proxy
+```bash
+kritis3m_tls proxy --incoming tls://4433 --outgoing tls://192.168.0.10:4433 \
+                   --in_cert /path/to/chain1.pem --in_key /path/to/key1.pem \
+                   --in_root /path/to/root1.pem \
+                   --out_cert /path/to/chain2.pem --out_key /path/to/key2.pem \
+                   --out_root /path/to/root2.pem
+```
+Wait for incoming TLS connections on port 4433. When a TLS connection is established with a trusted peer (using identity 1 for authentication), a TLS connection is established to the remote host at 192.168.0.10 on port 4433 (using identity 2 for authentication). After both connections are up, all messages in both directions are forwarded to the other peer.
 
 #### Network Tester
 ```bash

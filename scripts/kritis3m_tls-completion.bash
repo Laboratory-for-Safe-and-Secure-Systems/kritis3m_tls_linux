@@ -101,7 +101,7 @@ _kritis3m_tls_completions() {
         opts_files="--cert --key --intermediate --root --additional_key --pkcs11_module --keylog_file --pre_shared_key --qkd_cert \
                         --qkd_root --qkd_key --qkd_psk \
                         --in_cert --in_key --in_intermediate --in_root --in_additional_key --in_pkcs11_module --in_keylog_file --in_pre_shared_key \
-                        --_out_cert --_out_key --_out_intermediate --_out_root --_out_additional_key --_out_pkcs11_module --_out_keylog_file --_out_pre_shared_key"
+                        --out_cert --out_key --out_intermediate --out_root --out_additional_key --out_pkcs11_module --out_keylog_file --out_pre_shared_key"
         opts_security="--no_mutual_auth --ciphersuites --key_exchange_alg --psk_no_kex --psk_no_cert_auth --psk_pre_extracted \
                         --pkcs11_pin --pkcs11_slot_id --pkcs11_crypto_all --qkd_node --qkd_own_sae_id --qkd_remote_sae_id \
                         --in_no_mutual_auth --in_ciphersuites --in_key_exchange_alg --in_psk_no_kex --in_psk_no_cert_auth --in_psk_pre_extracted \

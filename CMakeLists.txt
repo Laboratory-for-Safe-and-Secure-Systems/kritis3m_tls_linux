@@ -76,6 +76,7 @@ FetchContent_Declare(kritis3m_applications
         GIT_PROGRESS            TRUE
         USES_TERMINAL_DOWNLOAD  TRUE
 )
+set(ENABLE_QUEST_LIB ON)
 FetchContent_GetProperties(kritis3m_applications)
 if(NOT kritis3m_applications_POPULATED)
         FetchContent_Populate(kritis3m_applications)
